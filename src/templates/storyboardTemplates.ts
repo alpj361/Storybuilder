@@ -12,8 +12,8 @@ import {
  */
 export const STYLE_TEMPLATES = {
   [StoryboardStyle.ROUGH_SKETCH]: {
-    prefix: "Rough pencil sketch storyboard drawing, loose lines, sketchy style, black and white,",
-    suffix: ", storyboard panel, concept art style, unfinished sketch look, hand-drawn appearance"
+    prefix: "Rough pencil sketch storyboard drawing, loose gestural lines, sketchy style, black and white, draft quality, quick sketch, hand-drawn appearance, minimal shading, rough outlines, concept art style,",
+    suffix: ", storyboard panel, unfinished sketch look, draft drawing, rough concept, line art, gestural drawing, loose composition, storyboard draft"
   },
   [StoryboardStyle.PENCIL_DRAWING]: {
     prefix: "Detailed pencil drawing storyboard, clean lines, shaded, black and white,",

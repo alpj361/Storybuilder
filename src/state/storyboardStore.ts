@@ -9,6 +9,7 @@ import {
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
 import { generateAllPanelPrompts } from "../templates/storyboardTemplates";
+import { generateDraftStoryboardImage } from "../api/stable-diffusion";
 
 interface StoryboardState {
   // Current project state
@@ -32,6 +33,8 @@ interface StoryboardState {
   setCurrentProject: (project: StoryboardProject | null) => void;
   regeneratePanel: (panelId: string) => Promise<void>;
   regenerateAllPanels: () => Promise<void>;
+  generatePanelImage: (panelId: string) => Promise<void>;
+  generateAllPanelImages: () => Promise<void>;
   saveProject: () => Promise<void>;
   loadProject: (projectId: string) => void;
   setError: (error: string | null) => void;
@@ -245,6 +248,98 @@ export const useStoryboardStore = create<StoryboardState>()(
         } catch (error) {
           set({ 
             error: error instanceof Error ? error.message : "Failed to regenerate panels",
+            isGenerating: false 
+          });
+        }
+      },
+
+      // Generate image for a specific panel
+      generatePanelImage: async (panelId: string) => {
+        const state = get();
+        if (!state.currentProject) return;
+
+        const panel = state.currentProject.panels.find(p => p.id === panelId);
+        if (!panel) return;
+
+        // Set panel as generating
+        get().updatePanel(panelId, { isGenerating: true });
+
+        try {
+          const imageUrl = await generateDraftStoryboardImage(panel.prompt.generatedPrompt);
+          
+          // Update panel with generated image
+          get().updatePanel(panelId, {
+            generatedImageUrl: imageUrl,
+            isGenerating: false,
+            lastGenerated: new Date()
+          });
+        } catch (error) {
+          console.error("Panel image generation error:", error);
+          get().updatePanel(panelId, { 
+            isGenerating: false 
+          });
+          set({ 
+            error: error instanceof Error ? error.message : "Failed to generate panel image"
+          });
+        }
+      },
+
+      // Generate images for all panels
+      generateAllPanelImages: async () => {
+        const state = get();
+        if (!state.currentProject) return;
+
+        set({ isGenerating: true });
+
+        try {
+          // Generate images for all panels in parallel
+          const imagePromises = state.currentProject.panels.map(async (panel) => {
+            try {
+              const imageUrl = await generateDraftStoryboardImage(panel.prompt.generatedPrompt);
+              return { panelId: panel.id, imageUrl };
+            } catch (error) {
+              console.error(`Failed to generate image for panel ${panel.id}:`, error);
+              return { panelId: panel.id, imageUrl: null, error };
+            }
+          });
+
+          const results = await Promise.all(imagePromises);
+
+          // Update panels with generated images
+          const updatedPanels = state.currentProject.panels.map(panel => {
+            const result = results.find(r => r.panelId === panel.id);
+            return {
+              ...panel,
+              generatedImageUrl: result?.imageUrl || undefined,
+              isGenerating: false,
+              lastGenerated: result?.imageUrl ? new Date() : undefined
+            };
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          set({
+            currentProject: updatedProject,
+            projects: state.projects.map(p => 
+              p.id === updatedProject.id ? updatedProject : p
+            ),
+            isGenerating: false
+          });
+
+          // Check for any errors
+          const errors = results.filter(r => r.error).map(r => r.error);
+          if (errors.length > 0) {
+            set({ 
+              error: `Failed to generate ${errors.length} panel images`
+            });
+          }
+        } catch (error) {
+          set({ 
+            error: error instanceof Error ? error.message : "Failed to generate panel images",
             isGenerating: false 
           });
         }
