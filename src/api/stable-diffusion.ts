@@ -1,0 +1,128 @@
+/**
+ * Stable Diffusion API service for storyboard image generation
+ * Uses the provided API key for generating draft/rough sketch style images
+ */
+
+const STABLE_DIFFUSION_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
+
+export interface StableDiffusionOptions {
+  width?: number;
+  height?: number;
+  steps?: number;
+  seed?: number;
+  cfg_scale?: number;
+  samples?: number;
+  style_preset?: "enhance" | "anime" | "photographic" | "digital-art" | "comic-book" | "fantasy-art" | "line-art" | "analog-film" | "neon-punk" | "isometric" | "low-poly" | "origami" | "modeling-compound" | "cinematic" | "3d-model" | "pixel-art" | "tile-texture";
+  engine?: string;
+}
+
+export interface StableDiffusionResponse {
+  artifacts: Array<{
+    base64: string;
+    seed: number;
+    finishReason: string;
+  }>;
+}
+
+/**
+ * Generate a storyboard image using Stable Diffusion
+ * @param prompt The text prompt for image generation
+ * @param options Generation options
+ * @returns Base64 encoded image data
+ */
+export async function generateStoryboardImage(
+  prompt: string,
+  options: StableDiffusionOptions = {}
+): Promise<string> {
+  const apiKey = "sk-vPIMZInP8snQecyXCCwYwyOuB4h5zE8lUfA31zNGbAojuD6P";
+  
+  // Default options optimized for storyboard/draft style
+  const defaultOptions: StableDiffusionOptions = {
+    width: 1024,
+    height: 1024,
+    steps: 30,
+    cfg_scale: 7,
+    samples: 1,
+    style_preset: "line-art", // Perfect for draft/rough sketch style
+    ...options
+  };
+
+  try {
+    const response = await fetch(STABLE_DIFFUSION_API_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "Accept": "application/json"
+      },
+      body: JSON.stringify({
+        text_prompts: [
+          {
+            text: prompt,
+            weight: 1
+          }
+        ],
+        ...defaultOptions
+      })
+    });
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("[StableDiffusion] Error response:", errorData);
+      throw new Error(`Stable Diffusion API error: ${response.status} ${errorData}`);
+    }
+
+    const result: StableDiffusionResponse = await response.json();
+    
+    if (result.artifacts && result.artifacts.length > 0) {
+      const imageData = result.artifacts[0].base64;
+      console.log("[StableDiffusion] Image generated successfully");
+      return `data:image/png;base64,${imageData}`;
+    } else {
+      throw new Error("No image artifacts returned from Stable Diffusion API");
+    }
+  } catch (error) {
+    console.error("[StableDiffusion] Image generation error:", error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a storyboard image with draft/rough sketch style
+ * @param prompt The storyboard prompt
+ * @returns Base64 encoded image data
+ */
+export async function generateDraftStoryboardImage(prompt: string): Promise<string> {
+  // Enhance prompt for draft/rough sketch style - like the image reference provided
+  const enhancedPrompt = `${prompt}, rough sketch, pencil drawing, storyboard style, loose gestural lines, draft quality, quick sketch, black and white, minimal shading, hand drawn style, concept art, unfinished sketch look, rough outlines, gestural drawing, loose composition, storyboard draft, line art, sketchy style, draft drawing, rough concept`;
+  
+  return generateStoryboardImage(enhancedPrompt, {
+    style_preset: "line-art",
+    steps: 25, // Balanced steps for good quality but sketch-like results
+    cfg_scale: 7, // Good balance for creative but coherent results
+    width: 1024,
+    height: 1024
+  });
+}
+
+/**
+ * Convert base64 image to blob URL for display
+ * @param base64Data Base64 encoded image data
+ * @returns Blob URL for the image
+ */
+export function base64ToBlobUrl(base64Data: string): string {
+  // Remove data URL prefix if present
+  const base64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
+  
+  // Convert base64 to binary
+  const binaryString = atob(base64);
+  const bytes = new Uint8Array(binaryString.length);
+  
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  
+  // Create blob and return URL
+  const blob = new Blob([bytes], { type: 'image/png' });
+  return URL.createObjectURL(blob);
+}

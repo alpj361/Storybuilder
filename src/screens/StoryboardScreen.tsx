@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable } from "react-native";
+import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
@@ -15,6 +15,7 @@ interface StoryboardPanelProps {
 
 const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber }) => {
   const currentProject = useCurrentProject();
+  const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   
   if (!panel) {
     return (
@@ -47,6 +48,16 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
   const scene = currentProject?.scenes.find(s => s.id === panel.prompt.sceneId) || 
     currentProject?.scenes[0];
 
+  const handleGenerateImage = async () => {
+    if (!panel) return;
+    
+    try {
+      await generatePanelImage(panel.id);
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate image for this panel");
+    }
+  };
+
   return (
     <View className="flex-1 bg-white border border-gray-300 rounded-lg m-1 p-4 min-h-[200px]">
       {/* Panel Header */}
@@ -56,6 +67,13 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
           {panel.isGenerating && (
             <Ionicons name="hourglass" size={14} color="#3B82F6" />
           )}
+          <Pressable onPress={handleGenerateImage} disabled={panel.isGenerating}>
+            <Ionicons 
+              name={panel.generatedImageUrl ? "refresh" : "camera"} 
+              size={16} 
+              color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"} 
+            />
+          </Pressable>
           <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
         </View>
       </View>
@@ -70,14 +88,29 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
       )}
       
       {/* Drawing Area */}
-      <View className="flex-1 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center">
+      <View className="flex-1 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center overflow-hidden">
         {panel.generatedImageUrl ? (
-          <Text className="text-gray-600 text-xs">Image will appear here</Text>
+          <Image 
+            source={{ uri: panel.generatedImageUrl }} 
+            className="w-full h-full rounded"
+            resizeMode="cover"
+          />
+        ) : panel.isGenerating ? (
+          <View className="flex-col items-center">
+            <Ionicons name="hourglass" size={32} color="#3B82F6" />
+            <Text className="text-blue-500 text-xs mt-2">Generating image...</Text>
+          </View>
         ) : (
-          <>
+          <View className="flex-col items-center">
             <Ionicons name="image-outline" size={32} color="#9CA3AF" />
             <Text className="text-gray-400 text-xs mt-2">Ready for image generation</Text>
-          </>
+            <Pressable 
+              onPress={handleGenerateImage}
+              className="mt-2 px-3 py-1 bg-blue-500 rounded-full"
+            >
+              <Text className="text-white text-xs font-medium">Generate</Text>
+            </Pressable>
+          </View>
         )}
       </View>
       
@@ -99,6 +132,8 @@ export default function StoryboardScreen() {
   const [showInputModal, setShowInputModal] = useState(false);
   const currentProject = useCurrentProject();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
+  const generateAllPanelImages = useStoryboardStore(state => state.generateAllPanelImages);
+  const isGenerating = useStoryboardStore(state => state.isGenerating);
   
   const handleNewProject = () => {
     setShowInputModal(true);
@@ -106,6 +141,16 @@ export default function StoryboardScreen() {
 
   const handleClearProject = () => {
     clearCurrentProject();
+  };
+
+  const handleGenerateAllImages = async () => {
+    if (!currentProject) return;
+    
+    try {
+      await generateAllPanelImages();
+    } catch (error) {
+      Alert.alert("Error", "Failed to generate images for all panels");
+    }
   };
   
   return (
@@ -120,6 +165,15 @@ export default function StoryboardScreen() {
             </Text>
           </View>
           <View className="flex-row space-x-3">
+            {currentProject && (
+              <Pressable onPress={handleGenerateAllImages} disabled={isGenerating}>
+                <Ionicons 
+                  name="images-outline" 
+                  size={24} 
+                  color={isGenerating ? "#9CA3AF" : "#3B82F6"} 
+                />
+              </Pressable>
+            )}
             <Pressable onPress={handleNewProject}>
               <Ionicons name="add-circle-outline" size={24} color="#3B82F6" />
             </Pressable>
