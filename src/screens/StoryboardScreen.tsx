@@ -195,26 +195,30 @@ export default function StoryboardScreen({
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
 
   useEffect(() => {
-    if (!isArchitectural) {
-      if (currentProject && currentProject.projectType === ProjectType.ARCHITECTURAL) {
+    if (projects.length === 0) return;
+
+    if (isArchitectural) {
+      if (currentProject?.projectType === ProjectType.ARCHITECTURAL) return;
+
+      const architecturalProject = [...projects]
+        .filter(project => project.projectType === ProjectType.ARCHITECTURAL)
+        .pop();
+
+      if (architecturalProject && architecturalProject.id !== currentProject?.id) {
+        setCurrentProject(architecturalProject);
+      }
+    } else {
+      if (!currentProject || currentProject.projectType === ProjectType.ARCHITECTURAL) {
         const storyboardProject = [...projects]
           .filter(project => project.projectType !== ProjectType.ARCHITECTURAL)
           .pop();
-        if (storyboardProject) {
+
+        if (storyboardProject && storyboardProject.id !== currentProject?.id) {
           setCurrentProject(storyboardProject);
         }
       }
-    } else {
-      if (!currentProject || currentProject.projectType !== ProjectType.ARCHITECTURAL) {
-        const architecturalProject = [...projects]
-          .filter(project => project.projectType === ProjectType.ARCHITECTURAL)
-          .pop();
-        if (architecturalProject) {
-          setCurrentProject(architecturalProject);
-        }
-      }
     }
-  }, [currentProject, projects, isArchitectural, setCurrentProject]);
+  }, [isArchitectural, currentProject?.id, currentProject?.projectType, projects, setCurrentProject]);
 
   const activeProject = useMemo(() => {
     if (!currentProject) return null;
