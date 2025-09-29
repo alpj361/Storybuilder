@@ -7,7 +7,8 @@ import {
   StoryboardStyle, 
   CompositionType, 
   PanelType,
-  PromptGenerationResult 
+  PromptGenerationResult,
+  ProjectType 
 } from "../types/storyboard";
 import { v4 as uuidv4 } from "uuid";
 
@@ -45,7 +46,8 @@ export async function parseUserInput(input: string): Promise<PromptGenerationRes
         targetAudience,
         genre,
         aspectRatio: "1:1"
-      }
+      },
+      projectType: ProjectType.STORYBOARD
     };
 
     const processingTime = Date.now() - startTime;

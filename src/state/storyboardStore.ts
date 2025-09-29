@@ -4,11 +4,16 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import { 
   StoryboardProject, 
   StoryboardPanel, 
+  StoryboardPrompt,
   StoryboardStyle,
-  GenerationOptions 
+  GenerationOptions,
+  ProjectType,
+  ArchitecturalMetadata
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
 import { generateAllPanelPrompts, applyAudienceTemplate, AUDIENCE_TEMPLATES } from "../templates/storyboardTemplates";
+import { parseArchitecturalInput } from "../services/architecturalParser";
+import { generateArchitecturalPanelPrompts, mergeArchitecturalMetadata, getDefaultArchitecturalMetadata } from "../templates/architecturalTemplates";
 import { generateDraftStoryboardImage } from "../api/stable-diffusion";
 import { v4 as uuidv4 } from "uuid";
 
@@ -28,7 +33,9 @@ interface StoryboardState {
   
   // Actions
   createProjectFromInput: (input: string) => Promise<void>;
+  createArchitecturalProjectFromInput: (input: string) => Promise<void>;
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
+  appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   deleteProject: (projectId: string) => void;
@@ -100,7 +107,8 @@ export const useStoryboardStore = create<StoryboardState>()(
             const finalProject: StoryboardProject = {
               ...result.project,
               panels: finalPanels,
-              style: audienceStyle
+              style: audienceStyle,
+              projectType: ProjectType.STORYBOARD
             };
 
             set(state => ({
@@ -122,10 +130,70 @@ export const useStoryboardStore = create<StoryboardState>()(
         }
       },
 
+      // Create a new architectural project from natural language input
+      createArchitecturalProjectFromInput: async (input: string) => {
+        set({ isGenerating: true, error: null });
+
+        try {
+          const result = await parseArchitecturalInput(input);
+
+          if (result.success) {
+            const metadata = result.project.architecturalMetadata ?? getDefaultArchitecturalMetadata();
+            const prompts = generateArchitecturalPanelPrompts(
+              result.project.panels.map(panel => ({
+                ...panel.prompt,
+                components: panel.prompt.components ?? metadata.components,
+                materials: panel.prompt.materials ?? metadata.materials,
+                dimensions: panel.prompt.dimensions ?? metadata.dimensions,
+                annotations: panel.prompt.annotations ?? metadata.annotations,
+                unitSystem: panel.prompt.unitSystem ?? metadata.unitSystem,
+                scale: panel.prompt.scale ?? metadata.scale,
+                standards: panel.prompt.standards ?? metadata.standards
+              })),
+              metadata
+            );
+
+            const finalPanels = result.project.panels.map((panel, index) => ({
+              ...panel,
+              prompt: prompts[index],
+              detailLevel: panel.detailLevel
+            }));
+
+            const finalProject: StoryboardProject = {
+              ...result.project,
+              panels: finalPanels,
+              architecturalMetadata: metadata,
+              projectType: ProjectType.ARCHITECTURAL,
+              style: StoryboardStyle.CLEAN_LINES
+            };
+
+            set(state => ({
+              currentProject: finalProject,
+              projects: [...state.projects, finalProject],
+              isGenerating: false
+            }));
+          } else {
+            set({
+              error: result.errors?.join(", ") || "Failed to generate architectural storyboard",
+              isGenerating: false
+            });
+          }
+        } catch (error) {
+          set({
+            error: error instanceof Error ? error.message : "Unknown error occurred",
+            isGenerating: false
+          });
+        }
+      },
+
       // Append new panels derived from user input to the current project
       appendPanelsFromInput: async (input: string, options?: { count?: number }) => {
         const state = get();
         if (!state.currentProject) return;
+        if (state.currentProject.projectType === ProjectType.ARCHITECTURAL) {
+          set({ isGenerating: false });
+          return;
+        }
         set({ isGenerating: true, error: null });
 
         try {
@@ -180,6 +248,72 @@ export const useStoryboardStore = create<StoryboardState>()(
           });
         } catch (error) {
           set({ error: error instanceof Error ? error.message : "Failed to append panels", isGenerating: false });
+        }
+      },
+
+      // Append architectural panels to the current architectural project
+      appendArchitecturalPanelsFromInput: async (input: string, options?: { count?: number }) => {
+        const state = get();
+        const currentProject = state.currentProject;
+        if (!currentProject || currentProject.projectType !== ProjectType.ARCHITECTURAL) {
+          set({ error: "No architectural project selected", isGenerating: false });
+          return;
+        }
+
+        set({ isGenerating: true, error: null });
+
+        try {
+          const result = await parseArchitecturalInput(input);
+          if (!result.success) {
+            set({ error: result.errors?.join(", ") || "Failed to parse architectural input", isGenerating: false });
+            return;
+          }
+
+          const requestedCount = Math.max(1, options?.count || result.project.panels.length || 1);
+          const newPanelsSource = result.project.panels.slice(0, requestedCount);
+          const mergedMetadata: ArchitecturalMetadata = mergeArchitecturalMetadata(
+            currentProject.architecturalMetadata,
+            result.project.architecturalMetadata ?? getDefaultArchitecturalMetadata()
+          );
+
+          const generatedPrompts = generateArchitecturalPanelPrompts(
+            newPanelsSource.map(panel => ({
+              ...panel.prompt,
+              components: panel.prompt.components ?? mergedMetadata.components,
+              materials: panel.prompt.materials ?? mergedMetadata.materials,
+              dimensions: panel.prompt.dimensions ?? mergedMetadata.dimensions,
+              annotations: panel.prompt.annotations ?? mergedMetadata.annotations,
+              unitSystem: mergedMetadata.unitSystem,
+              scale: mergedMetadata.scale,
+              standards: mergedMetadata.standards
+            })),
+            mergedMetadata
+          );
+
+          const startIndex = currentProject.panels.length;
+          const panelsToAppend: StoryboardPanel[] = generatedPrompts.map((prompt, idx) => ({
+            id: uuidv4(),
+            panelNumber: startIndex + idx + 1,
+            prompt,
+            isGenerating: false,
+            isEdited: false,
+            detailLevel: newPanelsSource[idx]?.detailLevel
+          }));
+
+          const updatedProject: StoryboardProject = {
+            ...currentProject,
+            panels: [...currentProject.panels, ...panelsToAppend],
+            architecturalMetadata: mergedMetadata,
+            updatedAt: new Date()
+          };
+
+          set({
+            currentProject: updatedProject,
+            projects: state.projects.map(p => (p.id === updatedProject.id ? updatedProject : p)),
+            isGenerating: false
+          });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : "Failed to append architectural panels", isGenerating: false });
         }
       },
 
@@ -253,16 +387,33 @@ export const useStoryboardStore = create<StoryboardState>()(
           const panel = state.currentProject.panels.find(p => p.id === panelId);
           if (!panel) return;
 
-          // Regenerate the prompt using templates
-          const enhancedPrompts = generateAllPanelPrompts(
-            [panel.prompt],
-            state.currentProject.characters,
-            state.currentProject.scenes
-          );
+          let updatedPrompt: StoryboardPrompt[];
+
+          if (state.currentProject.projectType === ProjectType.ARCHITECTURAL) {
+            const metadata = state.currentProject.architecturalMetadata ?? getDefaultArchitecturalMetadata();
+            updatedPrompt = generateArchitecturalPanelPrompts([
+              {
+                ...panel.prompt,
+                components: panel.prompt.components ?? metadata.components,
+                materials: panel.prompt.materials ?? metadata.materials,
+                dimensions: panel.prompt.dimensions ?? metadata.dimensions,
+                annotations: panel.prompt.annotations ?? metadata.annotations,
+                unitSystem: metadata.unitSystem,
+                scale: metadata.scale,
+                standards: metadata.standards
+              }
+            ], metadata);
+          } else {
+            updatedPrompt = generateAllPanelPrompts(
+              [panel.prompt],
+              state.currentProject.characters,
+              state.currentProject.scenes
+            );
+          }
 
           const updatedPanel: StoryboardPanel = {
             ...panel,
-            prompt: enhancedPrompts[0],
+            prompt: updatedPrompt[0],
             isEdited: false,
             generatedImageUrl: undefined // Clear previous image
           };
@@ -285,11 +436,30 @@ export const useStoryboardStore = create<StoryboardState>()(
         set({ isGenerating: true });
 
         try {
-          const enhancedPrompts = generateAllPanelPrompts(
-            state.currentProject.panels.map(p => p.prompt),
-            state.currentProject.characters,
-            state.currentProject.scenes
-          );
+          let enhancedPrompts: StoryboardPrompt[];
+
+          if (state.currentProject.projectType === ProjectType.ARCHITECTURAL) {
+            const metadata = state.currentProject.architecturalMetadata ?? getDefaultArchitecturalMetadata();
+            enhancedPrompts = generateArchitecturalPanelPrompts(
+              state.currentProject.panels.map(panel => ({
+                ...panel.prompt,
+                components: panel.prompt.components ?? metadata.components,
+                materials: panel.prompt.materials ?? metadata.materials,
+                dimensions: panel.prompt.dimensions ?? metadata.dimensions,
+                annotations: panel.prompt.annotations ?? metadata.annotations,
+                unitSystem: metadata.unitSystem,
+                scale: metadata.scale,
+                standards: metadata.standards
+              })),
+              metadata
+            );
+          } else {
+            enhancedPrompts = generateAllPanelPrompts(
+              state.currentProject.panels.map(p => p.prompt),
+              state.currentProject.characters,
+              state.currentProject.scenes
+            );
+          }
 
           const updatedPanels = state.currentProject.panels.map((panel, index) => ({
             ...panel,

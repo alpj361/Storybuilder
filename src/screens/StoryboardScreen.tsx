@@ -1,21 +1,35 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
-import { StoryboardPanel as StoryboardPanelType } from "../types/storyboard";
+import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
+import { StoryboardPanel as StoryboardPanelType, ProjectType } from "../types/storyboard";
 import StoryboardInputModal from "../components/StoryboardInputModal";
 import PromptPreview from "../components/PromptPreview";
 import CharacterTag from "../components/CharacterTag";
 
+const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
+  <View
+    className={
+      tone === "blue"
+        ? "px-2 py-1 bg-blue-100 rounded-full mr-1 mb-1"
+        : "px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1"
+    }
+  >
+    <Text className={tone === "blue" ? "text-blue-700 text-xs" : "text-gray-600 text-xs"}>{label}</Text>
+  </View>
+);
+
 interface StoryboardPanelProps {
   panel?: StoryboardPanelType;
   panelNumber: number;
+  mode: "storyboard" | "architectural";
 }
 
-const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber }) => {
+const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
+  const isArchitectural = mode === "architectural";
   
   if (!panel) {
     return (
@@ -29,7 +43,9 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
         {/* Drawing Area */}
         <View className="flex-1 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center">
           <Ionicons name="camera-outline" size={32} color="#9CA3AF" />
-          <Text className="text-gray-400 text-xs mt-2">Generate storyboard first</Text>
+          <Text className="text-gray-400 text-xs mt-2">
+            {isArchitectural ? "Generate detail first" : "Generate storyboard first"}
+          </Text>
         </View>
         
         {/* Notes Section */}
@@ -41,9 +57,15 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
     );
   }
 
-  const panelCharacters = currentProject?.characters.filter(char => 
-    panel.prompt.characters.includes(char.id)
-  ) || [];
+  const panelCharacters = isArchitectural
+    ? []
+    : currentProject?.characters.filter(char => panel.prompt.characters.includes(char.id)) || [];
+
+  const architecturalMetadata = currentProject?.architecturalMetadata;
+  const panelComponents = Array.from(new Set(panel.prompt.components || architecturalMetadata?.components || []));
+  const panelView = panel.prompt.viewType;
+  const panelScale = panel.prompt.scale || architecturalMetadata?.scale;
+  const panelDetail = panel.prompt.detailLevel;
 
   const scene = currentProject?.scenes.find(s => s.id === panel.prompt.sceneId) || 
     currentProject?.scenes[0];
@@ -78,13 +100,24 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
         </View>
       </View>
       
-      {/* Character Tags */}
-      {panelCharacters.length > 0 && (
-        <View className="flex-row flex-wrap gap-1 mb-3">
-          {panelCharacters.map(character => (
-            <CharacterTag key={character.id} character={character} size="small" />
+      {/* Tags */}
+      {isArchitectural ? (
+        <View className="flex-row flex-wrap mb-3">
+          {panelView && <Chip label={panelView.replace(/_/g, " ")} />}
+          {panelDetail && <Chip label={panelDetail.replace(/_/g, " ")} tone="gray" />}
+          {panelScale && <Chip label={`Scale ${panelScale}`} tone="gray" />}
+          {panelComponents.map(component => (
+            <Chip key={component} label={component} tone="gray" />
           ))}
         </View>
+      ) : (
+        panelCharacters.length > 0 && (
+          <View className="flex-row flex-wrap gap-1 mb-3">
+            {panelCharacters.map(character => (
+              <CharacterTag key={character.id} character={character} size="small" />
+            ))}
+          </View>
+        )
       )}
       
       {/* Drawing Area */}
@@ -121,6 +154,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
             prompt={panel.prompt}
             characters={panelCharacters}
             scene={scene}
+            mode={mode}
+            metadata={architecturalMetadata}
           />
         </View>
       )}
@@ -130,12 +165,46 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
 
 export default function StoryboardScreen(props: any) {
   const title: string = props?.title ?? "Storyboard";
+  const mode: "storyboard" | "architectural" = props?.mode ?? "storyboard";
+  const isArchitectural = mode === "architectural";
   const [showInputModal, setShowInputModal] = useState(false);
   const currentProject = useCurrentProject();
+  const projects = useProjects();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
   const generateAllPanelImages = useStoryboardStore(state => state.generateAllPanelImages);
   const isGenerating = useStoryboardStore(state => state.isGenerating);
-  
+  const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
+
+  useEffect(() => {
+    if (!isArchitectural) {
+      if (currentProject && currentProject.projectType === ProjectType.ARCHITECTURAL) {
+        const storyboardProject = [...projects]
+          .filter(project => project.projectType !== ProjectType.ARCHITECTURAL)
+          .pop();
+        if (storyboardProject) {
+          setCurrentProject(storyboardProject);
+        }
+      }
+    } else {
+      if (!currentProject || currentProject.projectType !== ProjectType.ARCHITECTURAL) {
+        const architecturalProject = [...projects]
+          .filter(project => project.projectType === ProjectType.ARCHITECTURAL)
+          .pop();
+        if (architecturalProject) {
+          setCurrentProject(architecturalProject);
+        }
+      }
+    }
+  }, [currentProject, projects, isArchitectural, setCurrentProject]);
+
+  const activeProject = useMemo(() => {
+    if (!currentProject) return null;
+    if (isArchitectural) {
+      return currentProject.projectType === ProjectType.ARCHITECTURAL ? currentProject : null;
+    }
+    return currentProject.projectType === ProjectType.ARCHITECTURAL ? null : currentProject;
+  }, [currentProject, isArchitectural]);
+
   const handleNewProject = () => {
     setShowInputModal(true);
   };
@@ -145,15 +214,32 @@ export default function StoryboardScreen(props: any) {
   };
 
   const handleGenerateAllImages = async () => {
-    if (!currentProject) return;
-    
+    if (!activeProject) return;
+
     try {
       await generateAllPanelImages();
     } catch (error) {
       Alert.alert("Error", "Failed to generate images for all panels");
     }
   };
-  
+
+  const buttonLabel = isArchitectural
+    ? activeProject
+      ? "Generate New Detail Set"
+      : "Create Your First Detail"
+    : activeProject
+      ? "Generate New Storyboard"
+      : "Create Your First Storyboard";
+
+  const displayPanels = useMemo(() => {
+    if (activeProject?.panels?.length) return activeProject.panels;
+    const placeholderCount = isArchitectural ? 2 : 4;
+    return new Array(placeholderCount).fill(undefined);
+  }, [activeProject?.panels, isArchitectural]);
+
+  const architecturalMetadata = activeProject?.architecturalMetadata;
+  const showArchitecturalMetadata = isArchitectural && architecturalMetadata;
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
@@ -162,11 +248,11 @@ export default function StoryboardScreen(props: any) {
           <View>
             <Text className="text-xl font-bold text-gray-900">{title}</Text>
             <Text className="text-sm text-gray-500">
-              {currentProject?.title || "No Project"}
+              {activeProject?.title || "No Project"}
             </Text>
           </View>
           <View className="flex-row space-x-3">
-            {currentProject && (
+            {activeProject && (
               <Pressable onPress={handleGenerateAllImages} disabled={isGenerating}>
                 <Ionicons 
                   name="images-outline" 
@@ -178,7 +264,7 @@ export default function StoryboardScreen(props: any) {
             <Pressable onPress={handleNewProject}>
               <Ionicons name="add-circle-outline" size={24} color="#3B82F6" />
             </Pressable>
-            {currentProject && (
+            {activeProject && (
               <Pressable onPress={handleClearProject}>
                 <Ionicons name="trash-outline" size={24} color="#6B7280" />
               </Pressable>
@@ -190,17 +276,62 @@ export default function StoryboardScreen(props: any) {
 
       <ScrollView className="flex-1 p-4">
         {/* Project Info */}
-        {currentProject && (
+        {activeProject && (
           <View className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
             <Text className="text-sm font-semibold text-gray-700 mb-1">Project Description</Text>
-            <Text className="text-sm text-gray-600 mb-3">{currentProject.description}</Text>
-            
-            {currentProject.characters.length > 0 && (
-              <View className="flex-row flex-wrap gap-1">
-                {currentProject.characters.map(character => (
-                  <CharacterTag key={character.id} character={character} size="medium" />
-                ))}
+            <Text className="text-sm text-gray-600 mb-3">{activeProject.description}</Text>
+
+            {showArchitecturalMetadata ? (
+              <View>
+                <View className="flex-row flex-wrap mb-2">
+                  {architecturalMetadata?.scale && (
+                    <Chip label={`Scale ${architecturalMetadata.scale}`} tone="gray" />
+                  )}
+                  <Chip
+                    label={`${(architecturalMetadata?.unitSystem || "metric").toUpperCase()} units`}
+                    tone="gray"
+                  />
+                  {architecturalMetadata?.standards?.map(standard => (
+                    <Chip key={standard} label={standard} />
+                  ))}
+                </View>
+                {architecturalMetadata?.components?.length ? (
+                  <View className="mb-2">
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Components</Text>
+                    <View className="flex-row flex-wrap">
+                      {architecturalMetadata.components.map(component => (
+                        <Chip key={component} label={component} tone="gray" />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                {architecturalMetadata?.materials?.length ? (
+                  <View className="mb-2">
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Materials</Text>
+                    <View className="flex-row flex-wrap">
+                      {architecturalMetadata.materials.map(material => (
+                        <Chip key={material} label={material} tone="gray" />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                {architecturalMetadata?.dimensions?.length ? (
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Key Dimensions</Text>
+                    {architecturalMetadata.dimensions.map(dimension => (
+                      <Text key={dimension} className="text-xs text-gray-500 mb-0.5">• {dimension}</Text>
+                    ))}
+                  </View>
+                ) : null}
               </View>
+            ) : (
+              activeProject.characters.length > 0 && (
+                <View className="flex-row flex-wrap gap-1">
+                  {activeProject.characters.map(character => (
+                    <CharacterTag key={character.id} character={character} size="medium" />
+                  ))}
+                </View>
+              )
             )}
           </View>
         )}
@@ -208,11 +339,12 @@ export default function StoryboardScreen(props: any) {
         {/* Panels Grid (dynamic) */}
         <View className="flex-1">
           <View className="flex-row flex-wrap -mx-1">
-            {(currentProject?.panels?.length ? currentProject.panels : [undefined, undefined, undefined, undefined]).map((panel, idx) => (
+            {displayPanels.map((panel: StoryboardPanelType | undefined, idx: number) => (
               <View key={panel ? panel.id : `placeholder-${idx}`} className="w-1/2 px-1 mb-2">
                 <StoryboardPanel 
-                  panel={panel as any}
+                  panel={panel}
                   panelNumber={idx + 1}
+                  mode={mode}
                 />
               </View>
             ))}
@@ -226,12 +358,12 @@ export default function StoryboardScreen(props: any) {
         >
           <View className="flex-row justify-center items-center">
             <Ionicons 
-              name={currentProject ? "refresh" : "add"} 
+              name={activeProject ? "refresh" : "add"} 
               size={20} 
               color="#3B82F6" 
             />
             <Text className="ml-2 text-blue-500 font-medium">
-              {currentProject ? "Generate New Storyboard" : "Create Your First Storyboard"}
+              {buttonLabel}
             </Text>
           </View>
         </Pressable>
@@ -241,6 +373,8 @@ export default function StoryboardScreen(props: any) {
       <StoryboardInputModal 
         visible={showInputModal}
         onClose={() => setShowInputModal(false)}
+        mode={mode}
+        hasCurrentProject={!!activeProject}
       />
     </SafeAreaView>
   );

@@ -6,6 +6,49 @@ export enum StoryboardStyle {
   COMIC_STYLE = "comic_style"
 }
 
+export enum ProjectType {
+  STORYBOARD = "storyboard",
+  ARCHITECTURAL = "architectural"
+}
+
+export enum ArchitecturalViewType {
+  SECTION = "section",
+  PLAN = "plan",
+  ELEVATION = "elevation",
+  DETAIL = "detail",
+  ISOMETRIC = "isometric",
+  AXONOMETRIC = "axonometric",
+  EXPLODED = "exploded",
+  LEGEND = "legend"
+}
+
+export enum ArchitecturalDetailLevel {
+  OVERVIEW = "overview",
+  REINFORCEMENT = "reinforcement",
+  CONNECTION = "connection",
+  NOTES = "notes",
+  EXPLODED = "exploded",
+  LEGEND = "legend"
+}
+
+export type UnitSystem = "metric" | "imperial";
+
+export interface ArchitecturalMetadata {
+  unitSystem: UnitSystem;
+  primaryView: ArchitecturalViewType;
+  secondaryView?: ArchitecturalViewType;
+  scale: string;
+  standards: string[];
+  drawingStyle: string;
+  components: string[];
+  materials: string[];
+  dimensions: string[];
+  annotations: string[];
+  reinforcementNotes?: string[];
+  generalNotes?: string[];
+  detailLevels?: ArchitecturalDetailLevel[];
+}
+
 export enum CompositionType {
   EXTREME_WIDE = "extreme_wide",
   WIDE_SHOT = "wide_shot", 
@@ -72,6 +115,19 @@ export interface StoryboardPrompt {
   visualNotes?: string;
   generatedPrompt: string; // Final AI-ready prompt
   style: StoryboardStyle;
+  // Architectural extensions
+  viewType?: ArchitecturalViewType;
+  detailLevel?: ArchitecturalDetailLevel;
+  components?: string[];
+  materials?: string[];
+  dimensions?: string[];
+  annotations?: string[];
+  scale?: string;
+  unitSystem?: UnitSystem;
+  standards?: string[];
+  drawingConventions?: string[];
+  legendItems?: string[];
+  metadataNotes?: string[];
 }
 
 export interface StoryboardPanel {
@@ -83,6 +139,7 @@ export interface StoryboardPanel {
   lastGenerated?: Date;
   userNotes?: string;
   isEdited: boolean;
+  detailLevel?: ArchitecturalDetailLevel;
 }
 
 export interface StoryboardProject {
@@ -103,6 +160,8 @@ export interface StoryboardProject {
     duration?: number; // estimated seconds if animated
     aspectRatio: "1:1" | "16:9" | "4:3" | "3:2";
   };
+  projectType?: ProjectType;
+  architecturalMetadata?: ArchitecturalMetadata;
 }
 
 export interface GenerationOptions {
