@@ -3,7 +3,11 @@ import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
-import { StoryboardPanel as StoryboardPanelType, ProjectType } from "../types/storyboard";
+import {
+  StoryboardPanel as StoryboardPanelType,
+  ProjectType,
+  ArchitecturalProjectKind
+} from "../types/storyboard";
 import StoryboardInputModal from "../components/StoryboardInputModal";
 import PromptPreview from "../components/PromptPreview";
 import CharacterTag from "../components/CharacterTag";
@@ -106,8 +110,12 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           {panelView && <Chip label={panelView.replace(/_/g, " ")} />}
           {panelDetail && <Chip label={panelDetail.replace(/_/g, " ")} tone="gray" />}
           {panelScale && <Chip label={`Scale ${panelScale}`} tone="gray" />}
+          {panel.prompt.planLevel && <Chip label={panel.prompt.planLevel} tone="gray" />}
           {panelComponents.map(component => (
             <Chip key={component} label={component} tone="gray" />
+          ))}
+          {panel.prompt.diagramLayers?.map(layer => (
+            <Chip key={layer} label={`${layer} diagram`} tone="gray" />
           ))}
         </View>
       ) : (
@@ -163,9 +171,20 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   );
 };
 
-export default function StoryboardScreen(props: any) {
-  const title: string = props?.title ?? "Storyboard";
-  const mode: "storyboard" | "architectural" = props?.mode ?? "storyboard";
+interface StoryboardScreenProps {
+  title?: string;
+  mode?: "storyboard" | "architectural";
+  architecturalKind?: ArchitecturalProjectKind;
+  onArchitecturalKindChange?: (kind: ArchitecturalProjectKind) => void;
+}
+
+export default function StoryboardScreen({
+  title: titleProp = "Storyboard",
+  mode = "storyboard",
+  architecturalKind = "detalles",
+  onArchitecturalKindChange
+}: StoryboardScreenProps) {
+  const title = titleProp;
   const isArchitectural = mode === "architectural";
   const [showInputModal, setShowInputModal] = useState(false);
   const currentProject = useCurrentProject();
@@ -223,22 +242,43 @@ export default function StoryboardScreen(props: any) {
     }
   };
 
+  const architecturalKindLabelMap: Record<ArchitecturalProjectKind, string> = {
+    detalles: "Detail Set",
+    planos: "Plan Set",
+    prototipos: "Prototype"
+  };
+
+  const activeArchitecturalKind = activeProject?.architecturalProjectKind ?? architecturalKind;
+
+  const placeholderCount = isArchitectural
+    ? activeArchitecturalKind === "detalles"
+      ? 2
+      : activeArchitecturalKind === "planos"
+        ? 3
+        : 3
+    : 4;
+
   const buttonLabel = isArchitectural
     ? activeProject
-      ? "Generate New Detail Set"
-      : "Create Your First Detail"
+      ? `Generate New ${architecturalKindLabelMap[activeArchitecturalKind]}`
+      : `Create Your First ${architecturalKindLabelMap[architecturalKind]}`
     : activeProject
       ? "Generate New Storyboard"
       : "Create Your First Storyboard";
 
   const displayPanels = useMemo(() => {
     if (activeProject?.panels?.length) return activeProject.panels;
-    const placeholderCount = isArchitectural ? 2 : 4;
     return new Array(placeholderCount).fill(undefined);
-  }, [activeProject?.panels, isArchitectural]);
+  }, [activeProject?.panels, placeholderCount]);
 
   const architecturalMetadata = activeProject?.architecturalMetadata;
   const showArchitecturalMetadata = isArchitectural && architecturalMetadata;
+
+  const handleArchitecturalKindChange = (kind: ArchitecturalProjectKind) => {
+    if (onArchitecturalKindChange) {
+      onArchitecturalKindChange(kind);
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
@@ -275,6 +315,38 @@ export default function StoryboardScreen(props: any) {
       </View>
 
       <ScrollView className="flex-1 p-4">
+        {isArchitectural && (
+          <View className="mb-4 bg-white border border-gray-200 rounded-lg p-3">
+            <Text className="text-xs font-semibold text-gray-600 mb-2">Architectural Mode</Text>
+            <View className="flex-row bg-gray-100 rounded-lg overflow-hidden">
+              {([
+                { key: "detalles", label: "Detalles" },
+                { key: "planos", label: "Planos" },
+                { key: "prototipos", label: "Prototipos" }
+              ] as { key: ArchitecturalProjectKind; label: string }[]).map(option => {
+                const isSelected = architecturalKind === option.key;
+                return (
+                  <Pressable
+                    key={option.key}
+                    className={`flex-1 py-2 items-center ${isSelected ? "bg-blue-500" : ""}`}
+                    onPress={() => handleArchitecturalKindChange(option.key)}
+                    disabled={onArchitecturalKindChange == null}
+                  >
+                    <Text className={`text-sm font-medium ${isSelected ? "text-white" : "text-gray-700"}`}>
+                      {option.label}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+            <Text className="text-xs text-gray-500 mt-2">
+              {architecturalKind === "detalles" && "Generate technical connection or material details with reinforcement and annotations."}
+              {architecturalKind === "planos" && "Produce plan sets with floor plans, sections, elevations, and legends."}
+              {architecturalKind === "prototipos" && "Create conceptual prototypes with massing, program, and diagrammatic overlays."}
+            </Text>
+          </View>
+        )}
+
         {/* Project Info */}
         {activeProject && (
           <View className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
@@ -284,6 +356,7 @@ export default function StoryboardScreen(props: any) {
             {showArchitecturalMetadata ? (
               <View>
                 <View className="flex-row flex-wrap mb-2">
+                  <Chip label={architecturalKindLabelMap[activeProject.architecturalProjectKind ?? architecturalKind]} />
                   {architecturalMetadata?.scale && (
                     <Chip label={`Scale ${architecturalMetadata.scale}`} tone="gray" />
                   )}
@@ -295,12 +368,57 @@ export default function StoryboardScreen(props: any) {
                     <Chip key={standard} label={standard} />
                   ))}
                 </View>
+                <View className="flex-row flex-wrap mb-2">
+                  {architecturalMetadata?.levels?.map(level => (
+                    <Chip key={level} label={level} tone="gray" />
+                  ))}
+                  {architecturalMetadata?.grids?.map(grid => (
+                    <Chip key={grid} label={grid} tone="gray" />
+                  ))}
+                </View>
                 {architecturalMetadata?.components?.length ? (
                   <View className="mb-2">
                     <Text className="text-xs font-semibold text-gray-600 mb-1">Components</Text>
                     <View className="flex-row flex-wrap">
                       {architecturalMetadata.components.map(component => (
                         <Chip key={component} label={component} tone="gray" />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                {architecturalMetadata?.programItems?.length ? (
+                  <View className="mb-2">
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Program</Text>
+                    <View className="flex-row flex-wrap">
+                      {architecturalMetadata.programItems.map(item => (
+                        <Chip key={item} label={item} tone="gray" />
+                      ))}
+                    </View>
+                  </View>
+                ) : null}
+                {(architecturalMetadata?.buildingType || architecturalMetadata?.floors || architecturalMetadata?.footprint || architecturalMetadata?.orientation) && (
+                  <View className="mb-2">
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Prototype Info</Text>
+                    {architecturalMetadata?.buildingType && (
+                      <Text className="text-xs text-gray-500 mb-0.5">• Building Type: {architecturalMetadata.buildingType}</Text>
+                    )}
+                    {architecturalMetadata?.floors && (
+                      <Text className="text-xs text-gray-500 mb-0.5">• Floors: {architecturalMetadata.floors}</Text>
+                    )}
+                    {architecturalMetadata?.footprint && (
+                      <Text className="text-xs text-gray-500 mb-0.5">• Footprint: {architecturalMetadata.footprint}</Text>
+                    )}
+                    {architecturalMetadata?.orientation && (
+                      <Text className="text-xs text-gray-500 mb-0.5">• Orientation: {architecturalMetadata.orientation}</Text>
+                    )}
+                  </View>
+                )}
+                {architecturalMetadata?.diagramLayers?.length ? (
+                  <View className="mb-2">
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Diagram Layers</Text>
+                    <View className="flex-row flex-wrap">
+                      {architecturalMetadata.diagramLayers.map(layer => (
+                        <Chip key={layer} label={layer} tone="gray" />
                       ))}
                     </View>
                   </View>
@@ -320,6 +438,14 @@ export default function StoryboardScreen(props: any) {
                     <Text className="text-xs font-semibold text-gray-600 mb-1">Key Dimensions</Text>
                     {architecturalMetadata.dimensions.map(dimension => (
                       <Text key={dimension} className="text-xs text-gray-500 mb-0.5">• {dimension}</Text>
+                    ))}
+                  </View>
+                ) : null}
+                {architecturalMetadata?.conceptNotes?.length ? (
+                  <View className="mt-2">
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Concept Notes</Text>
+                    {architecturalMetadata.conceptNotes.map(note => (
+                      <Text key={note} className="text-xs text-gray-500 mb-0.5">• {note}</Text>
                     ))}
                   </View>
                 ) : null}
@@ -375,6 +501,8 @@ export default function StoryboardScreen(props: any) {
         onClose={() => setShowInputModal(false)}
         mode={mode}
         hasCurrentProject={!!activeProject}
+        architecturalKind={architecturalKind}
+        onArchitecturalKindChange={onArchitecturalKindChange}
       />
     </SafeAreaView>
   );

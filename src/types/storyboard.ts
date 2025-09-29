@@ -11,6 +11,8 @@ export enum ProjectType {
   ARCHITECTURAL = "architectural"
 }
 
+export type ArchitecturalProjectKind = "detalles" | "planos" | "prototipos";
+
 export enum ArchitecturalViewType {
   SECTION = "section",
   PLAN = "plan",
@@ -28,7 +30,18 @@ export enum ArchitecturalDetailLevel {
   CONNECTION = "connection",
   NOTES = "notes",
   EXPLODED = "exploded",
-  LEGEND = "legend"
+  LEGEND = "legend",
+  PLAN = "plan",
+  SECTION = "section",
+  ELEVATION = "elevation",
+  SITE = "site",
+  ROOF = "roof",
+  PROGRAM = "program",
+  MASSING = "massing",
+  FACADE = "facade",
+  STRUCTURE = "structure",
+  CIRCULATION = "circulation",
+  DIAGRAM = "diagram"
 }
 
 export type UnitSystem = "metric" | "imperial";
@@ -47,6 +60,21 @@ export interface ArchitecturalMetadata {
   reinforcementNotes?: string[];
   generalNotes?: string[];
   detailLevels?: ArchitecturalDetailLevel[];
+  projectKind?: ArchitecturalProjectKind;
+  // Planos-specific
+  levels?: string[];
+  grids?: string[];
+  viewSet?: ArchitecturalViewType[];
+  sheetTitle?: string;
+  sheetNumber?: string;
+  // Prototipo-specific
+  buildingType?: string;
+  floors?: number;
+  footprint?: string;
+  orientation?: string;
+  programItems?: string[];
+  diagramLayers?: string[];
+  conceptNotes?: string[];
 }
 
 export enum CompositionType {
@@ -128,6 +156,8 @@ export interface StoryboardPrompt {
   drawingConventions?: string[];
   legendItems?: string[];
   metadataNotes?: string[];
+  diagramLayers?: string[];
+  planLevel?: string;
 }
 
 export interface StoryboardPanel {
@@ -162,6 +192,7 @@ export interface StoryboardProject {
   };
   projectType?: ProjectType;
   architecturalMetadata?: ArchitecturalMetadata;
+  architecturalProjectKind?: ArchitecturalProjectKind;
 }
 
 export interface GenerationOptions {

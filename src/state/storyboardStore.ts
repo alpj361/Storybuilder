@@ -8,7 +8,8 @@ import {
   StoryboardStyle,
   GenerationOptions,
   ProjectType,
-  ArchitecturalMetadata
+  ArchitecturalMetadata,
+  ArchitecturalProjectKind
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
 import { generateAllPanelPrompts, applyAudienceTemplate, AUDIENCE_TEMPLATES } from "../templates/storyboardTemplates";
@@ -33,9 +34,9 @@ interface StoryboardState {
   
   // Actions
   createProjectFromInput: (input: string) => Promise<void>;
-  createArchitecturalProjectFromInput: (input: string) => Promise<void>;
+  createArchitecturalProjectFromInput: (input: string, options?: { kind?: ArchitecturalProjectKind }) => Promise<void>;
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
-  appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
+  appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   deleteProject: (projectId: string) => void;
@@ -131,14 +132,15 @@ export const useStoryboardStore = create<StoryboardState>()(
       },
 
       // Create a new architectural project from natural language input
-      createArchitecturalProjectFromInput: async (input: string) => {
+      createArchitecturalProjectFromInput: async (input: string, options?: { kind?: ArchitecturalProjectKind }) => {
         set({ isGenerating: true, error: null });
 
         try {
-          const result = await parseArchitecturalInput(input);
+          const kind = options?.kind ?? "detalles";
+          const result = await parseArchitecturalInput(input, kind);
 
           if (result.success) {
-            const metadata = result.project.architecturalMetadata ?? getDefaultArchitecturalMetadata();
+            const metadata = result.project.architecturalMetadata ?? getDefaultArchitecturalMetadata(kind);
             const prompts = generateArchitecturalPanelPrompts(
               result.project.panels.map(panel => ({
                 ...panel.prompt,
@@ -148,9 +150,12 @@ export const useStoryboardStore = create<StoryboardState>()(
                 annotations: panel.prompt.annotations ?? metadata.annotations,
                 unitSystem: panel.prompt.unitSystem ?? metadata.unitSystem,
                 scale: panel.prompt.scale ?? metadata.scale,
-                standards: panel.prompt.standards ?? metadata.standards
+                standards: panel.prompt.standards ?? metadata.standards,
+                planLevel: panel.prompt.planLevel,
+                diagramLayers: panel.prompt.diagramLayers
               })),
-              metadata
+              metadata,
+              kind
             );
 
             const finalPanels = result.project.panels.map((panel, index) => ({
@@ -164,6 +169,7 @@ export const useStoryboardStore = create<StoryboardState>()(
               panels: finalPanels,
               architecturalMetadata: metadata,
               projectType: ProjectType.ARCHITECTURAL,
+              architecturalProjectKind: kind,
               style: StoryboardStyle.CLEAN_LINES
             };
 
@@ -252,7 +258,7 @@ export const useStoryboardStore = create<StoryboardState>()(
       },
 
       // Append architectural panels to the current architectural project
-      appendArchitecturalPanelsFromInput: async (input: string, options?: { count?: number }) => {
+      appendArchitecturalPanelsFromInput: async (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => {
         const state = get();
         const currentProject = state.currentProject;
         if (!currentProject || currentProject.projectType !== ProjectType.ARCHITECTURAL) {
@@ -263,7 +269,13 @@ export const useStoryboardStore = create<StoryboardState>()(
         set({ isGenerating: true, error: null });
 
         try {
-          const result = await parseArchitecturalInput(input);
+          const targetKind = options?.kind || currentProject.architecturalProjectKind || "detalles";
+          if (currentProject.architecturalProjectKind && currentProject.architecturalProjectKind !== targetKind) {
+            set({ error: "Architectural mode mismatch. Switch to the matching mode before adding panels.", isGenerating: false });
+            return;
+          }
+
+          const result = await parseArchitecturalInput(input, targetKind);
           if (!result.success) {
             set({ error: result.errors?.join(", ") || "Failed to parse architectural input", isGenerating: false });
             return;
@@ -273,7 +285,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           const newPanelsSource = result.project.panels.slice(0, requestedCount);
           const mergedMetadata: ArchitecturalMetadata = mergeArchitecturalMetadata(
             currentProject.architecturalMetadata,
-            result.project.architecturalMetadata ?? getDefaultArchitecturalMetadata()
+            result.project.architecturalMetadata ?? getDefaultArchitecturalMetadata(targetKind)
           );
 
           const generatedPrompts = generateArchitecturalPanelPrompts(
@@ -285,9 +297,12 @@ export const useStoryboardStore = create<StoryboardState>()(
               annotations: panel.prompt.annotations ?? mergedMetadata.annotations,
               unitSystem: mergedMetadata.unitSystem,
               scale: mergedMetadata.scale,
-              standards: mergedMetadata.standards
+              standards: mergedMetadata.standards,
+              planLevel: panel.prompt.planLevel,
+              diagramLayers: panel.prompt.diagramLayers
             })),
-            mergedMetadata
+            mergedMetadata,
+            targetKind
           );
 
           const startIndex = currentProject.panels.length;
@@ -304,6 +319,7 @@ export const useStoryboardStore = create<StoryboardState>()(
             ...currentProject,
             panels: [...currentProject.panels, ...panelsToAppend],
             architecturalMetadata: mergedMetadata,
+            architecturalProjectKind: targetKind,
             updatedAt: new Date()
           };
 
@@ -390,7 +406,8 @@ export const useStoryboardStore = create<StoryboardState>()(
           let updatedPrompt: StoryboardPrompt[];
 
           if (state.currentProject.projectType === ProjectType.ARCHITECTURAL) {
-            const metadata = state.currentProject.architecturalMetadata ?? getDefaultArchitecturalMetadata();
+            const kind = state.currentProject.architecturalProjectKind ?? "detalles";
+            const metadata = state.currentProject.architecturalMetadata ?? getDefaultArchitecturalMetadata(kind);
             updatedPrompt = generateArchitecturalPanelPrompts([
               {
                 ...panel.prompt,
@@ -400,9 +417,11 @@ export const useStoryboardStore = create<StoryboardState>()(
                 annotations: panel.prompt.annotations ?? metadata.annotations,
                 unitSystem: metadata.unitSystem,
                 scale: metadata.scale,
-                standards: metadata.standards
+                standards: metadata.standards,
+                planLevel: panel.prompt.planLevel,
+                diagramLayers: panel.prompt.diagramLayers
               }
-            ], metadata);
+            ], metadata, kind);
           } else {
             updatedPrompt = generateAllPanelPrompts(
               [panel.prompt],
@@ -439,7 +458,8 @@ export const useStoryboardStore = create<StoryboardState>()(
           let enhancedPrompts: StoryboardPrompt[];
 
           if (state.currentProject.projectType === ProjectType.ARCHITECTURAL) {
-            const metadata = state.currentProject.architecturalMetadata ?? getDefaultArchitecturalMetadata();
+            const kind = state.currentProject.architecturalProjectKind ?? "detalles";
+            const metadata = state.currentProject.architecturalMetadata ?? getDefaultArchitecturalMetadata(kind);
             enhancedPrompts = generateArchitecturalPanelPrompts(
               state.currentProject.panels.map(panel => ({
                 ...panel.prompt,
@@ -449,9 +469,12 @@ export const useStoryboardStore = create<StoryboardState>()(
                 annotations: panel.prompt.annotations ?? metadata.annotations,
                 unitSystem: metadata.unitSystem,
                 scale: metadata.scale,
-                standards: metadata.standards
+                standards: metadata.standards,
+                planLevel: panel.prompt.planLevel,
+                diagramLayers: panel.prompt.diagramLayers
               })),
-              metadata
+              metadata,
+              kind
             );
           } else {
             enhancedPrompts = generateAllPanelPrompts(
