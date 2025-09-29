@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
+import { View, Text, ScrollView, Pressable, Image, Alert, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useIsFocused } from "@react-navigation/native";
@@ -35,6 +35,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   const isArchitectural = mode === "architectural";
+  const [isImageExpanded, setIsImageExpanded] = useState(false);
   
   if (!panel) {
     return (
@@ -46,7 +47,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
         </View>
         
         {/* Drawing Area */}
-        <View className="flex-1 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center">
+        <View className="h-28 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center">
           <Ionicons name="camera-outline" size={32} color="#9CA3AF" />
           <Text className="text-gray-400 text-xs mt-2">
             {isArchitectural ? "Generate detail first" : "Generate storyboard first"}
@@ -130,13 +131,21 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       )}
       
       {/* Drawing Area */}
-      <View className="flex-1 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center overflow-hidden">
+      <View className="h-28 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center overflow-hidden relative">
         {panel.generatedImageUrl ? (
-          <Image 
-            source={{ uri: panel.generatedImageUrl }} 
-            className="w-full h-full rounded"
-            resizeMode="cover"
-          />
+          <>
+            <Image 
+              source={{ uri: panel.generatedImageUrl }} 
+              className="w-full h-full"
+              resizeMode="cover"
+            />
+            <Pressable
+              onPress={() => setIsImageExpanded(true)}
+              className="absolute right-2 top-2 bg-black/50 rounded-full p-1"
+            >
+              <Ionicons name="expand" size={16} color="#FFFFFF" />
+            </Pressable>
+          </>
         ) : panel.isGenerating ? (
           <View className="flex-col items-center">
             <Ionicons name="hourglass" size={32} color="#3B82F6" />
@@ -155,6 +164,30 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           </View>
         )}
       </View>
+
+      {/* Fullscreen image modal */}
+      {panel.generatedImageUrl && (
+        <Modal visible={isImageExpanded} animationType="fade" transparent onRequestClose={() => setIsImageExpanded(false)}>
+          <View className="flex-1 bg-black/90">
+            <Pressable onPress={() => setIsImageExpanded(false)} className="absolute top-10 right-5 z-10 p-2 bg-black/60 rounded-full">
+              <Ionicons name="close" size={24} color="#FFFFFF" />
+            </Pressable>
+            <ScrollView
+              className="flex-1"
+              contentContainerStyle={{ flexGrow: 1, justifyContent: "center", alignItems: "center" }}
+              minimumZoomScale={1}
+              maximumZoomScale={4}
+              centerContent
+            >
+              <Image
+                source={{ uri: panel.generatedImageUrl }}
+                style={{ width: "100%", height: undefined, aspectRatio: 1 }}
+                resizeMode="contain"
+              />
+            </ScrollView>
+          </View>
+        </Modal>
+      )}
       
       {/* Prompt Preview */}
       {scene && (
