@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useIsFocused } from "@react-navigation/native";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
   StoryboardPanel as StoryboardPanelType,
@@ -187,6 +188,7 @@ export default function StoryboardScreen({
   const title = titleProp;
   const isArchitectural = mode === "architectural";
   const [showInputModal, setShowInputModal] = useState(false);
+  const isFocused = useIsFocused();
   const currentProject = useCurrentProject();
   const projects = useProjects();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
@@ -195,7 +197,8 @@ export default function StoryboardScreen({
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
 
   useEffect(() => {
-    if (projects.length === 0) return;
+    // Only adjust current project when this tab/screen is focused
+    if (!isFocused || projects.length === 0) return;
 
     if (isArchitectural) {
       if (currentProject?.projectType === ProjectType.ARCHITECTURAL) return;
@@ -218,7 +221,7 @@ export default function StoryboardScreen({
         }
       }
     }
-  }, [isArchitectural, currentProject?.id, currentProject?.projectType, projects, setCurrentProject]);
+  }, [isFocused, isArchitectural, currentProject?.id, currentProject?.projectType, projects, setCurrentProject]);
 
   const activeProject = useMemo(() => {
     if (!currentProject) return null;
