@@ -128,7 +128,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber })
   );
 };
 
-export default function StoryboardScreen() {
+export default function StoryboardScreen(props: any) {
+  const title: string = props?.title ?? "Storyboard";
   const [showInputModal, setShowInputModal] = useState(false);
   const currentProject = useCurrentProject();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
@@ -159,7 +160,7 @@ export default function StoryboardScreen() {
       <View className="bg-white border-b border-gray-200 px-4 py-3">
         <View className="flex-row justify-between items-center">
           <View>
-            <Text className="text-xl font-bold text-gray-900">Storyboard</Text>
+            <Text className="text-xl font-bold text-gray-900">{title}</Text>
             <Text className="text-sm text-gray-500">
               {currentProject?.title || "No Project"}
             </Text>
