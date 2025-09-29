@@ -389,6 +389,8 @@ export const useStoryboardStore = create<StoryboardState>()(
 
       // Set current active project
       setCurrentProject: (project: StoryboardProject | null) => {
+        const current = get().currentProject;
+        if ((current?.id || null) === (project?.id || null)) return;
         set({ currentProject: project });
       },
 
