@@ -3,6 +3,12 @@ import { View, Text, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ArchitecturalMetadata, StoryboardPrompt } from "../types/storyboard";
 
+const formatLabel = (label: string) =>
+  label
+    .replace(/_/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, char => char.toUpperCase());
+
 interface PromptPreviewProps {
   prompt: StoryboardPrompt;
   characters: Array<{ id: string; name: string; description: string }>;
@@ -161,6 +167,24 @@ export default function PromptPreview({ prompt, characters, scene, metadata, mod
                     <Text className="text-xs font-semibold text-gray-700 mb-1">Annotations:</Text>
                     {(prompt.annotations || metadata?.annotations || []).map(annotation => (
                       <Text key={annotation} className="text-xs text-gray-600 ml-2">• {annotation}</Text>
+                    ))}
+                  </View>
+                ) : null}
+
+                {prompt.diagramLayers?.length || metadata?.diagramLayers?.length ? (
+                  <View className="mb-3">
+                    <Text className="text-xs font-semibold text-gray-700 mb-1">Diagram Layers:</Text>
+                    {(prompt.diagramLayers || metadata?.diagramLayers || []).map(layer => (
+                      <Text key={layer} className="text-xs text-gray-600 ml-2">• {formatLabel(layer)}</Text>
+                    ))}
+                  </View>
+                ) : null}
+
+                {metadata?.programItems?.length ? (
+                  <View className="mb-3">
+                    <Text className="text-xs font-semibold text-gray-700 mb-1">Program:</Text>
+                    {metadata.programItems.map(item => (
+                      <Text key={item} className="text-xs text-gray-600 ml-2">• {item}</Text>
                     ))}
                   </View>
                 ) : null}

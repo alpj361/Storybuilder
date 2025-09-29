@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
-import { ProjectType } from "../types/storyboard";
+import { ProjectType, ArchitecturalProjectKind } from "../types/storyboard";
 import { cn } from "../utils/cn";
 
 interface StoryboardInputModalProps {
@@ -10,9 +10,18 @@ interface StoryboardInputModalProps {
   onClose: () => void;
   mode?: "storyboard" | "architectural";
   hasCurrentProject?: boolean;
+  architecturalKind?: ArchitecturalProjectKind;
+  onArchitecturalKindChange?: (kind: ArchitecturalProjectKind) => void;
 }
 
-export default function StoryboardInputModal({ visible, onClose, mode = "storyboard", hasCurrentProject }: StoryboardInputModalProps) {
+export default function StoryboardInputModal({
+  visible,
+  onClose,
+  mode = "storyboard",
+  hasCurrentProject,
+  architecturalKind = "detalles",
+  onArchitecturalKindChange
+}: StoryboardInputModalProps) {
   const isArchitectural = mode === "architectural";
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -24,18 +33,31 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
   const currentProject = useCurrentProject();
 
   const [workflow, setWorkflow] = useState<"create" | "append">("create");
-  const [panelCount, setPanelCount] = useState<string>(isArchitectural ? "2" : "4");
+  const defaultCreateCount = useMemo(() => {
+    if (!isArchitectural) return 4;
+    switch (architecturalKind) {
+      case "planos":
+        return 3;
+      case "prototipos":
+        return 3;
+      case "detalles":
+      default:
+        return 2;
+    }
+  }, [isArchitectural, architecturalKind]);
+
+  const [panelCount, setPanelCount] = useState<string>(`${defaultCreateCount}`);
   const [appendCount, setAppendCount] = useState<string>("1");
 
   const canAppend = useMemo(() => {
     const projectMatches = isArchitectural
-      ? currentProject?.projectType === ProjectType.ARCHITECTURAL
+      ? currentProject?.projectType === ProjectType.ARCHITECTURAL && currentProject.architecturalProjectKind === architecturalKind
       : !!currentProject && currentProject.projectType !== ProjectType.ARCHITECTURAL;
     if (typeof hasCurrentProject === "boolean") {
       return hasCurrentProject && projectMatches;
     }
     return projectMatches;
-  }, [currentProject, hasCurrentProject, isArchitectural]);
+  }, [currentProject, hasCurrentProject, isArchitectural, architecturalKind]);
 
   useEffect(() => {
     if (workflow === "append" && !canAppend) {
@@ -43,12 +65,27 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
     }
   }, [workflow, canAppend]);
 
+  useEffect(() => {
+    if (workflow === "create") {
+      setPanelCount(`${defaultCreateCount}`);
+    }
+  }, [workflow, defaultCreateCount]);
+
+  useEffect(() => {
+    if (!visible) {
+      setWorkflow("create");
+      setPanelCount(`${defaultCreateCount}`);
+      setAppendCount("1");
+      setInput("");
+    }
+  }, [visible, defaultCreateCount]);
+
   const effectiveCount = useMemo(() => {
     const countStr = workflow === "create" ? panelCount : appendCount;
     const n = parseInt(countStr, 10);
-    const fallback = workflow === "create" ? (isArchitectural ? 2 : 4) : 1;
+    const fallback = workflow === "create" ? defaultCreateCount : 1;
     return Number.isFinite(n) && n > 0 ? Math.min(n, 12) : fallback;
-  }, [workflow, panelCount, appendCount, isArchitectural]);
+  }, [workflow, panelCount, appendCount, defaultCreateCount]);
 
   const handleGenerate = async () => {
     if (!input.trim()) {
@@ -60,14 +97,14 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
     try {
       if (workflow === "append" && canAppend) {
         if (isArchitectural) {
-          await appendArchitecturalPanelsFromInput(input.trim(), { count: effectiveCount });
+          await appendArchitecturalPanelsFromInput(input.trim(), { count: effectiveCount, kind: architecturalKind });
         } else {
           await appendPanelsFromInput(input.trim(), { count: effectiveCount });
         }
       } else {
         const inputWithCount = `${input.trim()} (panels: ${effectiveCount})`;
         if (isArchitectural) {
-          await createArchitecturalProjectFromInput(inputWithCount);
+          await createArchitecturalProjectFromInput(inputWithCount, { kind: architecturalKind });
         } else {
           await createProjectFromInput(inputWithCount);
         }
@@ -88,38 +125,110 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
     }
   };
 
-  const examplePrompts = useMemo(() => (
-    isArchitectural
-      ? [
-          "Cross-sectional detail of a reinforced concrete beam 25×40 cm with steel rebars Ø16 @150 and stirrups Ø8 @100, include dimension annotations (panels: 2)",
-          "Plan detail of a slab with drop panel and reinforcement layout, scale 1:25, metric units (panels: 3)",
-          "Steel column base plate connection with anchor bolts, grout, and weld symbols, include edge distances (panels: 3)",
-          "Exploded axonometric of a timber truss joint showing bolts, plates, and labels (panels: 4)"
-        ]
-      : [
-          "A guy with a dog walking in the park",
-          "Product launch presentation for a new smartphone",
-          "Character meeting their best friend after years",
-          "Architect showing building design to client",
-          "Animation sequence of a cat chasing a mouse"
-        ]
-  ), [isArchitectural]);
+  const examplePrompts = useMemo(() => {
+    if (!isArchitectural) {
+      return [
+        "A guy with a dog walking in the park",
+        "Product launch presentation for a new smartphone",
+        "Character meeting their best friend after years",
+        "Architect showing building design to client",
+        "Animation sequence of a cat chasing a mouse"
+      ];
+    }
 
-  const generationInfo = useMemo(() => (
-    isArchitectural
-      ? [
-          `• Panel count: ${effectiveCount}`,
-          "• Orthographic technical drawing views with scale and units",
-          "• Components, materials, reinforcement, and dimension annotations",
-          "• CAD-ready prompts aligned with architectural standards"
-        ]
-      : [
-          `• Panel count: ${effectiveCount}`,
-          "• Character descriptions and consistency",
-          "• Scene settings and compositions",
-          "• AI-ready prompts for image generation"
-        ]
-  ), [isArchitectural, effectiveCount]);
+    if (architecturalKind === "planos") {
+      return [
+        "Ground floor and section plan set for a community center with grids and room tags (panels: 3)",
+        "Site plan, first floor plan, and elevation for a small office building, metric units (panels: 4)",
+        "Residential tower plan set including typical floor plan and north elevation (panels: 3)"
+      ];
+    }
+
+    if (architecturalKind === "prototipos") {
+      return [
+        "Concept massing prototype for a mixed-use tower with program diagram and facade concept (panels: 3)",
+        "Campus prototype showing axonometric massing, program plan, and circulation diagram (panels: 4)",
+        "Museum prototype concept with massing, program zoning, and structural diagram (panels: 3)"
+      ];
+    }
+
+    return [
+      "Cross-sectional detail of a reinforced concrete beam 25×40 cm with steel rebars Ø16 @150 and stirrups Ø8 @100, include dimension annotations (panels: 2)",
+      "Plan detail of a slab with drop panel and reinforcement layout, scale 1:25, metric units (panels: 3)",
+      "Steel column base plate connection with anchor bolts, grout, and weld symbols, include edge distances (panels: 3)",
+      "Exploded axonometric of a timber truss joint showing bolts, plates, and labels (panels: 4)"
+    ];
+  }, [isArchitectural, architecturalKind]);
+
+  const generationInfo = useMemo(() => {
+    if (!isArchitectural) {
+      return [
+        `• Panel count: ${effectiveCount}`,
+        "• Character descriptions and consistency",
+        "• Scene settings and compositions",
+        "• AI-ready prompts for image generation"
+      ];
+    }
+
+    if (architecturalKind === "planos") {
+      return [
+        `• Panel count: ${effectiveCount}`,
+        "• Floor plans, sections, elevations, and legends",
+        "• Grid references, levels, and dimension annotations",
+        "• CAD-ready prompts aligned with drafting standards"
+      ];
+    }
+
+    if (architecturalKind === "prototipos") {
+      return [
+        `• Panel count: ${effectiveCount}`,
+        "• Massing, program, facade, and circulation diagrams",
+        "• Conceptual line-art with labeled overlays",
+        "• Prompts suited for prototype visualization"
+      ];
+    }
+
+    return [
+      `• Panel count: ${effectiveCount}`,
+      "• Orthographic detail views with scale and units",
+      "• Components, materials, reinforcement, and dimension callouts",
+      "• CAD-ready prompts aligned with structural standards"
+    ];
+  }, [isArchitectural, architecturalKind, effectiveCount]);
+
+  const architecturalKindLabels: Record<ArchitecturalProjectKind, string> = {
+    detalles: "Detail Set",
+    planos: "Plan Set",
+    prototipos: "Prototype"
+  };
+
+  const architecturalDescription = useMemo(() => {
+    switch (architecturalKind) {
+      case "planos":
+        return "Describe the plan set you need. We’ll create plans, sections, elevations, and legends with grids, levels, and sheet-ready annotations.";
+      case "prototipos":
+        return "Describe the building prototype concept. We’ll generate massing, program, facade, and circulation diagrams for conceptual design.";
+      case "detalles":
+      default:
+        return "Explain the architectural or structural detail you need. We’ll generate technical drawing views with components, dimensions, and annotations.";
+    }
+  }, [architecturalKind]);
+
+  const architecturalPlaceholder = useMemo(() => {
+    switch (architecturalKind) {
+      case "planos":
+        return "Example: Plan and section set for a community center with grids and legends...";
+      case "prototipos":
+        return "Example: Prototype massing for mixed-use tower with program and facade diagrams...";
+      case "detalles":
+      default:
+        return "Example: Cross-sectional detail of reinforced concrete beam with stirrups and annotations...";
+    }
+  }, [architecturalKind]);
+
+  const modalTitle = isArchitectural
+    ? `Create ${architecturalKindLabels[architecturalKind]}`
+    : "Create Storyboard";
 
   return (
     <Modal
@@ -131,7 +240,7 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
       <View className="flex-1 bg-white">
         {/* Header */}
         <View className="flex-row justify-between items-center p-4 border-b border-gray-200">
-          <Text className="text-xl font-bold text-gray-900">{isArchitectural ? "Create Detail Set" : "Create Storyboard"}</Text>
+          <Text className="text-xl font-bold text-gray-900">{modalTitle}</Text>
           <Pressable 
             onPress={handleClose}
             disabled={isGenerating}
@@ -145,6 +254,32 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
         </View>
 
         <ScrollView className="flex-1 p-4">
+          {isArchitectural && (
+            <View className="mb-4">
+              <Text className="text-xs font-semibold text-gray-600 mb-2">Architectural Mode</Text>
+              <View className="flex-row bg-gray-100 rounded-lg overflow-hidden">
+                {([
+                  { key: "detalles", label: "Detalles" },
+                  { key: "planos", label: "Planos" },
+                  { key: "prototipos", label: "Prototipos" }
+                ] as { key: ArchitecturalProjectKind; label: string }[]).map(option => {
+                  const selected = architecturalKind === option.key;
+                  return (
+                    <Pressable
+                      key={option.key}
+                      className={`flex-1 py-2 items-center ${selected ? "bg-blue-500" : ""}`}
+                      onPress={() => onArchitecturalKindChange?.(option.key)}
+                    >
+                      <Text className={`text-sm font-medium ${selected ? "text-white" : "text-gray-700"}`}>
+                        {option.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
           {/* Mode Toggle */}
           <View className="mb-4">
             <View className="flex-row bg-gray-100 rounded-lg overflow-hidden">
@@ -154,7 +289,7 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
                 className={cn("flex-1 p-2 items-center", workflow === "create" ? "bg-blue-500" : "")}
               >
                 <Text className={cn("text-sm font-medium", workflow === "create" ? "text-white" : "text-gray-700")}>
-                  {isArchitectural ? "New Detail Set" : "New Storyboard"}
+                  {isArchitectural ? `New ${architecturalKindLabels[architecturalKind]}` : "New Storyboard"}
                 </Text>
               </Pressable>
               <Pressable
@@ -163,23 +298,23 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
                 className={cn("flex-1 p-2 items-center", workflow === "append" ? "bg-blue-500" : "", !canAppend && "opacity-50")}
               >
                 <Text className={cn("text-sm font-medium", workflow === "append" ? "text-white" : "text-gray-700")}>
-                  {isArchitectural ? "Add Detail Panels" : "Add Panels"}
+                  {isArchitectural ? `Add ${architecturalKindLabels[architecturalKind]}` : "Add Panels"}
                 </Text>
               </Pressable>
             </View>
             {!canAppend && workflow === "append" && (
-              <Text className="text-xs text-red-600 mt-1">No compatible project loaded. Switch to New {isArchitectural ? "Detail Set" : "Storyboard"}.</Text>
+              <Text className="text-xs text-red-600 mt-1">No compatible project loaded. Switch to New {isArchitectural ? architecturalKindLabels[architecturalKind] : "Storyboard"}.</Text>
             )}
           </View>
 
           {/* Instructions */}
           <View className="mb-6">
             <Text className="text-lg font-semibold text-gray-900 mb-2">
-              {isArchitectural ? "Describe Your Detail" : "Describe Your Story"}
+              {isArchitectural ? `Describe Your ${architecturalKindLabels[architecturalKind]}` : "Describe Your Story"}
             </Text>
             <Text className="text-gray-600 text-sm leading-5">
               {isArchitectural
-                ? "Explain the architectural or structural detail you need. We’ll generate technical drawing views with components, dimensions, and annotations. Choose whether to create a new detail set or add panels to the current one."
+                ? architecturalDescription
                 : "Tell us about your storyboard idea in simple terms. We’ll generate a 4-panel sequence with characters, scenes, and detailed prompts ready for image generation."}
             </Text>
           </View>
@@ -194,7 +329,7 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
               onChangeText={setInput}
               placeholder={
                 isArchitectural
-                  ? "Example: Cross-sectional detail of reinforced concrete beam with stirrups and annotations..."
+                  ? architecturalPlaceholder
                   : "Example: A guy with a dog walking in the park..."
               }
               multiline
@@ -257,7 +392,13 @@ export default function StoryboardInputModal({ visible, onClose, mode = "storybo
           {/* Panel Count */}
           <View className="mb-6">
             <Text className="text-sm font-medium text-gray-700 mb-2">
-              {workflow === "create" ? (isArchitectural ? "Number of Detail Panels" : "Number of Panels") : (isArchitectural ? "Detail Panels to Add" : "Panels to Add")}
+              {workflow === "create"
+                ? isArchitectural
+                  ? `Number of ${architecturalKindLabels[architecturalKind]}`
+                  : "Number of Panels"
+                : isArchitectural
+                  ? `${architecturalKindLabels[architecturalKind]} to Add`
+                  : "Panels to Add"}
             </Text>
             <View className="flex-row items-center">
               <TextInput

@@ -1,12 +1,13 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import StoryboardScreen from "./StoryboardScreen";
 import { useProjects, useStoryboardStore } from "../state/storyboardStore";
-import { ProjectType } from "../types/storyboard";
+import { ArchitecturalProjectKind, ProjectType } from "../types/storyboard";
 
 export default function ArchitecturalScreen() {
   const projects = useProjects();
   const currentProject = useStoryboardStore(state => state.currentProject);
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
+  const [selectedKind, setSelectedKind] = useState<ArchitecturalProjectKind>("detalles");
 
   useEffect(() => {
     if (currentProject?.projectType === ProjectType.ARCHITECTURAL) return;
@@ -18,5 +19,20 @@ export default function ArchitecturalScreen() {
     }
   }, [projects, currentProject, setCurrentProject]);
 
-  return <StoryboardScreen title="Arquitectural" mode="architectural" />;
+  useEffect(() => {
+    if (currentProject?.projectType === ProjectType.ARCHITECTURAL && currentProject.architecturalProjectKind) {
+      setSelectedKind(currentProject.architecturalProjectKind);
+    }
+  }, [currentProject]);
+
+  const kind = useMemo<ArchitecturalProjectKind>(() => selectedKind, [selectedKind]);
+
+  return (
+    <StoryboardScreen
+      title="Arquitectural"
+      mode="architectural"
+      architecturalKind={kind}
+      onArchitecturalKindChange={setSelectedKind}
+    />
+  );
 }
