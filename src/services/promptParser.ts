@@ -23,9 +23,10 @@ export async function parseUserInput(input: string): Promise<PromptGenerationRes
     const scenes = extractScenes(input);
     const genre = detectGenre(input);
     const targetAudience = detectTargetAudience(input);
+    const panelCount = detectPanelCount(input);
     
-    // Generate 4-panel sequence
-    const panels = generatePanelSequence(input, characters, scenes);
+    // Generate sequence with detected panel count
+    const panels = generatePanelSequence(input, characters, scenes, panelCount);
     
     // Create project structure
     const project: StoryboardProject = {
@@ -127,7 +128,10 @@ export function extractScenes(input: string): Scene[] {
     { pattern: /(?:in |at |inside )?(?:a |the )?(?:house|home|room|living room)/g, location: "indoor home", environment: "comfortable indoor residential space" },
     { pattern: /(?:in |at |on )?(?:a |the )?(?:street|road|sidewalk)/g, location: "street", environment: "urban street setting with buildings and pavement" },
     { pattern: /(?:in |at )?(?:a |the )?(?:office|workplace|building)/g, location: "office", environment: "professional indoor workspace" },
-    { pattern: /(?:in |at )?(?:a |the )?(?:beach|ocean|water)/g, location: "beach", environment: "coastal setting with sand and water" }
+    { pattern: /(?:in |at )?(?:a |the )?(?:beach|ocean|water)/g, location: "beach", environment: "coastal setting with sand and water" },
+    { pattern: /(?:in |at )?(?:a |the )?(?:construction site|worksite)/g, location: "construction site", environment: "active construction area with structural elements and equipment" },
+    { pattern: /(?:on |over )?(?:a |the )?(?:blueprint|plan|drawing)/g, location: "blueprint table", environment: "architectural blueprints and technical drawings on a desk" },
+    { pattern: /(?:in |at )?(?:a |the )?(?:studio|atelier)/g, location: "design studio", environment: "architectural studio with drafting tools and models" }
   ];
 
   let sceneFound = false;
@@ -168,7 +172,8 @@ export function extractScenes(input: string): Scene[] {
 export function generatePanelSequence(
   input: string, 
   characters: Character[], 
-  scenes: Scene[]
+  scenes: Scene[],
+  count: number = 4
 ): StoryboardPanel[] {
   const panels: StoryboardPanel[] = [];
   const mainCharacter = characters[0];
@@ -186,42 +191,51 @@ export function generatePanelSequence(
     mood: mainScene.mood
   }));
 
-  // Panel 2: Character introduction
-  panels.push(createPanel(2, {
-    panelType: PanelType.CHARACTER_INTRO,
-    composition: CompositionType.MEDIUM_SHOT,
-    sceneDescription: `${mainCharacter.description} appears in the scene`,
-    action: `Introducing ${mainCharacter.name} in ${mainScene.location}`,
-    characters: [mainCharacter.id],
-    sceneId: mainScene.id,
-    cameraAngle: "medium shot focusing on character",
-    mood: "introduction"
-  }));
+  // Panel 2: Character introduction (if count >= 2)
+  if (count >= 2) {
+    panels.push(createPanel(2, {
+      panelType: PanelType.CHARACTER_INTRO,
+      composition: CompositionType.MEDIUM_SHOT,
+      sceneDescription: `${mainCharacter.description} appears in the scene`,
+      action: `Introducing ${mainCharacter.name} in ${mainScene.location}`,
+      characters: [mainCharacter.id],
+      sceneId: mainScene.id,
+      cameraAngle: "medium shot focusing on character",
+      mood: "introduction"
+    }));
+  }
 
-  // Panel 3: Main action/interaction
+  // Middle beats sized to count (Action-focused)
+  const middleSlots = Math.max(0, count - 2 - 1);
   const actionDescription = generateActionFromInput(input, characters);
-  panels.push(createPanel(3, {
-    panelType: PanelType.ACTION,
-    composition: CompositionType.CLOSE_UP,
-    sceneDescription: actionDescription,
-    action: `Main action: ${actionDescription}`,
-    characters: characters.map(c => c.id),
-    sceneId: mainScene.id,
-    cameraAngle: "close-up on the action",
-    mood: "engaging"
-  }));
+  for (let i = 0; i < middleSlots; i++) {
+    const number = 3 + i;
+    const isDetail = actionDescription.toLowerCase().includes("detail");
+    panels.push(createPanel(number, {
+      panelType: PanelType.ACTION,
+      composition: isDetail ? CompositionType.EXTREME_CLOSE_UP : CompositionType.CLOSE_UP,
+      sceneDescription: actionDescription,
+      action: `Main action: ${actionDescription}`,
+      characters: characters.map(c => c.id),
+      sceneId: mainScene.id,
+      cameraAngle: isDetail ? "macro technical close-up" : "close-up on the action",
+      mood: "engaging"
+    }));
+  }
 
-  // Panel 4: Resolution/reaction
-  panels.push(createPanel(4, {
-    panelType: PanelType.RESOLUTION,
-    composition: CompositionType.MEDIUM_SHOT,
-    sceneDescription: `Resolution of the scene with ${mainCharacter.name}`,
-    action: "Concluding moment showing the result or reaction",
-    characters: characters.map(c => c.id),
-    sceneId: mainScene.id,
-    cameraAngle: "medium shot showing resolution",
-    mood: "conclusive"
-  }));
+  // Final resolution (if count >= 3)
+  if (count >= 3) {
+    panels.push(createPanel(count, {
+      panelType: PanelType.RESOLUTION,
+      composition: CompositionType.MEDIUM_SHOT,
+      sceneDescription: `Resolution of the scene with ${mainCharacter.name}`,
+      action: "Concluding moment showing the result or reaction",
+      characters: characters.map(c => c.id),
+      sceneId: mainScene.id,
+      cameraAngle: "medium shot showing resolution",
+      mood: "conclusive"
+    }));
+  }
 
   return panels;
 }
@@ -277,7 +291,19 @@ function detectTargetAudience(input: string): "animators" | "filmmakers" | "mark
   if (lowercaseInput.includes("animation") || lowercaseInput.includes("cartoon")) return "animators";
   if (lowercaseInput.includes("film") || lowercaseInput.includes("movie")) return "filmmakers";
   if (lowercaseInput.includes("product") || lowercaseInput.includes("brand")) return "marketers";
-  if (lowercaseInput.includes("building") || lowercaseInput.includes("architecture")) return "architects";
+  if (
+    lowercaseInput.includes("building") ||
+    lowercaseInput.includes("architecture") ||
+    lowercaseInput.includes("architectural") ||
+    lowercaseInput.includes("beam") ||
+    lowercaseInput.includes("column") ||
+    lowercaseInput.includes("truss") ||
+    lowercaseInput.includes("blueprint") ||
+    lowercaseInput.includes("cad") ||
+    lowercaseInput.includes("technical drawing") ||
+    lowercaseInput.includes("construction detail") ||
+    lowercaseInput.includes("structural")
+  ) return "architects";
   return "general";
 }
 
@@ -329,6 +355,12 @@ function generateCharacterAppearance(type: string) {
 function generateActionFromInput(input: string, characters: Character[]): string {
   const lowercaseInput = input.toLowerCase();
   
+  // Architectural/technical details
+  if (/(beam|column|girder|truss|joist|connection|weld|bolted|blueprint|cad|technical drawing|section|detail|elevation|plan|foundation|reinforcement)/.test(lowercaseInput)) {
+    const keyword = (lowercaseInput.match(/beam|column|girder|truss|joist|connection|weld|bolted|blueprint|cad|technical drawing|section|detail|elevation|plan|foundation|reinforcement/) || ["technical detail"])[0];
+    return `Detailed technical ${keyword} view with annotations`;
+  }
+
   // Look for action verbs
   if (lowercaseInput.includes("walking") || lowercaseInput.includes("walk")) {
     return `${characters[0]?.name || "Character"} walking with ${characters[1]?.name || "companion"}`;
@@ -346,4 +378,15 @@ function generateActionFromInput(input: string, characters: Character[]): string
   }
   
   return `${characters[0]?.name || "Character"} in the main scene`;
+}
+
+// Detect desired panel count from input (e.g., "6 panels", "8 frames")
+function detectPanelCount(input: string): number {
+  const lowercaseInput = input.toLowerCase();
+  const m = lowercaseInput.match(/(\d{1,2})\s*(?:panels?|frames?)/);
+  if (m) {
+    const n = parseInt(m[1], 10);
+    if (Number.isFinite(n) && n >= 1) return Math.min(n, 12);
+  }
+  return 4;
 }

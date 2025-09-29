@@ -1,7 +1,7 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { useStoryboardStore } from "../state/storyboardStore";
+import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
 import { cn } from "../utils/cn";
 
 interface StoryboardInputModalProps {
@@ -13,7 +13,19 @@ export default function StoryboardInputModal({ visible, onClose }: StoryboardInp
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const createProjectFromInput = useStoryboardStore(state => state.createProjectFromInput);
+  const appendPanelsFromInput = useStoryboardStore(state => state.appendPanelsFromInput);
   const error = useStoryboardStore(state => state.error);
+  const currentProject = useCurrentProject();
+
+  const [mode, setMode] = useState<"create" | "append">("create");
+  const [panelCount, setPanelCount] = useState<string>("4");
+  const [appendCount, setAppendCount] = useState<string>("1");
+
+  const effectiveCount = useMemo(() => {
+    const countStr = mode === "create" ? panelCount : appendCount;
+    const n = parseInt(countStr, 10);
+    return Number.isFinite(n) && n > 0 ? Math.min(n, 12) : mode === "create" ? 4 : 1;
+  }, [mode, panelCount, appendCount]);
 
   const handleGenerate = async () => {
     if (!input.trim()) {
@@ -23,7 +35,12 @@ export default function StoryboardInputModal({ visible, onClose }: StoryboardInp
 
     setIsGenerating(true);
     try {
-      await createProjectFromInput(input.trim());
+      if (mode === "append" && currentProject) {
+        await appendPanelsFromInput(input.trim(), { count: effectiveCount });
+      } else {
+        // For project creation, the parser will also detect count from text; we pass user's hint too.
+        await createProjectFromInput(`${input.trim()} (panels: ${effectiveCount})`);
+      }
       setInput("");
       onClose();
     } catch (err) {
@@ -72,13 +89,36 @@ export default function StoryboardInputModal({ visible, onClose }: StoryboardInp
         </View>
 
         <ScrollView className="flex-1 p-4">
+          {/* Mode Toggle */}
+          <View className="mb-4">
+            <View className="flex-row bg-gray-100 rounded-lg overflow-hidden">
+              <Pressable
+                onPress={() => setMode("create")}
+                disabled={isGenerating}
+                className={cn("flex-1 p-2 items-center", mode === "create" ? "bg-blue-500" : "")}
+              >
+                <Text className={cn("text-sm font-medium", mode === "create" ? "text-white" : "text-gray-700")}>New Storyboard</Text>
+              </Pressable>
+              <Pressable
+                onPress={() => setMode("append")}
+                disabled={isGenerating || !currentProject}
+                className={cn("flex-1 p-2 items-center", mode === "append" ? "bg-blue-500" : "", !currentProject && "opacity-50")}
+              >
+                <Text className={cn("text-sm font-medium", mode === "append" ? "text-white" : "text-gray-700")}>Add Panels</Text>
+              </Pressable>
+            </View>
+            {!currentProject && mode === "append" && (
+              <Text className="text-xs text-red-600 mt-1">No current project. Switch to New Storyboard.</Text>
+            )}
+          </View>
+
           {/* Instructions */}
           <View className="mb-6">
             <Text className="text-lg font-semibold text-gray-900 mb-2">
               Describe Your Story
             </Text>
             <Text className="text-gray-600 text-sm leading-5">
-              Tell us about your storyboard idea in simple terms. We'll automatically create a 4-panel sequence with characters, scenes, and detailed prompts ready for image generation.
+              Tell us about your storyboard idea in simple terms. We’ll generate detailed prompts, characters, and scenes. Choose whether to create a new storyboard or add panels to your current one.
             </Text>
           </View>
 
@@ -142,10 +182,29 @@ export default function StoryboardInputModal({ visible, onClose }: StoryboardInp
               <Text className="ml-2 text-blue-700 text-sm font-medium">What We'll Create</Text>
             </View>
             <View className="space-y-1">
-              <Text className="text-blue-600 text-xs">• 4-panel storyboard sequence</Text>
+              <Text className="text-blue-600 text-xs">• Panel count: {effectiveCount}</Text>
               <Text className="text-blue-600 text-xs">• Character descriptions and consistency</Text>
               <Text className="text-blue-600 text-xs">• Scene settings and compositions</Text>
               <Text className="text-blue-600 text-xs">• AI-ready prompts for image generation</Text>
+            </View>
+          </View>
+
+          {/* Panel Count */}
+          <View className="mb-6">
+            <Text className="text-sm font-medium text-gray-700 mb-2">
+              {mode === "create" ? "Number of Panels" : "Panels to Add"}
+            </Text>
+            <View className="flex-row items-center">
+              <TextInput
+                value={mode === "create" ? panelCount : appendCount}
+                onChangeText={v => mode === "create" ? setPanelCount(v.replace(/[^0-9]/g, "")) : setAppendCount(v.replace(/[^0-9]/g, ""))}
+                placeholder={mode === "create" ? "4" : "1"}
+                keyboardType="number-pad"
+                className="border border-gray-300 rounded-lg p-3 text-gray-900 text-base"
+                style={{ width: 80 }}
+                editable={!isGenerating}
+              />
+              <Text className="ml-3 text-gray-500 text-xs">Max 12</Text>
             </View>
           </View>
         </ScrollView>
@@ -169,8 +228,8 @@ export default function StoryboardInputModal({ visible, onClose }: StoryboardInp
               </>
             ) : (
               <>
-                <Ionicons name="create" size={20} color="white" />
-                <Text className="ml-2 text-white font-semibold">Generate Storyboard</Text>
+                <Ionicons name={mode === "append" ? "add" : "create"} size={20} color="white" />
+                <Text className="ml-2 text-white font-semibold">{mode === "append" ? "Add Panels" : "Generate Storyboard"}</Text>
               </>
             )}
           </Pressable>

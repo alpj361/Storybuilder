@@ -8,8 +8,9 @@ import {
   GenerationOptions 
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
-import { generateAllPanelPrompts } from "../templates/storyboardTemplates";
+import { generateAllPanelPrompts, applyAudienceTemplate, AUDIENCE_TEMPLATES } from "../templates/storyboardTemplates";
 import { generateDraftStoryboardImage } from "../api/stable-diffusion";
+import { v4 as uuidv4 } from "uuid";
 
 interface StoryboardState {
   // Current project state
@@ -27,6 +28,7 @@ interface StoryboardState {
   
   // Actions
   createProjectFromInput: (input: string) => Promise<void>;
+  appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   deleteProject: (projectId: string) => void;
@@ -71,23 +73,26 @@ export const useStoryboardStore = create<StoryboardState>()(
           const result = await parseUserInput(input);
           
           if (result.success) {
-            // Generate enhanced prompts for all panels
-            const enhancedPanels = result.project.panels.map(panel => ({
+            // Apply audience-specific template first, then generate prompts
+            const audience = result.project.metadata.targetAudience;
+            const audienceStyle = AUDIENCE_TEMPLATES[audience]?.style_preference ?? get().defaultStyle;
+
+            const audiencePreparedPanels = result.project.panels.map(panel => ({
               ...panel,
-              prompt: {
+              prompt: applyAudienceTemplate({
                 ...panel.prompt,
-                style: get().defaultStyle
-              }
+                style: audienceStyle
+              }, audience)
             }));
 
             const enhancedPrompts = generateAllPanelPrompts(
-              enhancedPanels.map(p => p.prompt),
+              audiencePreparedPanels.map(p => p.prompt),
               result.project.characters,
               result.project.scenes
             );
 
             // Update panels with generated prompts
-            const finalPanels = enhancedPanels.map((panel, index) => ({
+            const finalPanels = audiencePreparedPanels.map((panel, index) => ({
               ...panel,
               prompt: enhancedPrompts[index]
             }));
@@ -95,7 +100,7 @@ export const useStoryboardStore = create<StoryboardState>()(
             const finalProject: StoryboardProject = {
               ...result.project,
               panels: finalPanels,
-              style: get().defaultStyle
+              style: audienceStyle
             };
 
             set(state => ({
@@ -114,6 +119,67 @@ export const useStoryboardStore = create<StoryboardState>()(
             error: error instanceof Error ? error.message : "Unknown error occurred",
             isGenerating: false 
           });
+        }
+      },
+
+      // Append new panels derived from user input to the current project
+      appendPanelsFromInput: async (input: string, options?: { count?: number }) => {
+        const state = get();
+        if (!state.currentProject) return;
+        set({ isGenerating: true, error: null });
+
+        try {
+          const result = await parseUserInput(input);
+          if (!result.success) {
+            set({ error: result.errors?.join(", ") || "Failed to parse input", isGenerating: false });
+            return;
+          }
+
+          const audience = result.project.metadata.targetAudience;
+          const audienceStyle = AUDIENCE_TEMPLATES[audience]?.style_preference ?? state.currentProject.style ?? get().defaultStyle;
+
+          // Determine how many panels to take
+          const requestedCount = Math.max(1, options?.count || result.project.panels.length || 1);
+          const newPanelsSource = result.project.panels.slice(0, requestedCount);
+
+          // Merge characters and scenes (simple append)
+          const mergedCharacters = [...state.currentProject.characters, ...result.project.characters];
+          const mergedScenes = [...state.currentProject.scenes, ...result.project.scenes];
+
+          // Prepare prompts with audience template and style
+          const preparedPrompts = newPanelsSource.map(p => applyAudienceTemplate({
+            ...p.prompt,
+            style: audienceStyle
+          }, audience));
+
+          // Generate final prompts for the new panels using merged entities
+          const generatedPrompts = generateAllPanelPrompts(preparedPrompts, mergedCharacters, mergedScenes);
+
+          // Build StoryboardPanel objects with incremented numbering
+          const startIndex = state.currentProject.panels.length;
+          const panelsToAppend: StoryboardPanel[] = generatedPrompts.map((prompt, idx) => ({
+            id: uuidv4(),
+            panelNumber: startIndex + idx + 1,
+            prompt,
+            isGenerating: false,
+            isEdited: false
+          }));
+
+          const updatedProject: StoryboardProject = {
+            ...state.currentProject,
+            characters: mergedCharacters,
+            scenes: mergedScenes,
+            panels: [...state.currentProject.panels, ...panelsToAppend],
+            updatedAt: new Date()
+          };
+
+          set({
+            currentProject: updatedProject,
+            projects: state.projects.map(p => p.id === updatedProject.id ? updatedProject : p),
+            isGenerating: false
+          });
+        } catch (error) {
+          set({ error: error instanceof Error ? error.message : "Failed to append panels", isGenerating: false });
         }
       },
 

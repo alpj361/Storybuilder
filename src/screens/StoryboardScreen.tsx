@@ -204,30 +204,17 @@ export default function StoryboardScreen() {
           </View>
         )}
 
-        {/* Four Panel Grid */}
+        {/* Panels Grid (dynamic) */}
         <View className="flex-1">
-          {/* Top Row */}
-          <View className="flex-row mb-2">
-            <StoryboardPanel 
-              panel={currentProject?.panels[0]} 
-              panelNumber={1} 
-            />
-            <StoryboardPanel 
-              panel={currentProject?.panels[1]} 
-              panelNumber={2} 
-            />
-          </View>
-          
-          {/* Bottom Row */}
-          <View className="flex-row">
-            <StoryboardPanel 
-              panel={currentProject?.panels[2]} 
-              panelNumber={3} 
-            />
-            <StoryboardPanel 
-              panel={currentProject?.panels[3]} 
-              panelNumber={4} 
-            />
+          <View className="flex-row flex-wrap -mx-1">
+            {(currentProject?.panels?.length ? currentProject.panels : [undefined, undefined, undefined, undefined]).map((panel, idx) => (
+              <View key={panel ? panel.id : `placeholder-${idx}`} className="w-1/2 px-1 mb-2">
+                <StoryboardPanel 
+                  panel={panel as any}
+                  panelNumber={idx + 1}
+                />
+              </View>
+            ))}
           </View>
         </View>
         
