@@ -3,6 +3,7 @@ import {
   StoryboardPrompt,
   ValidationResult
 } from "../types/storyboard";
+import { analyzeTheme, analyzeVisualStyle } from "./promptParser";
 
 /**
  * Validate a complete storyboard project
@@ -83,6 +84,13 @@ export function validateStoryboardProject(project: StoryboardProject): Validatio
   // Check character consistency across panels
   const characterConsistencyScore = checkCharacterConsistency(project);
   score = Math.min(score, score + characterConsistencyScore);
+
+  // Enhanced validation: Check thematic and stylistic coherence
+  const thematicCoherenceScore = checkThematicCoherence(project);
+  score = Math.min(score, score + thematicCoherenceScore);
+
+  const stylisticCoherenceScore = checkStylisticCoherence(project);
+  score = Math.min(score, score + stylisticCoherenceScore);
 
   return {
     isValid: issues.filter(i => i.type === "error").length === 0,
@@ -244,4 +252,164 @@ export function scorePromptCompleteness(prompt: StoryboardPrompt): number {
   if (prompt.visualNotes) score += 8;
   
   return score;
+}
+
+/**
+ * Check thematic coherence across panels
+ */
+function checkThematicCoherence(project: StoryboardProject): number {
+  let coherenceScore = 0;
+  
+  if (!project.userInput) return 0;
+  
+  const themeAnalysis = analyzeTheme(project.userInput);
+  
+  // Check if panels reflect the detected theme
+  project.panels.forEach((panel, index) => {
+    const prompt = panel.prompt.generatedPrompt.toLowerCase();
+    const themeKeywords = themeAnalysis.concepts.map(c => c.toLowerCase());
+    
+    // Check if theme concepts appear in prompts
+    const hasThemeKeywords = themeKeywords.some(keyword => 
+      prompt.includes(keyword)
+    );
+    
+    if (hasThemeKeywords) {
+      coherenceScore += 5;
+    }
+    
+    // Check for historical context if it's a historical theme
+    if (themeAnalysis.type === 'historical') {
+      if (prompt.includes('historical') || prompt.includes('period') || prompt.includes('era')) {
+        coherenceScore += 3;
+      }
+    }
+    
+    // Check for educational context if it's an educational theme
+    if (themeAnalysis.type === 'educational') {
+      if (prompt.includes('educational') || prompt.includes('learning') || prompt.includes('concept')) {
+        coherenceScore += 3;
+      }
+    }
+  });
+  
+  return Math.min(coherenceScore, 20); // Cap at 20 points
+}
+
+/**
+ * Check stylistic coherence across panels
+ */
+function checkStylisticCoherence(project: StoryboardProject): number {
+  let coherenceScore = 0;
+  
+  if (!project.userInput) return 0;
+  
+  const visualStyle = analyzeVisualStyle(project.userInput);
+  
+  // Check if panels reflect the detected visual style
+  project.panels.forEach((panel, index) => {
+    const prompt = panel.prompt.generatedPrompt.toLowerCase();
+    const styleKeywords = visualStyle.characteristics.map(c => c.toLowerCase());
+    
+    // Check if style characteristics appear in prompts
+    const hasStyleKeywords = styleKeywords.some(keyword => 
+      prompt.includes(keyword)
+    );
+    
+    if (hasStyleKeywords) {
+      coherenceScore += 5;
+    }
+    
+    // Check for specific style indicators
+    if (visualStyle.style === 'toons') {
+      if (prompt.includes('simple') || prompt.includes('basic') || prompt.includes('geometric')) {
+        coherenceScore += 3;
+      }
+    }
+    
+    if (visualStyle.style === 'realistic') {
+      if (prompt.includes('detailed') || prompt.includes('photographic') || prompt.includes('realistic')) {
+        coherenceScore += 3;
+      }
+    }
+    
+    if (visualStyle.style === 'anime') {
+      if (prompt.includes('anime') || prompt.includes('manga') || prompt.includes('stylized')) {
+        coherenceScore += 3;
+      }
+    }
+  });
+  
+  return Math.min(coherenceScore, 20); // Cap at 20 points
+}
+
+/**
+ * Enhanced prompt quality validation with contextual awareness
+ */
+export function validateContextualPrompt(prompt: StoryboardPrompt, userInput: string): ValidationResult {
+  const issues: ValidationResult["issues"] = [];
+  const suggestions: string[] = [];
+  let score = 100;
+
+  // Basic validation (existing)
+  if (!prompt.sceneDescription || prompt.sceneDescription.trim().length === 0) {
+    issues.push({
+      type: "error",
+      message: "Prompt must have a scene description"
+    });
+    score -= 25;
+  }
+
+  if (!prompt.generatedPrompt || prompt.generatedPrompt.trim().length === 0) {
+    issues.push({
+      type: "error",
+      message: "Prompt must have generated AI prompt text"
+    });
+    score -= 30;
+  }
+
+  // Enhanced contextual validation
+  const themeAnalysis = analyzeTheme(userInput);
+  const visualStyle = analyzeVisualStyle(userInput);
+  
+  // Check thematic relevance
+  if (prompt.generatedPrompt) {
+    const promptLower = prompt.generatedPrompt.toLowerCase();
+    const hasThematicRelevance = themeAnalysis.concepts.some(concept => 
+      promptLower.includes(concept.toLowerCase())
+    );
+    
+    if (!hasThematicRelevance) {
+      issues.push({
+        type: "warning",
+        message: "Prompt may not reflect the thematic content of the input"
+      });
+      score -= 10;
+      suggestions.push("Consider incorporating more thematic elements from the original input");
+    }
+  }
+  
+  // Check stylistic consistency
+  if (prompt.generatedPrompt) {
+    const promptLower = prompt.generatedPrompt.toLowerCase();
+    const hasStyleConsistency = visualStyle.characteristics.some(characteristic => 
+      promptLower.includes(characteristic.toLowerCase())
+    );
+    
+    if (!hasStyleConsistency) {
+      issues.push({
+        type: "warning",
+        message: "Prompt may not reflect the requested visual style"
+      });
+      score -= 10;
+      suggestions.push("Consider incorporating the requested visual style characteristics");
+    }
+  }
+
+  return {
+    isValid: issues.filter(i => i.type === "error").length === 0,
+    score: Math.max(0, score),
+    issues,
+    suggestions
+  };
 }
