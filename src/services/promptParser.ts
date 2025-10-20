@@ -12,6 +12,147 @@ import {
 } from "../types/storyboard";
 import { v4 as uuidv4 } from "uuid";
 
+// New interfaces for enhanced parsing
+interface ThemeAnalysis {
+  type: 'historical' | 'educational' | 'fictional' | 'technical' | 'general';
+  concepts: string[];
+  timePeriod?: string;
+  location?: string;
+  keyEvents?: string[];
+  mainSubject?: string;
+}
+
+interface VisualStyle {
+  style: 'toons' | 'realistic' | 'anime' | 'sketch' | 'storyboard' | 'generic';
+  characteristics: string[];
+  complexity: 'simple' | 'detailed' | 'complex';
+  colorScheme?: string;
+  artisticElements?: string[];
+}
+
+interface ContextualPrompt {
+  panelNumber: number;
+  themeContext: string;
+  visualStyle: string;
+  narrativeFlow: string;
+  technicalSpecs: string;
+}
+
+/**
+ * Analyze thematic content from user input
+ */
+export function analyzeTheme(input: string): ThemeAnalysis {
+  const lowercaseInput = input.toLowerCase();
+  
+  // Historical content detection
+  if (/(historia|histórico|histórica|guerra|reforma|revolución|presidente|gobierno|siglo|año|década|época)/.test(lowercaseInput)) {
+    const timePeriod = extractTimePeriod(input);
+    const location = extractLocation(input);
+    const concepts = extractHistoricalConcepts(input);
+    
+    return {
+      type: 'historical',
+      concepts,
+      timePeriod,
+      location,
+      keyEvents: extractKeyEvents(input),
+      mainSubject: extractMainSubject(input)
+    };
+  }
+  
+  // Educational content detection
+  if (/(educativo|enseñar|aprender|explicar|concepto|lección|tutorial|instrucción)/.test(lowercaseInput)) {
+    return {
+      type: 'educational',
+      concepts: extractEducationalConcepts(input),
+      mainSubject: extractMainSubject(input)
+    };
+  }
+  
+  // Technical content detection
+  if (/(técnico|arquitectura|construcción|diseño|blueprint|cad|ingeniería|estructura)/.test(lowercaseInput)) {
+    return {
+      type: 'technical',
+      concepts: extractTechnicalConcepts(input),
+      mainSubject: extractMainSubject(input)
+    };
+  }
+  
+  // Fictional content detection
+  if (/(historia|cuento|narrativa|personaje|aventura|ficción)/.test(lowercaseInput)) {
+    return {
+      type: 'fictional',
+      concepts: extractFictionalConcepts(input),
+      mainSubject: extractMainSubject(input)
+    };
+  }
+  
+  return {
+    type: 'general',
+    concepts: extractGeneralConcepts(input),
+    mainSubject: extractMainSubject(input)
+  };
+}
+
+/**
+ * Analyze visual style from user input
+ */
+export function analyzeVisualStyle(input: string): VisualStyle {
+  const lowercaseInput = input.toLowerCase();
+  
+  // Toons style detection
+  if (/(toons|bolitas|palitos|stick|figures|simple|cartoon|dibujo simple)/.test(lowercaseInput)) {
+    return {
+      style: 'toons',
+      characteristics: ['simple shapes', 'basic lines', 'minimal details', 'geometric forms'],
+      complexity: 'simple',
+      artisticElements: ['bolitas', 'palitos', 'figuras simples']
+    };
+  }
+  
+  // Realistic style detection
+  if (/(realista|fotográfico|foto|real|detallado|preciso)/.test(lowercaseInput)) {
+    return {
+      style: 'realistic',
+      characteristics: ['detailed', 'photographic', 'realistic proportions', 'textured'],
+      complexity: 'detailed'
+    };
+  }
+  
+  // Anime style detection
+  if (/(anime|manga|japonés|estilo anime)/.test(lowercaseInput)) {
+    return {
+      style: 'anime',
+      characteristics: ['large eyes', 'stylized features', 'dynamic poses', 'expressive'],
+      complexity: 'detailed'
+    };
+  }
+  
+  // Sketch style detection
+  if (/(boceto|sketch|dibujo|lápiz|líneas)/.test(lowercaseInput)) {
+    return {
+      style: 'sketch',
+      characteristics: ['line art', 'sketchy', 'hand-drawn', 'rough'],
+      complexity: 'simple'
+    };
+  }
+  
+  // Storyboard style detection
+  if (/(storyboard|guion gráfico|paneles|secuencia)/.test(lowercaseInput)) {
+    return {
+      style: 'storyboard',
+      characteristics: ['sequential', 'panel-based', 'narrative flow', 'clear composition'],
+      complexity: 'simple'
+    };
+  }
+  
+  return {
+    style: 'generic',
+    characteristics: ['neutral', 'standard'],
+    complexity: 'simple'
+  };
+}
+
 /**
  * Main entry point for parsing natural language input into a complete storyboard project
  */
@@ -19,6 +160,10 @@ export async function parseUserInput(input: string): Promise<PromptGenerationRes
   const startTime = Date.now();
   
   try {
+    // Enhanced analysis
+    const themeAnalysis = analyzeTheme(input);
+    const visualStyle = analyzeVisualStyle(input);
+    
     // Extract key elements from user input
     const characters = extractCharacters(input);
     const scenes = extractScenes(input);
@@ -26,8 +171,8 @@ export async function parseUserInput(input: string): Promise<PromptGenerationRes
     const targetAudience = detectTargetAudience(input);
     const panelCount = detectPanelCount(input);
     
-    // Generate sequence with detected panel count
-    const panels = generatePanelSequence(input, characters, scenes, panelCount);
+    // Generate sequence with enhanced context
+    const panels = generateContextualPanelSequence(input, characters, scenes, panelCount, themeAnalysis, visualStyle);
     
     // Create project structure
     const project: StoryboardProject = {
@@ -169,7 +314,248 @@ export function extractScenes(input: string): Scene[] {
 }
 
 /**
- * Generate a logical 4-panel storyboard sequence
+ * Generate contextual panel sequence with theme and style awareness
+ */
+export function generateContextualPanelSequence(
+  input: string, 
+  characters: Character[], 
+  scenes: Scene[],
+  count: number,
+  themeAnalysis: ThemeAnalysis,
+  visualStyle: VisualStyle
+): StoryboardPanel[] {
+  const panels: StoryboardPanel[] = [];
+  const mainCharacter = characters[0];
+  const mainScene = scenes[0];
+
+  // Generate contextual prompts for each panel
+  for (let i = 1; i <= count; i++) {
+    const contextualPrompt = generateContextualPrompt(i, input, themeAnalysis, visualStyle, characters, scenes);
+    panels.push(createContextualPanel(i, contextualPrompt, mainCharacter, mainScene));
+  }
+
+  return panels;
+}
+
+/**
+ * Generate contextual prompt for a specific panel
+ */
+function generateContextualPrompt(
+  panelNumber: number,
+  input: string,
+  themeAnalysis: ThemeAnalysis,
+  visualStyle: VisualStyle,
+  characters: Character[],
+  scenes: Scene[]
+): ContextualPrompt {
+  const themeContext = buildThemeContext(panelNumber, themeAnalysis);
+  const visualStyleContext = buildVisualStyleContext(visualStyle);
+  const narrativeFlow = buildNarrativeFlow(panelNumber, themeAnalysis, characters);
+  const technicalSpecs = buildTechnicalSpecs(panelNumber, visualStyle);
+
+  return {
+    panelNumber,
+    themeContext,
+    visualStyle: visualStyleContext,
+    narrativeFlow,
+    technicalSpecs
+  };
+}
+
+/**
+ * Build theme context for a panel
+ */
+function buildThemeContext(panelNumber: number, themeAnalysis: ThemeAnalysis): string {
+  switch (themeAnalysis.type) {
+    case 'historical':
+      return buildHistoricalContext(panelNumber, themeAnalysis);
+    case 'educational':
+      return buildEducationalContext(panelNumber, themeAnalysis);
+    case 'technical':
+      return buildTechnicalContext(panelNumber, themeAnalysis);
+    case 'fictional':
+      return buildFictionalContext(panelNumber, themeAnalysis);
+    default:
+      return buildGeneralContext(panelNumber, themeAnalysis);
+  }
+}
+
+/**
+ * Build visual style context
+ */
+function buildVisualStyleContext(visualStyle: VisualStyle): string {
+  const styleDescriptors = visualStyle.characteristics.join(', ');
+  const complexity = visualStyle.complexity;
+  const elements = visualStyle.artisticElements ? visualStyle.artisticElements.join(', ') : '';
+  
+  return `${visualStyle.style} style with ${styleDescriptors}, ${complexity} detail level${elements ? `, featuring ${elements}` : ''}`;
+}
+
+/**
+ * Build narrative flow for panel
+ */
+function buildNarrativeFlow(panelNumber: number, themeAnalysis: ThemeAnalysis, characters: Character[]): string {
+  const totalPanels = 4; // Default
+  const progress = panelNumber / totalPanels;
+  
+  if (progress <= 0.25) {
+    return "Establishing the scene and context";
+  } else if (progress <= 0.5) {
+    return "Introducing key elements and characters";
+  } else if (progress <= 0.75) {
+    return "Developing the main action or concept";
+  } else {
+    return "Concluding with resolution or key message";
+  }
+}
+
+/**
+ * Build technical specifications
+ */
+function buildTechnicalSpecs(panelNumber: number, visualStyle: VisualStyle): string {
+  const compositions = ['wide shot', 'medium shot', 'close-up', 'extreme close-up'];
+  const composition = compositions[Math.min(panelNumber - 1, compositions.length - 1)];
+  
+  return `${composition}, ${visualStyle.complexity} detail, clear composition`;
+}
+
+/**
+ * Create contextual panel with enhanced prompt generation
+ */
+function createContextualPanel(
+  panelNumber: number,
+  contextualPrompt: ContextualPrompt,
+  mainCharacter: Character,
+  mainScene: Scene
+): StoryboardPanel {
+  const prompt: StoryboardPrompt = {
+    id: uuidv4(),
+    panelNumber,
+    panelType: getPanelType(panelNumber),
+    composition: getCompositionType(panelNumber),
+    sceneDescription: `${contextualPrompt.themeContext} - ${contextualPrompt.narrativeFlow}`,
+    characters: [mainCharacter.id],
+    sceneId: mainScene.id,
+    action: contextualPrompt.narrativeFlow,
+    cameraAngle: contextualPrompt.technicalSpecs,
+    lighting: "appropriate lighting for the scene",
+    mood: "contextual mood",
+    visualNotes: contextualPrompt.visualStyle,
+    generatedPrompt: generateEnhancedPrompt(contextualPrompt, mainCharacter, mainScene),
+    style: StoryboardStyle.ROUGH_SKETCH
+  };
+
+  return {
+    id: uuidv4(),
+    panelNumber,
+    prompt,
+    isGenerating: false,
+    isEdited: false
+  };
+}
+
+/**
+ * Generate enhanced prompt combining all contextual elements
+ */
+function generateEnhancedPrompt(
+  contextualPrompt: ContextualPrompt,
+  character: Character,
+  scene: Scene
+): string {
+  const { themeContext, visualStyle, narrativeFlow, technicalSpecs } = contextualPrompt;
+  
+  return `${visualStyle} illustration showing ${themeContext}. ${narrativeFlow}. ${technicalSpecs}. Character: ${character.description}. Scene: ${scene.environment}`;
+}
+
+// Helper functions for theme context building
+function buildHistoricalContext(panelNumber: number, theme: ThemeAnalysis): string {
+  const events = theme.keyEvents || [];
+  const concepts = theme.concepts || [];
+  
+  if (panelNumber === 1) {
+    return `Historical context: ${theme.timePeriod} in ${theme.location || 'the region'}`;
+  } else if (panelNumber === 2) {
+    return `Key historical figure: ${theme.mainSubject || 'historical figure'}`;
+  } else if (panelNumber === 3) {
+    return `Historical event: ${events[0] || concepts[0] || 'significant historical moment'}`;
+  } else {
+    return `Historical impact: ${events[1] || concepts[1] || 'consequences and legacy'}`;
+  }
+}
+
+function buildEducationalContext(panelNumber: number, theme: ThemeAnalysis): string {
+  const concepts = theme.concepts || [];
+  
+  if (panelNumber === 1) {
+    return `Educational topic: ${theme.mainSubject || 'learning concept'}`;
+  } else if (panelNumber === 2) {
+    return `Key concept: ${concepts[0] || 'main learning point'}`;
+  } else if (panelNumber === 3) {
+    return `Application: ${concepts[1] || 'practical example'}`;
+  } else {
+    return `Conclusion: ${concepts[2] || 'key takeaway'}`;
+  }
+}
+
+function buildTechnicalContext(panelNumber: number, theme: ThemeAnalysis): string {
+  const concepts = theme.concepts || [];
+  
+  if (panelNumber === 1) {
+    return `Technical overview: ${theme.mainSubject || 'technical system'}`;
+  } else if (panelNumber === 2) {
+    return `Technical detail: ${concepts[0] || 'specific component'}`;
+  } else if (panelNumber === 3) {
+    return `Technical process: ${concepts[1] || 'construction or assembly'}`;
+  } else {
+    return `Technical result: ${concepts[2] || 'final structure or system'}`;
+  }
+}
+
+function buildFictionalContext(panelNumber: number, theme: ThemeAnalysis): string {
+  const concepts = theme.concepts || [];
+  
+  if (panelNumber === 1) {
+    return `Story setup: ${theme.mainSubject || 'story beginning'}`;
+  } else if (panelNumber === 2) {
+    return `Character introduction: ${concepts[0] || 'main character'}`;
+  } else if (panelNumber === 3) {
+    return `Story development: ${concepts[1] || 'plot development'}`;
+  } else {
+    return `Story resolution: ${concepts[2] || 'story conclusion'}`;
+  }
+}
+
+function buildGeneralContext(panelNumber: number, theme: ThemeAnalysis): string {
+  const concepts = theme.concepts || [];
+  
+  if (panelNumber === 1) {
+    return `Scene introduction: ${theme.mainSubject || 'general scene'}`;
+  } else if (panelNumber === 2) {
+    return `Element focus: ${concepts[0] || 'key element'}`;
+  } else if (panelNumber === 3) {
+    return `Action development: ${concepts[1] || 'main action'}`;
+  } else {
+    return `Scene conclusion: ${concepts[2] || 'scene resolution'}`;
+  }
+}
+
+// Helper functions for panel type and composition
+function getPanelType(panelNumber: number): PanelType {
+  if (panelNumber === 1) return PanelType.ESTABLISHING;
+  if (panelNumber === 2) return PanelType.CHARACTER_INTRO;
+  if (panelNumber === 3) return PanelType.ACTION;
+  return PanelType.RESOLUTION;
+}
+
+function getCompositionType(panelNumber: number): CompositionType {
+  if (panelNumber === 1) return CompositionType.WIDE_SHOT;
+  if (panelNumber === 2) return CompositionType.MEDIUM_SHOT;
+  if (panelNumber === 3) return CompositionType.CLOSE_UP;
+  return CompositionType.MEDIUM_SHOT;
+}
+
+/**
+ * Generate a logical 4-panel storyboard sequence (legacy function for backward compatibility)
  */
 export function generatePanelSequence(
   input: string, 
@@ -391,4 +777,123 @@ function detectPanelCount(input: string): number {
     if (Number.isFinite(n) && n >= 1) return Math.min(n, 12);
   }
   return 4;
+}
+
+// Enhanced concept extraction functions
+function extractTimePeriod(input: string): string {
+  const timePatterns = [
+    /(\d{4})/g, // Years
+    /(siglo\s+\w+)/gi, // Centuries
+    /(década\s+del\s+\d+)/gi, // Decades
+    /(años\s+\d+)/gi // Years range
+  ];
+  
+  for (const pattern of timePatterns) {
+    const match = input.match(pattern);
+    if (match) return match[0];
+  }
+  
+  return "historical period";
+}
+
+function extractLocation(input: string): string {
+  const locationPatterns = [
+    /(en\s+\w+)/gi, // "en Guatemala"
+    /(de\s+\w+)/gi, // "de Guatemala"
+    /(Guatemala|México|España|Colombia|Argentina)/gi // Country names
+  ];
+  
+  for (const pattern of locationPatterns) {
+    const match = input.match(pattern);
+    if (match) return match[0];
+  }
+  
+  return "the region";
+}
+
+function extractHistoricalConcepts(input: string): string[] {
+  const concepts: string[] = [];
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("reforma agraria")) concepts.push("agrarian reform");
+  if (lowercaseInput.includes("presidente")) concepts.push("president");
+  if (lowercaseInput.includes("gobierno")) concepts.push("government");
+  if (lowercaseInput.includes("tierra")) concepts.push("land distribution");
+  if (lowercaseInput.includes("población")) concepts.push("population");
+  if (lowercaseInput.includes("pobreza")) concepts.push("poverty");
+  if (lowercaseInput.includes("decreto")) concepts.push("decree");
+  if (lowercaseInput.includes("congreso")) concepts.push("congress");
+  
+  return concepts;
+}
+
+function extractKeyEvents(input: string): string[] {
+  const events: string[] = [];
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("decreto 900")) events.push("Decree 900 approval");
+  if (lowercaseInput.includes("redistribución")) events.push("land redistribution");
+  if (lowercaseInput.includes("reforma")) events.push("agrarian reform implementation");
+  if (lowercaseInput.includes("controversia")) events.push("political controversy");
+  
+  return events;
+}
+
+function extractMainSubject(input: string): string {
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("jacobo arbenz")) return "Jacobo Arbenz Guzmán";
+  if (lowercaseInput.includes("reforma agraria")) return "agrarian reform";
+  if (lowercaseInput.includes("guatemala")) return "Guatemala";
+  
+  return "main subject";
+}
+
+function extractEducationalConcepts(input: string): string[] {
+  const concepts: string[] = [];
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("concepto")) concepts.push("key concept");
+  if (lowercaseInput.includes("lección")) concepts.push("lesson");
+  if (lowercaseInput.includes("aprender")) concepts.push("learning objective");
+  if (lowercaseInput.includes("ejemplo")) concepts.push("example");
+  
+  return concepts;
+}
+
+function extractTechnicalConcepts(input: string): string[] {
+  const concepts: string[] = [];
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("estructura")) concepts.push("structure");
+  if (lowercaseInput.includes("construcción")) concepts.push("construction");
+  if (lowercaseInput.includes("diseño")) concepts.push("design");
+  if (lowercaseInput.includes("blueprint")) concepts.push("blueprint");
+  if (lowercaseInput.includes("cad")) concepts.push("CAD design");
+  
+  return concepts;
+}
+
+function extractFictionalConcepts(input: string): string[] {
+  const concepts: string[] = [];
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("personaje")) concepts.push("character");
+  if (lowercaseInput.includes("historia")) concepts.push("story");
+  if (lowercaseInput.includes("aventura")) concepts.push("adventure");
+  if (lowercaseInput.includes("narrativa")) concepts.push("narrative");
+  
+  return concepts;
+}
+
+function extractGeneralConcepts(input: string): string[] {
+  const concepts: string[] = [];
+  const lowercaseInput = input.toLowerCase();
+  
+  if (lowercaseInput.includes("escena")) concepts.push("scene");
+  if (lowercaseInput.includes("acción")) concepts.push("action");
+  if (lowercaseInput.includes("momento")) concepts.push("moment");
+  if (lowercaseInput.includes("situación")) concepts.push("situation");
+  
+  return concepts;
 }
