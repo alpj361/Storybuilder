@@ -8,10 +8,17 @@
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.alpj361.vibecode"
     },
     "android": {
       "edgeToEdgeEnabled": true
-    }
+    },
+    "plugins": [
+      "expo-asset",
+      "expo-build-properties",
+      "expo-font",
+      "expo-secure-store"
+    ]
   }
 }
