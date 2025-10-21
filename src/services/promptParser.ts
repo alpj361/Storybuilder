@@ -324,17 +324,50 @@ export function generateContextualPanelSequence(
   themeAnalysis: ThemeAnalysis,
   visualStyle: VisualStyle
 ): StoryboardPanel[] {
-  const panels: StoryboardPanel[] = [];
-  const mainCharacter = characters[0];
-  const mainScene = scenes[0];
+  try {
+    const panels: StoryboardPanel[] = [];
+    const mainCharacter = characters?.[0];
+    const mainScene = scenes?.[0];
 
-  // Generate contextual prompts for each panel
-  for (let i = 1; i <= count; i++) {
-    const contextualPrompt = generateContextualPrompt(i, input, themeAnalysis, visualStyle, characters, scenes);
-    panels.push(createContextualPanel(i, contextualPrompt, mainCharacter, mainScene));
+    // Generate contextual prompts for each panel
+    for (let i = 1; i <= count; i++) {
+      const contextualPrompt = generateContextualPrompt(i, input, themeAnalysis, visualStyle, characters, scenes);
+      panels.push(createContextualPanel(i, contextualPrompt, mainCharacter, mainScene));
+    }
+
+    return panels;
+  } catch (error) {
+    console.error('Error generating contextual panel sequence:', error);
+    // Fallback to basic panels
+    const panels: StoryboardPanel[] = [];
+    for (let i = 1; i <= count; i++) {
+      const prompt: StoryboardPrompt = {
+        id: uuidv4(),
+        panelNumber: i,
+        panelType: getPanelType(i),
+        composition: getCompositionType(i),
+        sceneDescription: "Story context",
+        characters: [],
+        sceneId: "",
+        action: "Narrative flow",
+        cameraAngle: "Standard angle",
+        lighting: "Natural lighting",
+        mood: "Neutral",
+        visualNotes: "Visual style",
+        generatedPrompt: "Contextual storyboard illustration",
+        style: StoryboardStyle.ROUGH_SKETCH
+      };
+
+      panels.push({
+        id: uuidv4(),
+        panelNumber: i,
+        prompt,
+        isGenerating: false,
+        isEdited: false
+      });
+    }
+    return panels;
   }
-
-  return panels;
 }
 
 /**
@@ -348,35 +381,55 @@ function generateContextualPrompt(
   characters: Character[],
   scenes: Scene[]
 ): ContextualPrompt {
-  const themeContext = buildThemeContext(panelNumber, themeAnalysis);
-  const visualStyleContext = buildVisualStyleContext(visualStyle);
-  const narrativeFlow = buildNarrativeFlow(panelNumber, themeAnalysis, characters);
-  const technicalSpecs = buildTechnicalSpecs(panelNumber, visualStyle);
+  try {
+    const themeContext = buildThemeContext(panelNumber, themeAnalysis);
+    const visualStyleContext = buildVisualStyleContext(visualStyle);
+    const narrativeFlow = buildNarrativeFlow(panelNumber, themeAnalysis, characters);
+    const technicalSpecs = buildTechnicalSpecs(panelNumber, visualStyle);
 
-  return {
-    panelNumber,
-    themeContext,
-    visualStyle: visualStyleContext,
-    narrativeFlow,
-    technicalSpecs
-  };
+    return {
+      panelNumber,
+      themeContext,
+      visualStyle: visualStyleContext,
+      narrativeFlow,
+      technicalSpecs
+    };
+  } catch (error) {
+    console.error('Error generating contextual prompt:', error);
+    return {
+      panelNumber,
+      themeContext: "story context",
+      visualStyle: "visual style",
+      narrativeFlow: "narrative flow",
+      technicalSpecs: "technical specifications"
+    };
+  }
 }
 
 /**
  * Build theme context for a panel
  */
 function buildThemeContext(panelNumber: number, themeAnalysis: ThemeAnalysis): string {
-  switch (themeAnalysis.type) {
-    case 'historical':
-      return buildHistoricalContext(panelNumber, themeAnalysis);
-    case 'educational':
-      return buildEducationalContext(panelNumber, themeAnalysis);
-    case 'technical':
-      return buildTechnicalContext(panelNumber, themeAnalysis);
-    case 'fictional':
-      return buildFictionalContext(panelNumber, themeAnalysis);
-    default:
-      return buildGeneralContext(panelNumber, themeAnalysis);
+  try {
+    if (!themeAnalysis || typeof themeAnalysis !== 'object') {
+      return "story context";
+    }
+    
+    switch (themeAnalysis.type) {
+      case 'historical':
+        return buildHistoricalContext(panelNumber, themeAnalysis);
+      case 'educational':
+        return buildEducationalContext(panelNumber, themeAnalysis);
+      case 'technical':
+        return buildTechnicalContext(panelNumber, themeAnalysis);
+      case 'fictional':
+        return buildFictionalContext(panelNumber, themeAnalysis);
+      default:
+        return buildGeneralContext(panelNumber, themeAnalysis);
+    }
+  } catch (error) {
+    console.error('Error building theme context:', error);
+    return "story context";
   }
 }
 
@@ -384,28 +437,46 @@ function buildThemeContext(panelNumber: number, themeAnalysis: ThemeAnalysis): s
  * Build visual style context
  */
 function buildVisualStyleContext(visualStyle: VisualStyle): string {
-  const styleDescriptors = visualStyle.characteristics.join(', ');
-  const complexity = visualStyle.complexity;
-  const elements = visualStyle.artisticElements ? visualStyle.artisticElements.join(', ') : '';
-  
-  return `${visualStyle.style} style with ${styleDescriptors}, ${complexity} detail level${elements ? `, featuring ${elements}` : ''}`;
+  try {
+    if (!visualStyle || typeof visualStyle !== 'object') {
+      return "visual style";
+    }
+    
+    const styleDescriptors = visualStyle.characteristics?.join(', ') || "characteristics";
+    const complexity = visualStyle.complexity || "simple";
+    const elements = visualStyle.artisticElements ? visualStyle.artisticElements.join(', ') : '';
+    
+    return `${visualStyle.style || "style"} style with ${styleDescriptors}, ${complexity} detail level${elements ? `, featuring ${elements}` : ''}`;
+  } catch (error) {
+    console.error('Error building visual style context:', error);
+    return "visual style";
+  }
 }
 
 /**
  * Build narrative flow for panel
  */
 function buildNarrativeFlow(panelNumber: number, themeAnalysis: ThemeAnalysis, characters: Character[]): string {
-  const totalPanels = 4; // Default
-  const progress = panelNumber / totalPanels;
-  
-  if (progress <= 0.25) {
-    return "Establishing the scene and context";
-  } else if (progress <= 0.5) {
-    return "Introducing key elements and characters";
-  } else if (progress <= 0.75) {
-    return "Developing the main action or concept";
-  } else {
-    return "Concluding with resolution or key message";
+  try {
+    if (!panelNumber || typeof panelNumber !== 'number') {
+      return "narrative flow";
+    }
+    
+    const totalPanels = 4; // Default
+    const progress = panelNumber / totalPanels;
+    
+    if (progress <= 0.25) {
+      return "Establishing the scene and context";
+    } else if (progress <= 0.5) {
+      return "Introducing key elements and characters";
+    } else if (progress <= 0.75) {
+      return "Developing the main action or concept";
+    } else {
+      return "Concluding with resolution or key message";
+    }
+  } catch (error) {
+    console.error('Error building narrative flow:', error);
+    return "narrative flow";
   }
 }
 
@@ -413,10 +484,20 @@ function buildNarrativeFlow(panelNumber: number, themeAnalysis: ThemeAnalysis, c
  * Build technical specifications
  */
 function buildTechnicalSpecs(panelNumber: number, visualStyle: VisualStyle): string {
-  const compositions = ['wide shot', 'medium shot', 'close-up', 'extreme close-up'];
-  const composition = compositions[Math.min(panelNumber - 1, compositions.length - 1)];
-  
-  return `${composition}, ${visualStyle.complexity} detail, clear composition`;
+  try {
+    if (!panelNumber || typeof panelNumber !== 'number') {
+      return "technical specifications";
+    }
+    
+    const compositions = ['wide shot', 'medium shot', 'close-up', 'extreme close-up'];
+    const composition = compositions[Math.min(panelNumber - 1, compositions.length - 1)];
+    const complexity = visualStyle?.complexity || "simple";
+    
+    return `${composition}, ${complexity} detail, clear composition`;
+  } catch (error) {
+    console.error('Error building technical specs:', error);
+    return "technical specifications";
+  }
 }
 
 /**
@@ -428,30 +509,59 @@ function createContextualPanel(
   mainCharacter: Character,
   mainScene: Scene
 ): StoryboardPanel {
-  const prompt: StoryboardPrompt = {
-    id: uuidv4(),
-    panelNumber,
-    panelType: getPanelType(panelNumber),
-    composition: getCompositionType(panelNumber),
-    sceneDescription: `${contextualPrompt.themeContext} - ${contextualPrompt.narrativeFlow}`,
-    characters: [mainCharacter.id],
-    sceneId: mainScene.id,
-    action: contextualPrompt.narrativeFlow,
-    cameraAngle: contextualPrompt.technicalSpecs,
-    lighting: "appropriate lighting for the scene",
-    mood: "contextual mood",
-    visualNotes: contextualPrompt.visualStyle,
-    generatedPrompt: generateEnhancedPrompt(contextualPrompt, mainCharacter, mainScene),
-    style: StoryboardStyle.ROUGH_SKETCH
-  };
+  try {
+    const prompt: StoryboardPrompt = {
+      id: uuidv4(),
+      panelNumber,
+      panelType: getPanelType(panelNumber),
+      composition: getCompositionType(panelNumber),
+      sceneDescription: `${contextualPrompt?.themeContext || "story context"} - ${contextualPrompt?.narrativeFlow || "narrative flow"}`,
+      characters: [mainCharacter?.id || ""],
+      sceneId: mainScene?.id || "",
+      action: contextualPrompt?.narrativeFlow || "narrative flow",
+      cameraAngle: contextualPrompt?.technicalSpecs || "technical specifications",
+      lighting: "appropriate lighting for the scene",
+      mood: "contextual mood",
+      visualNotes: contextualPrompt?.visualStyle || "visual style",
+      generatedPrompt: generateEnhancedPrompt(contextualPrompt, mainCharacter, mainScene),
+      style: StoryboardStyle.ROUGH_SKETCH
+    };
 
-  return {
-    id: uuidv4(),
-    panelNumber,
-    prompt,
-    isGenerating: false,
-    isEdited: false
-  };
+    return {
+      id: uuidv4(),
+      panelNumber,
+      prompt,
+      isGenerating: false,
+      isEdited: false
+    };
+  } catch (error) {
+    console.error('Error creating contextual panel:', error);
+    // Fallback to basic panel
+    const prompt: StoryboardPrompt = {
+      id: uuidv4(),
+      panelNumber,
+      panelType: getPanelType(panelNumber),
+      composition: getCompositionType(panelNumber),
+      sceneDescription: "Story context",
+      characters: [],
+      sceneId: "",
+      action: "Narrative flow",
+      cameraAngle: "Standard angle",
+      lighting: "Natural lighting",
+      mood: "Neutral",
+      visualNotes: "Visual style",
+      generatedPrompt: "Contextual storyboard illustration",
+      style: StoryboardStyle.ROUGH_SKETCH
+    };
+
+    return {
+      id: uuidv4(),
+      panelNumber,
+      prompt,
+      isGenerating: false,
+      isEdited: false
+    };
+  }
 }
 
 /**
@@ -469,89 +579,152 @@ function generateEnhancedPrompt(
 
 // Helper functions for theme context building
 function buildHistoricalContext(panelNumber: number, theme: ThemeAnalysis): string {
-  const events = theme.keyEvents || [];
-  const concepts = theme.concepts || [];
-  
-  if (panelNumber === 1) {
-    return `Historical context: ${theme.timePeriod} in ${theme.location || 'the region'}`;
-  } else if (panelNumber === 2) {
-    return `Key historical figure: ${theme.mainSubject || 'historical figure'}`;
-  } else if (panelNumber === 3) {
-    return `Historical event: ${events[0] || concepts[0] || 'significant historical moment'}`;
-  } else {
-    return `Historical impact: ${events[1] || concepts[1] || 'consequences and legacy'}`;
+  try {
+    if (!theme || typeof theme !== 'object') {
+      return "historical context";
+    }
+    
+    const events = theme.keyEvents || [];
+    const concepts = theme.concepts || [];
+    
+    if (panelNumber === 1) {
+      return `Historical context: ${theme.timePeriod || 'historical period'} in ${theme.location || 'the region'}`;
+    } else if (panelNumber === 2) {
+      return `Key historical figure: ${theme.mainSubject || 'historical figure'}`;
+    } else if (panelNumber === 3) {
+      return `Historical event: ${events[0] || concepts[0] || 'significant historical moment'}`;
+    } else {
+      return `Historical impact: ${events[1] || concepts[1] || 'consequences and legacy'}`;
+    }
+  } catch (error) {
+    console.error('Error building historical context:', error);
+    return "historical context";
   }
 }
 
 function buildEducationalContext(panelNumber: number, theme: ThemeAnalysis): string {
-  const concepts = theme.concepts || [];
-  
-  if (panelNumber === 1) {
-    return `Educational topic: ${theme.mainSubject || 'learning concept'}`;
-  } else if (panelNumber === 2) {
-    return `Key concept: ${concepts[0] || 'main learning point'}`;
-  } else if (panelNumber === 3) {
-    return `Application: ${concepts[1] || 'practical example'}`;
-  } else {
-    return `Conclusion: ${concepts[2] || 'key takeaway'}`;
+  try {
+    if (!theme || typeof theme !== 'object') {
+      return "educational context";
+    }
+    
+    const concepts = theme.concepts || [];
+    
+    if (panelNumber === 1) {
+      return `Educational topic: ${theme.mainSubject || 'learning concept'}`;
+    } else if (panelNumber === 2) {
+      return `Key concept: ${concepts[0] || 'main learning point'}`;
+    } else if (panelNumber === 3) {
+      return `Application: ${concepts[1] || 'practical example'}`;
+    } else {
+      return `Conclusion: ${concepts[2] || 'key takeaway'}`;
+    }
+  } catch (error) {
+    console.error('Error building educational context:', error);
+    return "educational context";
   }
 }
 
 function buildTechnicalContext(panelNumber: number, theme: ThemeAnalysis): string {
-  const concepts = theme.concepts || [];
-  
-  if (panelNumber === 1) {
-    return `Technical overview: ${theme.mainSubject || 'technical system'}`;
-  } else if (panelNumber === 2) {
-    return `Technical detail: ${concepts[0] || 'specific component'}`;
-  } else if (panelNumber === 3) {
-    return `Technical process: ${concepts[1] || 'construction or assembly'}`;
-  } else {
-    return `Technical result: ${concepts[2] || 'final structure or system'}`;
+  try {
+    if (!theme || typeof theme !== 'object') {
+      return "technical context";
+    }
+    
+    const concepts = theme.concepts || [];
+    
+    if (panelNumber === 1) {
+      return `Technical overview: ${theme.mainSubject || 'technical system'}`;
+    } else if (panelNumber === 2) {
+      return `Technical detail: ${concepts[0] || 'specific component'}`;
+    } else if (panelNumber === 3) {
+      return `Technical process: ${concepts[1] || 'construction or assembly'}`;
+    } else {
+      return `Technical result: ${concepts[2] || 'final structure or system'}`;
+    }
+  } catch (error) {
+    console.error('Error building technical context:', error);
+    return "technical context";
   }
 }
 
 function buildFictionalContext(panelNumber: number, theme: ThemeAnalysis): string {
-  const concepts = theme.concepts || [];
-  
-  if (panelNumber === 1) {
-    return `Story setup: ${theme.mainSubject || 'story beginning'}`;
-  } else if (panelNumber === 2) {
-    return `Character introduction: ${concepts[0] || 'main character'}`;
-  } else if (panelNumber === 3) {
-    return `Story development: ${concepts[1] || 'plot development'}`;
-  } else {
-    return `Story resolution: ${concepts[2] || 'story conclusion'}`;
+  try {
+    if (!theme || typeof theme !== 'object') {
+      return "fictional context";
+    }
+    
+    const concepts = theme.concepts || [];
+    
+    if (panelNumber === 1) {
+      return `Story setup: ${theme.mainSubject || 'story beginning'}`;
+    } else if (panelNumber === 2) {
+      return `Character introduction: ${concepts[0] || 'main character'}`;
+    } else if (panelNumber === 3) {
+      return `Story development: ${concepts[1] || 'plot development'}`;
+    } else {
+      return `Story resolution: ${concepts[2] || 'story conclusion'}`;
+    }
+  } catch (error) {
+    console.error('Error building fictional context:', error);
+    return "fictional context";
   }
 }
 
 function buildGeneralContext(panelNumber: number, theme: ThemeAnalysis): string {
-  const concepts = theme.concepts || [];
-  
-  if (panelNumber === 1) {
-    return `Scene introduction: ${theme.mainSubject || 'general scene'}`;
-  } else if (panelNumber === 2) {
-    return `Element focus: ${concepts[0] || 'key element'}`;
-  } else if (panelNumber === 3) {
-    return `Action development: ${concepts[1] || 'main action'}`;
-  } else {
-    return `Scene conclusion: ${concepts[2] || 'scene resolution'}`;
+  try {
+    if (!theme || typeof theme !== 'object') {
+      return "general context";
+    }
+    
+    const concepts = theme.concepts || [];
+    
+    if (panelNumber === 1) {
+      return `Scene introduction: ${theme.mainSubject || 'general scene'}`;
+    } else if (panelNumber === 2) {
+      return `Element focus: ${concepts[0] || 'key element'}`;
+    } else if (panelNumber === 3) {
+      return `Action development: ${concepts[1] || 'main action'}`;
+    } else {
+      return `Scene conclusion: ${concepts[2] || 'scene resolution'}`;
+    }
+  } catch (error) {
+    console.error('Error building general context:', error);
+    return "general context";
   }
 }
 
 // Helper functions for panel type and composition
 function getPanelType(panelNumber: number): PanelType {
-  if (panelNumber === 1) return PanelType.ESTABLISHING;
-  if (panelNumber === 2) return PanelType.CHARACTER_INTRO;
-  if (panelNumber === 3) return PanelType.ACTION;
-  return PanelType.RESOLUTION;
+  try {
+    if (!panelNumber || typeof panelNumber !== 'number') {
+      return PanelType.ACTION;
+    }
+    
+    if (panelNumber === 1) return PanelType.ESTABLISHING;
+    if (panelNumber === 2) return PanelType.CHARACTER_INTRO;
+    if (panelNumber === 3) return PanelType.ACTION;
+    return PanelType.RESOLUTION;
+  } catch (error) {
+    console.error('Error getting panel type:', error);
+    return PanelType.ACTION;
+  }
 }
 
 function getCompositionType(panelNumber: number): CompositionType {
-  if (panelNumber === 1) return CompositionType.WIDE_SHOT;
-  if (panelNumber === 2) return CompositionType.MEDIUM_SHOT;
-  if (panelNumber === 3) return CompositionType.CLOSE_UP;
-  return CompositionType.MEDIUM_SHOT;
+  try {
+    if (!panelNumber || typeof panelNumber !== 'number') {
+      return CompositionType.MEDIUM_SHOT;
+    }
+    
+    if (panelNumber === 1) return CompositionType.WIDE_SHOT;
+    if (panelNumber === 2) return CompositionType.MEDIUM_SHOT;
+    if (panelNumber === 3) return CompositionType.CLOSE_UP;
+    return CompositionType.MEDIUM_SHOT;
+  } catch (error) {
+    console.error('Error getting composition type:', error);
+    return CompositionType.MEDIUM_SHOT;
+  }
 }
 
 /**
@@ -781,62 +954,98 @@ function detectPanelCount(input: string): number {
 
 // Enhanced concept extraction functions
 function extractTimePeriod(input: string): string {
-  const timePatterns = [
-    /(\d{4})/g, // Years
-    /(siglo\s+\w+)/gi, // Centuries
-    /(década\s+del\s+\d+)/gi, // Decades
-    /(años\s+\d+)/gi // Years range
-  ];
-  
-  for (const pattern of timePatterns) {
-    const match = input.match(pattern);
-    if (match) return match[0];
+  try {
+    if (!input || typeof input !== 'string') {
+      return "historical period";
+    }
+    
+    const timePatterns = [
+      /(\d{4})/g, // Years
+      /(siglo\s+\w+)/gi, // Centuries
+      /(década\s+del\s+\d+)/gi, // Decades
+      /(años\s+\d+)/gi // Years range
+    ];
+    
+    for (const pattern of timePatterns) {
+      const match = input.match(pattern);
+      if (match) return match[0];
+    }
+    
+    return "historical period";
+  } catch (error) {
+    console.error('Error extracting time period:', error);
+    return "historical period";
   }
-  
-  return "historical period";
 }
 
 function extractLocation(input: string): string {
-  const locationPatterns = [
-    /(en\s+\w+)/gi, // "en Guatemala"
-    /(de\s+\w+)/gi, // "de Guatemala"
-    /(Guatemala|México|España|Colombia|Argentina)/gi // Country names
-  ];
-  
-  for (const pattern of locationPatterns) {
-    const match = input.match(pattern);
-    if (match) return match[0];
+  try {
+    if (!input || typeof input !== 'string') {
+      return "the region";
+    }
+    
+    const locationPatterns = [
+      /(en\s+\w+)/gi, // "en Guatemala"
+      /(de\s+\w+)/gi, // "de Guatemala"
+      /(Guatemala|México|España|Colombia|Argentina)/gi // Country names
+    ];
+    
+    for (const pattern of locationPatterns) {
+      const match = input.match(pattern);
+      if (match) return match[0];
+    }
+    
+    return "the region";
+  } catch (error) {
+    console.error('Error extracting location:', error);
+    return "the region";
   }
-  
-  return "the region";
 }
 
 function extractHistoricalConcepts(input: string): string[] {
-  const concepts: string[] = [];
-  const lowercaseInput = input.toLowerCase();
-  
-  if (lowercaseInput.includes("reforma agraria")) concepts.push("agrarian reform");
-  if (lowercaseInput.includes("presidente")) concepts.push("president");
-  if (lowercaseInput.includes("gobierno")) concepts.push("government");
-  if (lowercaseInput.includes("tierra")) concepts.push("land distribution");
-  if (lowercaseInput.includes("población")) concepts.push("population");
-  if (lowercaseInput.includes("pobreza")) concepts.push("poverty");
-  if (lowercaseInput.includes("decreto")) concepts.push("decree");
-  if (lowercaseInput.includes("congreso")) concepts.push("congress");
-  
-  return concepts;
+  try {
+    if (!input || typeof input !== 'string') {
+      return [];
+    }
+    
+    const concepts: string[] = [];
+    const lowercaseInput = input.toLowerCase();
+    
+    if (lowercaseInput.includes("reforma agraria")) concepts.push("agrarian reform");
+    if (lowercaseInput.includes("presidente")) concepts.push("president");
+    if (lowercaseInput.includes("gobierno")) concepts.push("government");
+    if (lowercaseInput.includes("tierra")) concepts.push("land distribution");
+    if (lowercaseInput.includes("población")) concepts.push("population");
+    if (lowercaseInput.includes("pobreza")) concepts.push("poverty");
+    if (lowercaseInput.includes("decreto")) concepts.push("decree");
+    if (lowercaseInput.includes("congreso")) concepts.push("congress");
+    
+    return concepts;
+  } catch (error) {
+    console.error('Error extracting historical concepts:', error);
+    return [];
+  }
 }
 
 function extractKeyEvents(input: string): string[] {
-  const events: string[] = [];
-  const lowercaseInput = input.toLowerCase();
-  
-  if (lowercaseInput.includes("decreto 900")) events.push("Decree 900 approval");
-  if (lowercaseInput.includes("redistribución")) events.push("land redistribution");
-  if (lowercaseInput.includes("reforma")) events.push("agrarian reform implementation");
-  if (lowercaseInput.includes("controversia")) events.push("political controversy");
-  
-  return events;
+  try {
+    if (!input || typeof input !== 'string') {
+      return [];
+    }
+    
+    const events: string[] = [];
+    const lowercaseInput = input.toLowerCase();
+    
+    if (lowercaseInput.includes("decreto 900")) events.push("Decree 900 approval");
+    if (lowercaseInput.includes("redistribución")) events.push("land redistribution");
+    if (lowercaseInput.includes("reforma")) events.push("agrarian reform implementation");
+    if (lowercaseInput.includes("controversia")) events.push("political controversy");
+    
+    return events;
+  } catch (error) {
+    console.error('Error extracting key events:', error);
+    return [];
+  }
 }
 
 function extractMainSubject(input: string): string {
