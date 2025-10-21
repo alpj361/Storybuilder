@@ -1,6 +1,7 @@
 // Learn more https://docs.expo.io/guides/customizing-metro
 const { getDefaultConfig } = require('expo/metro-config');
 const { withNativeWind } = require('nativewind/metro');
+const path = require('path');
 
 /** @type {import('expo/metro-config').MetroConfig} */
 const config = getDefaultConfig(__dirname);
@@ -9,5 +10,5 @@ config.resolver.useWatchman = false;
 
 module.exports = withNativeWind(config, { 
   input: './global.css',
-  configPath: './tailwind.config.js'
+  configPath: path.resolve(__dirname, 'tailwind.config.js')
 });
