@@ -160,10 +160,6 @@ export async function parseUserInput(input: string): Promise<PromptGenerationRes
   const startTime = Date.now();
   
   try {
-    // Enhanced analysis
-    const themeAnalysis = analyzeTheme(input);
-    const visualStyle = analyzeVisualStyle(input);
-    
     // Extract key elements from user input
     const characters = extractCharacters(input);
     const scenes = extractScenes(input);
@@ -171,8 +167,8 @@ export async function parseUserInput(input: string): Promise<PromptGenerationRes
     const targetAudience = detectTargetAudience(input);
     const panelCount = detectPanelCount(input);
     
-    // Generate sequence with enhanced context
-    const panels = generateContextualPanelSequence(input, characters, scenes, panelCount, themeAnalysis, visualStyle);
+    // Generate sequence with detected panel count
+    const panels = generatePanelSequence(input, characters, scenes, panelCount);
     
     // Create project structure
     const project: StoryboardProject = {
