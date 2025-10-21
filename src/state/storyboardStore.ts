@@ -93,17 +93,31 @@ export const useStoryboardStore = create<StoryboardState>()(
               }, audience)
             }));
 
-            const enhancedPrompts = generateAllPanelPrompts(
-              audiencePreparedPanels.map(p => p.prompt),
-              result.project.characters,
-              result.project.scenes
+            // Check if panels already have contextual prompts (from enhanced parser)
+            const hasContextualPrompts = audiencePreparedPanels.some(panel => 
+              panel.prompt.generatedPrompt && 
+              panel.prompt.generatedPrompt.length > 0 &&
+              !panel.prompt.generatedPrompt.includes("Wide establishing shot of generic setting")
             );
 
-            // Update panels with generated prompts
-            const finalPanels = audiencePreparedPanels.map((panel, index) => ({
-              ...panel,
-              prompt: enhancedPrompts[index]
-            }));
+            let finalPanels;
+            
+            if (hasContextualPrompts) {
+              // Use the contextual prompts that were already generated
+              finalPanels = audiencePreparedPanels;
+            } else {
+              // Fallback to template-based prompt generation for backward compatibility
+              const enhancedPrompts = generateAllPanelPrompts(
+                audiencePreparedPanels.map(p => p.prompt),
+                result.project.characters,
+                result.project.scenes
+              );
+
+              finalPanels = audiencePreparedPanels.map((panel, index) => ({
+                ...panel,
+                prompt: enhancedPrompts[index]
+              }));
+            }
 
             const finalProject: StoryboardProject = {
               ...result.project,

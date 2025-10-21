@@ -7,4 +7,7 @@ const config = getDefaultConfig(__dirname);
 
 config.resolver.useWatchman = false;
 
-module.exports = withNativeWind(config, { input: './global.css' });
+module.exports = withNativeWind(config, { 
+  input: './global.css',
+  configPath: './tailwind.config.js'
+});
