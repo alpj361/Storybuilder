@@ -33,6 +33,6 @@ yarn-error.*
 *.tsbuildinfo
 
 # iOS & Android
-
+ios/
 android/
 simulator.log
