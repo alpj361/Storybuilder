@@ -136,6 +136,7 @@
   },
   "private": true,
   "patchedDependencies": {
-    "react-native-css-interop@0.2.1": "patches/react-native-css-interop+0.2.1.patch"
+    "react-native@0.79.5": "patches/react-native@0.79.5.patch",
+    "expo-asset@11.1.7": "patches/expo-asset@11.1.7.patch"
   }
 }
