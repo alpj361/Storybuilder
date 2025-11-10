@@ -2,8 +2,7 @@
 env: load .env
 env: export EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY EXPO_PUBLIC_VIBECODE_GROK_API_KEY EXPO_PUBLIC_VIBECODE_GOOGLE_API_KEY EXPO_PUBLIC_VIBECODE_ELEVENLABS_API_KEY
 Starting project at /home/user/workspace
-› Port 8081 is being used by another process
-Input is required, but 'npx expo' is in non-interactive mode.
-Required input:
-> Use port 8082 instead?
-› Skipping dev server
+Starting Metro Bundler
+Waiting on http://localhost:8081
+Logs for your project will appear below.
+iOS Bundled 3145ms index.ts (1274 modules)
