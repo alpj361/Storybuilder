@@ -12,7 +12,8 @@
       "bundleIdentifier": "com.alpj361.vibecode"
     },
     "android": {
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "package": "com.alpj361.vibecode"
     },
     "plugins": [
       "expo-asset",
