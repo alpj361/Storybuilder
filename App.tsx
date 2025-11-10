@@ -4,8 +4,13 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
+import * as SplashScreen from 'expo-splash-screen';
+import { useEffect } from 'react';
 import StoryboardScreen from "./src/screens/StoryboardScreen";
 import ArchitecturalScreen from "./src/screens/ArchitecturalScreen";
+
+// Keep the splash screen visible while we load fonts
+SplashScreen.preventAutoHideAsync();
 
 /*
 IMPORTANT NOTICE: DO NOT REMOVE
@@ -31,6 +36,11 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 const Tab = createBottomTabNavigator();
 
 export default function App() {
+  useEffect(() => {
+    // Hide splash screen once app is ready
+    SplashScreen.hideAsync();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
