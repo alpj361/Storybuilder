@@ -1,0 +1,10 @@
+» ios: paths-project-pbxproj: Found multiple project.pbxproj file paths, using "ios/vibecode.xcodeproj/project.pbxproj". Ignored paths: ["ios/ios/ios.xcodeproj/project.pbxproj"]
+Starting project at /Users/pj/Desktop/2c1f4dad-544a-428a-802e-7b51149f496b
+env: load .env
+env: export EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY EXPO_PUBLIC_VIBECODE_GROK_API_KEY EXPO_PUBLIC_VIBECODE_GOOGLE_API_KEY EXPO_PUBLIC_VIBECODE_ELEVENLABS_API_KEY
+› Port 8081 is running this app in another window
+  /Users/pj/Desktop/2c1f4dad-544a-428a-802e-7b51149f496b (pid 72670)
+Input is required, but 'npx expo' is in non-interactive mode.
+Required input:
+> Use port 8082 instead?
+› Skipping dev server

@@ -19,7 +19,7 @@ export const getAnthropicTextResponse = async (
   options?: AIRequestOptions,
 ): Promise<AIResponse> => {
   try {
-    const client = getAnthropicClient();
+    const client = await getAnthropicClient();
     const defaultModel = "claude-3-5-sonnet-20240620";
 
     const response = await client.messages.create({
@@ -71,7 +71,7 @@ export const getAnthropicChatResponse = async (prompt: string): Promise<AIRespon
  */
 export const getOpenAITextResponse = async (messages: AIMessage[], options?: AIRequestOptions): Promise<AIResponse> => {
   try {
-    const client = getOpenAIClient();
+    const client = await getOpenAIClient();
     const defaultModel = "gpt-4o"; //accepts images as well, use this for image analysis
 
     const response = await client.chat.completions.create({
@@ -112,7 +112,7 @@ export const getOpenAIChatResponse = async (prompt: string): Promise<AIResponse>
  */
 export const getGrokTextResponse = async (messages: AIMessage[], options?: AIRequestOptions): Promise<AIResponse> => {
   try {
-    const client = getGrokClient();
+    const client = await getGrokClient();
     const defaultModel = "grok-3-beta";
 
     const response = await client.chat.completions.create({

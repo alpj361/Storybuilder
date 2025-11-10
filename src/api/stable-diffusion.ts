@@ -106,23 +106,15 @@ export async function generateDraftStoryboardImage(prompt: string): Promise<stri
 }
 
 /**
- * Convert base64 image to blob URL for display
+ * Convert base64 image to data URI for display in React Native
  * @param base64Data Base64 encoded image data
- * @returns Blob URL for the image
+ * @returns Data URI for the image (compatible with React Native Image component)
  */
 export function base64ToBlobUrl(base64Data: string): string {
-  // Remove data URL prefix if present
-  const base64 = base64Data.replace(/^data:image\/[a-z]+;base64,/, '');
-  
-  // Convert base64 to binary
-  const binaryString = atob(base64);
-  const bytes = new Uint8Array(binaryString.length);
-  
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
+  // In React Native, we can't use Blob URLs or atob()
+  // Instead, just ensure it's a proper data URI format
+  if (base64Data.startsWith('data:image')) {
+    return base64Data;
   }
-  
-  // Create blob and return URL
-  const blob = new Blob([bytes], { type: 'image/png' });
-  return URL.createObjectURL(blob);
+  return `data:image/png;base64,${base64Data}`;
 }

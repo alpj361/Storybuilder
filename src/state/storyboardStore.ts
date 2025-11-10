@@ -62,7 +62,8 @@ const defaultGenerationOptions: GenerationOptions = {
 };
 
 export const useStoryboardStore = create<StoryboardState>()(
-  persist(
+  // TEMPORARILY DISABLED PERSIST TO DEBUG CRASH
+  // persist(
     (set, get) => ({
       // Initial state
       currentProject: null,
@@ -659,18 +660,20 @@ export const useStoryboardStore = create<StoryboardState>()(
       clearCurrentProject: () => {
         set({ currentProject: null });
       }
-    }),
-    {
-      name: "storyboard-storage",
-      storage: createJSONStorage(() => AsyncStorage),
-      // Only persist projects and user preferences, not UI state
-      partialize: (state) => ({
-        projects: state.projects,
-        defaultStyle: state.defaultStyle,
-        generationOptions: state.generationOptions
-      })
-    }
-  )
+    })
+    // TEMPORARILY DISABLED PERSIST TO DEBUG CRASH
+    // ,
+    // {
+    //   name: "storyboard-storage",
+    //   storage: createJSONStorage(() => AsyncStorage),
+    //   // Only persist projects and user preferences, not UI state
+    //   partialize: (state) => ({
+    //     projects: state.projects,
+    //     defaultStyle: state.defaultStyle,
+    //     generationOptions: state.generationOptions
+    //   })
+    // }
+  // )
 );
 
 // Selector hooks for better performance

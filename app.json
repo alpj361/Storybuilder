@@ -18,7 +18,8 @@
       "expo-asset",
       "expo-build-properties",
       "expo-font",
-      "expo-secure-store"
+      "expo-secure-store",
+      "expo-video"
     ]
   }
 }
