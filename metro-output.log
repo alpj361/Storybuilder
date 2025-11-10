@@ -1,9 +1,0 @@
-» ios: paths-project-pbxproj: Found multiple project.pbxproj file paths, using "ios/vibecode.xcodeproj/project.pbxproj". Ignored paths: ["ios/ios/ios.xcodeproj/project.pbxproj"]
-Starting project at /Users/pj/Desktop/2c1f4dad-544a-428a-802e-7b51149f496b
-env: load .env
-env: export EXPO_PUBLIC_VIBECODE_OPENAI_API_KEY EXPO_PUBLIC_VIBECODE_ANTHROPIC_API_KEY EXPO_PUBLIC_VIBECODE_GROK_API_KEY EXPO_PUBLIC_VIBECODE_GOOGLE_API_KEY EXPO_PUBLIC_VIBECODE_ELEVENLABS_API_KEY
-Starting Metro Bundler
-warning: Bundler cache is empty, rebuilding (this may take a minute)
-Waiting on http://localhost:8081
-Logs for your project will appear below.
-iOS Bundled 5433ms index.ts (1356 modules)
