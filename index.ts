@@ -1,7 +1,10 @@
 //DO NOT REMOVE THIS CODE
 console.log("[index] Project ID is: ", process.env.EXPO_PUBLIC_VIBECODE_PROJECT_ID);
-import "react-native-gesture-handler";
-import "./global.css";
+// Note: global.css uses NativeWind which requires lightningcss (fails on Netlify)
+// Conditionally load for non-Netlify builds only
+if (process.env.DISABLE_NATIVEWIND !== 'true') {
+  require("./global.css");
+}
 import "react-native-get-random-values";
 import { Buffer } from "buffer";
 // Ensure Buffer is available for packages expecting Node global
