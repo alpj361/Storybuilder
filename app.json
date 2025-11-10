@@ -20,7 +20,10 @@
       "expo-build-properties",
       "expo-font",
       "expo-secure-store",
-      "expo-video"
+      "expo-video",
+      "expo-mail-composer",
+      "expo-sqlite",
+      "expo-web-browser"
     ]
   }
 }
