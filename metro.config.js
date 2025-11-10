@@ -10,23 +10,6 @@ const config = getDefaultConfig(__dirname);
 // Disable Watchman for file watching.
 config.resolver.useWatchman = false;
 
-// Add source extensions for better compatibility
-config.resolver.sourceExts = [...(config.resolver.sourceExts || []), 'cjs', 'mjs'];
-
-// Resolver configuration for better module resolution
-config.resolver.resolveRequest = (context, moduleName, platform) => {
-  // Handle OpenAI SDK's runtime polyfills
-  if (moduleName === 'node:stream' || moduleName === 'stream') {
-    return {
-      filePath: require.resolve('readable-stream'),
-      type: 'sourceFile',
-    };
-  }
-
-  // Use default resolver
-  return context.resolveRequest(context, moduleName, platform);
-};
-
 // Get environment variables for Metro cache configuration.
 const metroCacheVersion = process.env.METRO_CACHE_VERSION || "1";
 const metroCacheHttpEndpoint = process.env.METRO_CACHE_HTTP_ENDPOINT;
@@ -79,7 +62,4 @@ config.cacheStores = ({ FileStore, HttpStore }) => {
 config.cacheVersion = metroCacheVersion;
 
 // Integrate NativeWind with the Metro configuration.
-module.exports = withNativeWind(config, {
-  input: "./global.css",
-  configPath: path.resolve(__dirname, "tailwind.config.js")
-});
+module.exports = withNativeWind(config, { input: "./global.css" });
