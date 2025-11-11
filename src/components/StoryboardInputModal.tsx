@@ -84,8 +84,10 @@ export default function StoryboardInputModal({
     const countStr = workflow === "create" ? panelCount : appendCount;
     const n = parseInt(countStr, 10);
     const fallback = workflow === "create" ? defaultCreateCount : 1;
-    return Number.isFinite(n) && n > 0 ? Math.min(n, 12) : fallback;
-  }, [workflow, panelCount, appendCount, defaultCreateCount]);
+    // Support up to 30 panels for storyboard mode
+    const maxPanels = isArchitectural ? 12 : 30;
+    return Number.isFinite(n) && n > 0 ? Math.min(n, maxPanels) : fallback;
+  }, [workflow, panelCount, appendCount, defaultCreateCount, isArchitectural]);
 
   const handleGenerate = async () => {
     if (!input.trim()) {
@@ -410,7 +412,9 @@ export default function StoryboardInputModal({
                 style={{ width: 80 }}
                 editable={!isGenerating}
               />
-              <Text className="ml-3 text-gray-500 text-xs">Max 12</Text>
+              <Text className="ml-3 text-gray-500 text-xs">
+                Max {isArchitectural ? "12" : "30"}
+              </Text>
             </View>
           </View>
         </ScrollView>

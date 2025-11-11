@@ -64,6 +64,7 @@ function unique(...lists: (string[] | undefined)[]): string[] {
   const set = new Set<string>();
   lists.forEach(list => {
     list?.forEach(item => {
+      if (typeof item !== "string") return;
       const normalized = item.trim();
       if (normalized) set.add(normalized);
     });

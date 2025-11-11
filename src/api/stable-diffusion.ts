@@ -35,7 +35,7 @@ export async function generateStoryboardImage(
   options: StableDiffusionOptions = {}
 ): Promise<string> {
   const apiKey = "sk-vPIMZInP8snQecyXCCwYwyOuB4h5zE8lUfA31zNGbAojuD6P";
-  
+
   // Default options optimized for storyboard/draft style
   const defaultOptions: StableDiffusionOptions = {
     width: 1024,
@@ -47,6 +47,23 @@ export async function generateStoryboardImage(
     ...options
   };
 
+  console.log("[StableDiffusion] Generating image with:", {
+    prompt: prompt,
+    options: defaultOptions
+  });
+
+  const requestBody = {
+    text_prompts: [
+      {
+        text: prompt,
+        weight: 1
+      }
+    ],
+    ...defaultOptions
+  };
+
+  console.log("[StableDiffusion] Request body:", JSON.stringify(requestBody, null, 2));
+
   try {
     const response = await fetch(STABLE_DIFFUSION_API_URL, {
       method: "POST",
@@ -55,16 +72,10 @@ export async function generateStoryboardImage(
         "Authorization": `Bearer ${apiKey}`,
         "Accept": "application/json"
       },
-      body: JSON.stringify({
-        text_prompts: [
-          {
-            text: prompt,
-            weight: 1
-          }
-        ],
-        ...defaultOptions
-      })
+      body: JSON.stringify(requestBody)
     });
+
+    console.log("[StableDiffusion] Response status:", response.status);
 
     if (!response.ok) {
       const errorData = await response.text();
@@ -73,10 +84,12 @@ export async function generateStoryboardImage(
     }
 
     const result: StableDiffusionResponse = await response.json();
-    
+
+    console.log("[StableDiffusion] Response artifacts:", result.artifacts?.length || 0);
+
     if (result.artifacts && result.artifacts.length > 0) {
       const imageData = result.artifacts[0].base64;
-      console.log("[StableDiffusion] Image generated successfully");
+      console.log("[StableDiffusion] Image generated successfully, base64 length:", imageData.length);
       return `data:image/png;base64,${imageData}`;
     } else {
       throw new Error("No image artifacts returned from Stable Diffusion API");
@@ -93,15 +106,22 @@ export async function generateStoryboardImage(
  * @returns Base64 encoded image data
  */
 export async function generateDraftStoryboardImage(prompt: string): Promise<string> {
+  console.log("[generateDraftStoryboardImage] Called with prompt:", prompt);
+  console.log("[generateDraftStoryboardImage] Prompt length:", prompt.length);
+
   // Use the prompt directly - it already includes style information from STYLE_TEMPLATES
   // The style_preset parameter will handle the visual style
-  return generateStoryboardImage(prompt, {
+  const result = await generateStoryboardImage(prompt, {
     style_preset: "line-art",
     steps: 30, // Increased for better quality
     cfg_scale: 7, // Good balance for creative but coherent results
     width: 1024,
     height: 1024
   });
+
+  console.log("[generateDraftStoryboardImage] Returning result, length:", result.length);
+
+  return result;
 }
 
 /**
