@@ -1,4 +1,0 @@
-An error was encountered processing the command (domain=FBSOpenApplicationServiceErrorDomain, code=4):
-Simulator device failed to launch com.anonymous.vibecode.
-Underlying error (domain=FBSOpenApplicationServiceErrorDomain, code=4):
-	The request to open "com.anonymous.vibecode" failed.
