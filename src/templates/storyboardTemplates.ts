@@ -128,6 +128,15 @@ export function generateStoryboardPrompt(
   characters: Character[],
   scene: Scene
 ): string {
+  console.log("[generateStoryboardPrompt] Input:", {
+    style: prompt.style,
+    composition: prompt.composition,
+    action: prompt.action,
+    sceneDescription: prompt.sceneDescription,
+    characters: characters.map(c => ({ id: c.id, name: c.name, description: c.description })),
+    scene: { location: scene.location, timeOfDay: scene.timeOfDay }
+  });
+
   const styleTemplate = STYLE_TEMPLATES[prompt.style];
   const compositionTemplate = COMPOSITION_TEMPLATES[prompt.composition];
 
@@ -152,6 +161,8 @@ export function generateStoryboardPrompt(
     return features || char.name;
   }).join(" and ");
 
+  console.log("[generateStoryboardPrompt] Character descriptions:", characterDescriptions);
+
   // Build scene description - avoid duplicate text
   // Extract just the location name if scene.location contains the full user input
   const locationName = scene.location.length > 50
@@ -164,8 +175,12 @@ export function generateStoryboardPrompt(
     scene.weather && `${scene.weather} weather`
   ].filter(Boolean).join(", ");
 
+  console.log("[generateStoryboardPrompt] Scene description:", sceneDescription);
+
   // Use prompt.action directly as it now contains the user's actual idea
   const mainAction = prompt.action || prompt.sceneDescription;
+
+  console.log("[generateStoryboardPrompt] Main action:", mainAction);
 
   // Construct the complete prompt with user's actual idea as the focus
   const promptParts = [
@@ -179,7 +194,9 @@ export function generateStoryboardPrompt(
     prompt.mood && `${prompt.mood} mood`,
     compositionTemplate.framing,
     styleTemplate.suffix
-  ].filter(Boolean).join(", ");
+  ].filter(Boolean).join(", ").replace(/,\s*,/g, ','); // Remove double commas
+
+  console.log("[generateStoryboardPrompt] Final prompt:", promptParts);
 
   return promptParts;
 }

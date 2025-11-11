@@ -96,16 +96,20 @@ export default function PromptPreview({ prompt, characters, scene, metadata, mod
           </>
         ) : (
           <>
-            <View className="bg-blue-100 px-2 py-1 rounded">
-              <Text className="text-blue-700 text-xs font-medium">
-                {prompt.composition.replace("_", " ")}
-              </Text>
-            </View>
-            <View className="bg-green-100 px-2 py-1 rounded">
-              <Text className="text-green-700 text-xs font-medium">
-                {prompt.panelType.replace("_", " ")}
-              </Text>
-            </View>
+            {prompt.composition && (
+              <View className="bg-blue-100 px-2 py-1 rounded">
+                <Text className="text-blue-700 text-xs font-medium">
+                  {prompt.composition.replace("_", " ")}
+                </Text>
+              </View>
+            )}
+            {prompt.panelType && (
+              <View className="bg-green-100 px-2 py-1 rounded">
+                <Text className="text-green-700 text-xs font-medium">
+                  {prompt.panelType.replace("_", " ")}
+                </Text>
+              </View>
+            )}
             {panelCharacters.length > 0 && (
               <View className="bg-purple-100 px-2 py-1 rounded">
                 <Text className="text-purple-700 text-xs font-medium">

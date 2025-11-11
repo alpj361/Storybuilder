@@ -240,12 +240,12 @@ export function extractCharacters(input: string): Character[] {
     }
   });
 
-  // If no characters found, create character based on user input
+  // If no characters found, create a generic character without repeating full input
   if (characters.length === 0) {
     characters.push({
       id: uuidv4(),
       name: "Main Subject",
-      description: input.trim(), // Use actual user input instead of generic text
+      description: "main subject of the scene", // Generic description, avoid repetition
       appearance: {
         age: "adult",
         build: "average",
@@ -293,16 +293,20 @@ export function extractScenes(input: string): Scene[] {
     }
   });
 
-  // Default scene if none detected - use actual user input
+  // Default scene if none detected - extract key location info
   if (!sceneFound) {
+    // Try to extract a location from the input (look for nouns that might be places)
+    const locationKeywords = input.match(/(?:stage|presentation|conference|auditorium|room|hall|venue|event|meeting|space)/i);
+    const extractedLocation = locationKeywords ? locationKeywords[0] : "indoor setting";
+
     scenes.push({
       id: uuidv4(),
       name: "Main Scene",
-      location: input.trim(), // Use user's actual idea instead of "generic setting"
+      location: extractedLocation,
       timeOfDay: detectTimeOfDay(input),
       lighting: "natural lighting",
       mood: detectMood(input),
-      environment: input.trim() // Use user's actual description
+      environment: "professional environment"
     });
   }
 
@@ -746,13 +750,13 @@ export function generatePanelSequence(
   panels.push(createPanel(1, {
     panelType: PanelType.ESTABLISHING,
     composition: CompositionType.WIDE_SHOT,
-    sceneDescription: `${storyBeats[0] || userIdea} - establishing shot showing ${mainScene.location}`,
-    action: `${userIdea} - setting up the scene`,
+    sceneDescription: `${storyBeats[0]} - establishing the scene`,
+    action: storyBeats[0], // Just the story beat, not full input
     characters: [],
     sceneId: mainScene.id,
     cameraAngle: "wide establishing angle",
     mood: mainScene.mood,
-    visualNotes: `Scene context: ${userIdea}`
+    visualNotes: `Establishing context`
   }));
 
   // Panel 2: Character/subject introduction using user's idea
@@ -760,13 +764,13 @@ export function generatePanelSequence(
     panels.push(createPanel(2, {
       panelType: PanelType.CHARACTER_INTRO,
       composition: CompositionType.MEDIUM_SHOT,
-      sceneDescription: `${storyBeats[1] || userIdea} - introducing the main subject`,
-      action: `${userIdea} - ${mainCharacter.description} in the scene`,
+      sceneDescription: `${storyBeats[1]} - introducing the main subject`,
+      action: storyBeats[1], // Just the story beat
       characters: [mainCharacter.id],
       sceneId: mainScene.id,
       cameraAngle: "medium shot on subject",
       mood: "introduction",
-      visualNotes: storyBeats[1] || userIdea
+      visualNotes: storyBeats[1]
     }));
   }
 
@@ -775,34 +779,34 @@ export function generatePanelSequence(
   for (let i = 0; i < middleSlots; i++) {
     const number = 3 + i;
     const beatIndex = Math.min(2 + i, storyBeats.length - 1);
-    const currentBeat = storyBeats[beatIndex] || userIdea;
+    const currentBeat = storyBeats[beatIndex];
 
     panels.push(createPanel(number, {
       panelType: PanelType.ACTION,
       composition: CompositionType.CLOSE_UP,
-      sceneDescription: `${currentBeat} - ${userIdea}`,
-      action: currentBeat,
+      sceneDescription: `${currentBeat} - main action`,
+      action: currentBeat, // Just the story beat
       characters: characters.map(c => c.id),
       sceneId: mainScene.id,
       cameraAngle: "dynamic angle on action",
       mood: "engaging",
-      visualNotes: `${userIdea} - panel ${number} of ${count}`
+      visualNotes: `Action sequence`
     }));
   }
 
   // Final panel: Resolution using user's idea
   if (count >= 3) {
-    const lastBeat = storyBeats[storyBeats.length - 1] || userIdea;
+    const lastBeat = storyBeats[storyBeats.length - 1];
     panels.push(createPanel(count, {
       panelType: PanelType.RESOLUTION,
       composition: CompositionType.MEDIUM_SHOT,
       sceneDescription: `${lastBeat} - conclusion`,
-      action: `${userIdea} - final moment`,
+      action: lastBeat, // Just the final story beat
       characters: characters.map(c => c.id),
       sceneId: mainScene.id,
       cameraAngle: "medium resolution shot",
       mood: "conclusive",
-      visualNotes: `${userIdea} - final panel showing resolution`
+      visualNotes: `Final resolution`
     }));
   }
 
@@ -811,6 +815,7 @@ export function generatePanelSequence(
 
 /**
  * Break down user's story idea into logical beats for each panel
+ * Creates narrative progression based on panel count (4-30 panels)
  */
 function breakdownStoryIntoBeats(input: string, panelCount: number): string[] {
   const beats: string[] = [];
@@ -818,24 +823,75 @@ function breakdownStoryIntoBeats(input: string, panelCount: number): string[] {
   // Split the input into sentences or meaningful chunks
   const sentences = input.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
 
-  if (sentences.length === 0) {
-    // If no sentences, use the full input for all beats
-    for (let i = 0; i < panelCount; i++) {
-      beats.push(input);
-    }
-    return beats;
-  }
-
   // If we have multiple sentences, distribute them across panels
   if (sentences.length >= panelCount) {
     // More sentences than panels - use first N sentences
     return sentences.slice(0, panelCount);
-  } else {
-    // Fewer sentences than panels - repeat strategically
-    for (let i = 0; i < panelCount; i++) {
-      const sentenceIndex = Math.floor((i * sentences.length) / panelCount);
-      beats.push(sentences[sentenceIndex] || sentences[sentences.length - 1]);
+  }
+
+  // If single sentence or fewer sentences than panels, create narrative progression
+  // Remove "(panels: N)" from the action text
+  const baseAction = (sentences[0] || input).replace(/\s*\(panels:\s*\d+\)\s*/gi, '').trim();
+
+  // Define story progression stages based on classic narrative structure
+  const progressionStages = [
+    { phase: 'establishing', desc: 'establishing shot of the environment and setting' },
+    { phase: 'intro', desc: `${baseAction} beginning` },
+    { phase: 'development', desc: `${baseAction} developing` },
+    { phase: 'action', desc: `${baseAction} in progress` },
+    { phase: 'climax', desc: `${baseAction} key moment` },
+    { phase: 'falling', desc: `${baseAction} concluding` },
+    { phase: 'resolution', desc: `${baseAction} completed, showing final result` }
+  ];
+
+  // Calculate progression for any panel count (4-30)
+  for (let i = 0; i < panelCount; i++) {
+    // Calculate position in story (0.0 to 1.0)
+    const position = panelCount > 1 ? i / (panelCount - 1) : 0;
+
+    // First panel is always establishing
+    if (i === 0) {
+      beats.push(progressionStages[0].desc);
+      continue;
     }
+
+    // Last panel is always resolution
+    if (i === panelCount - 1) {
+      beats.push(progressionStages[progressionStages.length - 1].desc);
+      continue;
+    }
+
+    // Map position to story stages
+    // 0-0.15: intro
+    // 0.15-0.40: development
+    // 0.40-0.60: action (main story beats)
+    // 0.60-0.80: climax
+    // 0.80-1.0: falling action
+    let stageIndex;
+    if (position < 0.15) {
+      stageIndex = 1; // intro
+    } else if (position < 0.40) {
+      stageIndex = 2; // development
+    } else if (position < 0.60) {
+      stageIndex = 3; // action
+    } else if (position < 0.80) {
+      stageIndex = 4; // climax
+    } else {
+      stageIndex = 5; // falling action
+    }
+
+    // Add variation to avoid repetition for long sequences
+    const panelInStage = beats.filter(b => b.includes(progressionStages[stageIndex].phase)).length + 1;
+    let beatDescription = progressionStages[stageIndex].desc;
+
+    // Add detail modifiers for variety in longer sequences
+    if (panelCount > 10 && panelInStage > 1) {
+      const detailModifiers = ['showing details', 'close-up view', 'wide angle', 'key moment', 'important detail'];
+      const modifierIndex = (panelInStage - 1) % detailModifiers.length;
+      beatDescription += `, ${detailModifiers[modifierIndex]}`;
+    }
+
+    beats.push(beatDescription);
   }
 
   return beats;
@@ -981,13 +1037,22 @@ function generateActionFromInput(input: string, characters: Character[]): string
   return `${characters[0]?.name || "Character"} in the main scene`;
 }
 
-// Detect desired panel count from input (e.g., "6 panels", "8 frames")
+// Detect desired panel count from input (e.g., "6 panels", "8 frames", "(panels: 10)")
 function detectPanelCount(input: string): number {
   const lowercaseInput = input.toLowerCase();
-  const m = lowercaseInput.match(/(\d{1,2})\s*(?:panels?|frames?)/);
+
+  // Match format: "(panels: 10)" or "(frames: 10)"
+  let m = lowercaseInput.match(/\((?:panels?|frames?):\s*(\d{1,2})\)/);
+
+  // If not found, try format: "10 panels" or "10 frames"
+  if (!m) {
+    m = lowercaseInput.match(/(\d{1,2})\s*(?:panels?|frames?)/);
+  }
+
   if (m) {
     const n = parseInt(m[1], 10);
-    if (Number.isFinite(n) && n >= 1) return Math.min(n, 12);
+    // Support up to 30 panels for storyboard mode
+    if (Number.isFinite(n) && n >= 1) return Math.min(n, 30);
   }
   return 4;
 }

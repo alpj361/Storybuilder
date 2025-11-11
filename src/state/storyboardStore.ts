@@ -12,6 +12,7 @@ import {
   ArchitecturalProjectKind
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
+import { parseUserInputWithAI, convertAIResultToAppFormat } from "../services/aiParser";
 import { generateAllPanelPrompts, applyAudienceTemplate, AUDIENCE_TEMPLATES } from "../templates/storyboardTemplates";
 import { parseArchitecturalInput } from "../services/architecturalParser";
 import { generateArchitecturalPanelPrompts, mergeArchitecturalMetadata, getDefaultArchitecturalMetadata } from "../templates/architecturalTemplates";
@@ -77,13 +78,82 @@ export const useStoryboardStore = create<StoryboardState>()(
       // Create a new project from natural language input
       createProjectFromInput: async (input: string) => {
         set({ isGenerating: true, error: null });
-        
+
         try {
-          const result = await parseUserInput(input);
-          
+          console.log("[storyboardStore] Creating project from input:", input);
+
+          // Extract panel count from input for AI parser
+          const panelCountMatch = input.toLowerCase().match(/\((?:panels?|frames?):\s*(\d{1,2})\)|(\d{1,2})\s*(?:panels?|frames?)/);
+          const panelCount = panelCountMatch ? parseInt(panelCountMatch[1] || panelCountMatch[2], 10) : 4;
+
+          let result;
+          let useAI = true;
+
+          // Try AI parsing first with GPT-4
+          try {
+            console.log("[storyboardStore] Attempting AI parsing with GPT-4, panel count:", panelCount);
+            const aiResult = await parseUserInputWithAI(input, panelCount);
+            const converted = convertAIResultToAppFormat(aiResult);
+
+            console.log("[storyboardStore] AI parsing successful:", {
+              characters: converted.characters.length,
+              scenes: converted.scenes.length,
+              storyBeats: converted.storyBeats.length
+            });
+
+            // Build panels from AI-generated story beats
+            const panels = aiResult.storyBeats.map((beat, index) => ({
+              id: uuidv4(),
+              panelNumber: index + 1,
+              prompt: {
+                id: uuidv4(),
+                panelNumber: index + 1,
+                panelType: index === 0 ? "establishing" as any : "action" as any,
+                action: beat,
+                sceneDescription: beat,
+                characters: converted.characters.map(c => c.id),
+                sceneId: converted.scenes[0]?.id || uuidv4(),
+                style: get().defaultStyle,
+                composition: "medium_shot" as any,
+                mood: aiResult.mood,
+                lighting: converted.scenes[0]?.lighting || "natural lighting",
+                generatedPrompt: ""
+              },
+              isGenerating: false,
+              isEdited: false
+            }));
+
+            result = {
+              success: true,
+              project: {
+                id: uuidv4(),
+                title: input.slice(0, 50),
+                description: input,
+                userInput: input,
+                panels,
+                characters: converted.characters,
+                scenes: converted.scenes,
+                style: get().defaultStyle,
+                metadata: {
+                  genre: aiResult.genre,
+                  targetAudience: aiResult.targetAudience as any,
+                  aspectRatio: "4:3" as const
+                },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                isComplete: true,
+                projectType: ProjectType.STORYBOARD
+              }
+            };
+          } catch (aiError) {
+            console.warn("[storyboardStore] AI parsing failed, falling back to regex parser:", aiError);
+            useAI = false;
+            result = await parseUserInput(input);
+          }
+
           if (result.success) {
             // Apply audience-specific template first, then generate prompts
-            const audience = result.project.metadata.targetAudience;
+            const audience = result.project.metadata.targetAudience as keyof typeof AUDIENCE_TEMPLATES;
             const audienceStyle = AUDIENCE_TEMPLATES[audience]?.style_preference ?? get().defaultStyle;
 
             const audiencePreparedPanels = result.project.panels.map(panel => ({
@@ -94,7 +164,7 @@ export const useStoryboardStore = create<StoryboardState>()(
               }, audience)
             }));
 
-            // Fallback to template-based prompt generation for now
+            // Generate final prompts with template system
             const enhancedPrompts = generateAllPanelPrompts(
               audiencePreparedPanels.map(p => p.prompt),
               result.project.characters,
@@ -113,21 +183,29 @@ export const useStoryboardStore = create<StoryboardState>()(
               projectType: ProjectType.STORYBOARD
             };
 
+            console.log("[storyboardStore] Project created successfully using", useAI ? "AI" : "regex", "parser");
+            console.log("[storyboardStore] Final project:", {
+              panels: finalProject.panels.length,
+              characters: finalProject.characters.length,
+              scenes: finalProject.scenes.length
+            });
+
             set(state => ({
               currentProject: finalProject,
               projects: [...state.projects, finalProject],
               isGenerating: false
             }));
           } else {
-            set({ 
+            set({
               error: result.errors?.join(", ") || "Failed to generate storyboard",
-              isGenerating: false 
+              isGenerating: false
             });
           }
         } catch (error) {
-          set({ 
+          console.error("[storyboardStore] Project creation error:", error);
+          set({
             error: error instanceof Error ? error.message : "Unknown error occurred",
-            isGenerating: false 
+            isGenerating: false
           });
         }
       },
@@ -523,12 +601,24 @@ export const useStoryboardStore = create<StoryboardState>()(
         const panel = state.currentProject.panels.find(p => p.id === panelId);
         if (!panel) return;
 
+        console.log("[storyboardStore] generatePanelImage called for panel:", panelId);
+        console.log("[storyboardStore] Panel prompt data:", {
+          generatedPrompt: panel.prompt.generatedPrompt,
+          action: panel.prompt.action,
+          sceneDescription: panel.prompt.sceneDescription,
+          style: panel.prompt.style,
+          composition: panel.prompt.composition
+        });
+
         // Set panel as generating
         get().updatePanel(panelId, { isGenerating: true });
 
         try {
+          console.log("[storyboardStore] Sending prompt to API:", panel.prompt.generatedPrompt);
           const imageUrl = await generateDraftStoryboardImage(panel.prompt.generatedPrompt);
-          
+
+          console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
+
           // Update panel with generated image
           get().updatePanel(panelId, {
             generatedImageUrl: imageUrl,
@@ -536,11 +626,11 @@ export const useStoryboardStore = create<StoryboardState>()(
             lastGenerated: new Date()
           });
         } catch (error) {
-          console.error("Panel image generation error:", error);
-          get().updatePanel(panelId, { 
-            isGenerating: false 
+          console.error("[storyboardStore] Panel image generation error:", error);
+          get().updatePanel(panelId, {
+            isGenerating: false
           });
-          set({ 
+          set({
             error: error instanceof Error ? error.message : "Failed to generate panel image"
           });
         }
