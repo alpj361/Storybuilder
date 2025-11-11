@@ -36,6 +36,7 @@ yarn-error.*
 ios/
 android/
 simulator.log
+simulation.log
 
 # Logs
 *.log
