@@ -89,16 +89,15 @@ export async function generateStoryboardImage(
 
 /**
  * Generate a storyboard image with draft/rough sketch style
- * @param prompt The storyboard prompt
+ * @param prompt The storyboard prompt (already includes style from template)
  * @returns Base64 encoded image data
  */
 export async function generateDraftStoryboardImage(prompt: string): Promise<string> {
-  // Enhance prompt for draft/rough sketch style - like the image reference provided
-  const enhancedPrompt = `${prompt}, rough sketch, pencil drawing, storyboard style, loose gestural lines, draft quality, quick sketch, black and white, minimal shading, hand drawn style, concept art, unfinished sketch look, rough outlines, gestural drawing, loose composition, storyboard draft, line art, sketchy style, draft drawing, rough concept`;
-  
-  return generateStoryboardImage(enhancedPrompt, {
+  // Use the prompt directly - it already includes style information from STYLE_TEMPLATES
+  // The style_preset parameter will handle the visual style
+  return generateStoryboardImage(prompt, {
     style_preset: "line-art",
-    steps: 25, // Balanced steps for good quality but sketch-like results
+    steps: 30, // Increased for better quality
     cfg_scale: 7, // Good balance for creative but coherent results
     width: 1024,
     height: 1024
