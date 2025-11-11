@@ -122,44 +122,71 @@ export const PANEL_TYPE_TEMPLATES = {
 
 /**
  * Generate a complete AI-ready prompt for a storyboard panel
+ * @param prompt - The panel prompt configuration
+ * @param characters - All characters in the project
+ * @param scene - The scene for this panel
+ * @param previousPanelsSummary - Optional summary of previous panels for story continuity
  */
 export function generateStoryboardPrompt(
   prompt: StoryboardPrompt,
   characters: Character[],
-  scene: Scene
+  scene: Scene,
+  previousPanelsSummary?: string
 ): string {
   console.log("[generateStoryboardPrompt] Input:", {
+    panelNumber: prompt.panelNumber,
     style: prompt.style,
     composition: prompt.composition,
     action: prompt.action,
     sceneDescription: prompt.sceneDescription,
     characters: characters.map(c => ({ id: c.id, name: c.name, description: c.description })),
-    scene: { location: scene.location, timeOfDay: scene.timeOfDay }
+    scene: { location: scene.location, timeOfDay: scene.timeOfDay },
+    hasPreviousContext: !!previousPanelsSummary
   });
 
   const styleTemplate = STYLE_TEMPLATES[prompt.style];
   const compositionTemplate = COMPOSITION_TEMPLATES[prompt.composition];
+  const isFirstPanel = prompt.panelNumber === 1;
 
   // Get character descriptions for this panel
   const panelCharacters = characters.filter(char =>
     prompt.characters.includes(char.id)
   );
 
-  // Build character description string - use only appearance details, not full description
-  const characterDescriptions = panelCharacters.map(char => {
-    const appearance = char.appearance;
-    const features = [
-      appearance.age && `${appearance.age}`,
-      appearance.gender && `${appearance.gender}`,
-      appearance.build && `${appearance.build} build`,
-      appearance.hair && `${appearance.hair} hair`,
-      appearance.clothing && `wearing ${appearance.clothing}`,
-      appearance.distinctiveFeatures?.join(", ")
-    ].filter(Boolean).join(", ");
+  // Build character description string
+  let characterDescriptions = '';
 
-    // Only use appearance features if available, otherwise use character name
-    return features || char.name;
-  }).join(" and ");
+  if (isFirstPanel) {
+    // Panel 1: Use whatever appearance details we have (even if "unknown")
+    characterDescriptions = panelCharacters.map(char => {
+      const appearance = char.appearance;
+      const features = [
+        appearance.age && `${appearance.age}`,
+        appearance.gender && `${appearance.gender}`,
+        appearance.build && `${appearance.build} build`,
+        appearance.hair && `${appearance.hair} hair`,
+        appearance.clothing && `wearing ${appearance.clothing}`,
+        appearance.distinctiveFeatures?.join(", ")
+      ].filter(Boolean).join(", ");
+
+      // Only use appearance features if available, otherwise use character name
+      return features || char.name;
+    }).join(" and ");
+  } else {
+    // Panels 2+: Reference the same characters from panel 1 for consistency
+    characterDescriptions = panelCharacters.map(char => {
+      const appearance = char.appearance;
+      const basicDesc = [
+        appearance.age && `${appearance.age}`,
+        appearance.gender && `${appearance.gender}`
+      ].filter(Boolean).join(" ");
+
+      // Reference previous panel for visual consistency
+      return basicDesc
+        ? `same ${basicDesc} ${char.name.toLowerCase()} from previous panels`
+        : `same ${char.name.toLowerCase()} from previous panels`;
+    }).join(" and ");
+  }
 
   console.log("[generateStoryboardPrompt] Character descriptions:", characterDescriptions);
 
@@ -182,16 +209,23 @@ export function generateStoryboardPrompt(
 
   console.log("[generateStoryboardPrompt] Main action:", mainAction);
 
+  // Add story progression context for panels 2+
+  const storyContext = !isFirstPanel && previousPanelsSummary
+    ? `Continuing from: ${previousPanelsSummary}. Now: `
+    : '';
+
   // Construct the complete prompt with user's actual idea as the focus
   const promptParts = [
     styleTemplate.prefix,
     compositionTemplate.description,
+    storyContext, // Story progression context
     mainAction, // User's actual story idea
     characterDescriptions && `with ${characterDescriptions}`,
     sceneDescription && `in ${sceneDescription}`,
     prompt.cameraAngle && `${prompt.cameraAngle}`,
     prompt.lighting && `${prompt.lighting}`,
     prompt.mood && `${prompt.mood} mood`,
+    !isFirstPanel && "maintain visual consistency with previous panels", // Character consistency reminder
     compositionTemplate.framing,
     styleTemplate.suffix
   ].filter(Boolean).join(", ").replace(/,\s*,/g, ','); // Remove double commas
@@ -238,23 +272,54 @@ export function enhancePromptForStoryboard(basePrompt: string): string {
 }
 
 /**
- * Generate prompts for an entire storyboard project
+ * Generate prompts for an entire storyboard project with cumulative story context
  */
 export function generateAllPanelPrompts(
   prompts: StoryboardPrompt[],
   characters: Character[],
   scenes: Scene[]
 ): StoryboardPrompt[] {
-  return prompts.map(prompt => {
+  // Build story context progressively as we process each panel
+  const processedPrompts: StoryboardPrompt[] = [];
+  let cumulativeStoryContext = '';
+
+  for (let i = 0; i < prompts.length; i++) {
+    const prompt = prompts[i];
     const scene = scenes.find(s => s.id === prompt.sceneId) || scenes[0];
-    const generatedPrompt = generateStoryboardPrompt(prompt, characters, scene);
+
+    // For panels 2+, pass summary of previous panels
+    const previousPanelsSummary = i > 0 ? cumulativeStoryContext : undefined;
+
+    const generatedPrompt = generateStoryboardPrompt(
+      prompt,
+      characters,
+      scene,
+      previousPanelsSummary
+    );
     const enhancedPrompt = enhancePromptForStoryboard(generatedPrompt);
-    
-    return {
+
+    // Add this panel's action to cumulative context for next panels
+    if (i < prompts.length - 1) {
+      // Build a concise summary: "Panel 1: [action], Panel 2: [action]"
+      const panelSummary = `Panel ${prompt.panelNumber}: ${prompt.action || prompt.sceneDescription}`;
+      cumulativeStoryContext = cumulativeStoryContext
+        ? `${cumulativeStoryContext}, ${panelSummary}`
+        : panelSummary;
+
+      // Keep context concise - limit to last 3 panels for readability
+      const summaries = cumulativeStoryContext.split(', ');
+      if (summaries.length > 3) {
+        cumulativeStoryContext = summaries.slice(-3).join(', ');
+      }
+    }
+
+    processedPrompts.push({
       ...prompt,
       generatedPrompt: enhancedPrompt
-    };
-  });
+    });
+  }
+
+  return processedPrompts;
 }
 
 /**

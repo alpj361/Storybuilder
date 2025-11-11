@@ -7,11 +7,13 @@ import { useCurrentProject, useProjects, useStoryboardStore } from "../state/sto
 import {
   StoryboardPanel as StoryboardPanelType,
   ProjectType,
-  ArchitecturalProjectKind
+  ArchitecturalProjectKind,
+  Character
 } from "../types/storyboard";
 import StoryboardInputModal from "../components/StoryboardInputModal";
 import PromptPreview from "../components/PromptPreview";
 import CharacterTag from "../components/CharacterTag";
+import { CharacterDetailsModal } from "../components/CharacterDetailsModal";
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -29,9 +31,10 @@ interface StoryboardPanelProps {
   panel?: StoryboardPanelType;
   panelNumber: number;
   mode: "storyboard" | "architectural";
+  onCharacterPress?: (character: Character) => void;
 }
 
-const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode }) => {
+const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   const isArchitectural = mode === "architectural";
@@ -124,7 +127,12 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
         panelCharacters.length > 0 && (
           <View className="flex-row flex-wrap gap-1 mb-3">
             {panelCharacters.map(character => (
-              <CharacterTag key={character.id} character={character} size="small" />
+              <CharacterTag
+                key={character.id}
+                character={character}
+                size="small"
+                onPress={onCharacterPress ? () => onCharacterPress(character) : undefined}
+              />
             ))}
           </View>
         )
@@ -221,6 +229,8 @@ export default function StoryboardScreen({
   const title = titleProp;
   const isArchitectural = mode === "architectural";
   const [showInputModal, setShowInputModal] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [showCharacterModal, setShowCharacterModal] = useState(false);
   const isFocused = useIsFocused();
   const currentProject = useCurrentProject();
   const projects = useProjects();
@@ -228,6 +238,21 @@ export default function StoryboardScreen({
   const generateAllPanelImages = useStoryboardStore(state => state.generateAllPanelImages);
   const isGenerating = useStoryboardStore(state => state.isGenerating);
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
+
+  // Handler for opening character details modal
+  const handleCharacterPress = (character: Character) => {
+    setSelectedCharacter(character);
+    setShowCharacterModal(true);
+  };
+
+  // Calculate which panels a character appears in
+  const getCharacterPanelNumbers = (characterId: string): number[] => {
+    if (!currentProject) return [];
+    return currentProject.panels
+      .filter(panel => panel.prompt.characters.includes(characterId))
+      .map(panel => panel.panelNumber)
+      .sort((a, b) => a - b);
+  };
 
   useEffect(() => {
     // Only adjust current project when this tab/screen is focused
@@ -494,7 +519,12 @@ export default function StoryboardScreen({
               activeProject.characters.length > 0 && (
                 <View className="flex-row flex-wrap gap-1">
                   {activeProject.characters.map(character => (
-                    <CharacterTag key={character.id} character={character} size="medium" />
+                    <CharacterTag
+                      key={character.id}
+                      character={character}
+                      size="medium"
+                      onPress={() => handleCharacterPress(character)}
+                    />
                   ))}
                 </View>
               )
@@ -507,10 +537,11 @@ export default function StoryboardScreen({
           <View className="flex-row flex-wrap -mx-1">
             {displayPanels.map((panel: StoryboardPanelType | undefined, idx: number) => (
               <View key={panel ? panel.id : `placeholder-${idx}`} className="w-1/2 px-1 mb-2">
-                <StoryboardPanel 
+                <StoryboardPanel
                   panel={panel}
                   panelNumber={idx + 1}
                   mode={mode}
+                  onCharacterPress={handleCharacterPress}
                 />
               </View>
             ))}
@@ -536,13 +567,24 @@ export default function StoryboardScreen({
       </ScrollView>
 
       {/* Input Modal */}
-      <StoryboardInputModal 
+      <StoryboardInputModal
         visible={showInputModal}
         onClose={() => setShowInputModal(false)}
         mode={mode}
         hasCurrentProject={!!activeProject}
         architecturalKind={architecturalKind}
         onArchitecturalKindChange={onArchitecturalKindChange}
+      />
+
+      {/* Character Details Modal */}
+      <CharacterDetailsModal
+        visible={showCharacterModal}
+        onClose={() => {
+          setShowCharacterModal(false);
+          setSelectedCharacter(null);
+        }}
+        character={selectedCharacter}
+        panelNumbers={selectedCharacter ? getCharacterPanelNumbers(selectedCharacter.id) : []}
       />
     </SafeAreaView>
   );

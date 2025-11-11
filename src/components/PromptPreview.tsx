@@ -103,7 +103,7 @@ export default function PromptPreview({ prompt, characters, scene, metadata, mod
                 </Text>
               </View>
             )}
-            {prompt.panelType && (
+            {prompt.panelType && typeof prompt.panelType === 'string' && (
               <View className="bg-green-100 px-2 py-1 rounded">
                 <Text className="text-green-700 text-xs font-medium">
                   {prompt.panelType.replace("_", " ")}
