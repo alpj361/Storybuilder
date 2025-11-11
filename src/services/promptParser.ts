@@ -240,12 +240,12 @@ export function extractCharacters(input: string): Character[] {
     }
   });
 
-  // If no characters found, create a generic protagonist
+  // If no characters found, create character based on user input
   if (characters.length === 0) {
     characters.push({
       id: uuidv4(),
-      name: "Main Character",
-      description: "A person in the scene",
+      name: "Main Subject",
+      description: input.trim(), // Use actual user input instead of generic text
       appearance: {
         age: "adult",
         build: "average",
@@ -293,16 +293,16 @@ export function extractScenes(input: string): Scene[] {
     }
   });
 
-  // Default scene if none detected
+  // Default scene if none detected - use actual user input
   if (!sceneFound) {
     scenes.push({
       id: uuidv4(),
       name: "Main Scene",
-      location: "generic setting",
-      timeOfDay: "unknown",
-      lighting: "neutral lighting",
-      mood: "neutral",
-      environment: "simple background setting"
+      location: input.trim(), // Use user's actual idea instead of "generic setting"
+      timeOfDay: detectTimeOfDay(input),
+      lighting: "natural lighting",
+      mood: detectMood(input),
+      environment: input.trim() // Use user's actual description
     });
   }
 
@@ -727,8 +727,8 @@ function getCompositionType(panelNumber: number): CompositionType {
  * Generate a logical 4-panel storyboard sequence (legacy function for backward compatibility)
  */
 export function generatePanelSequence(
-  input: string, 
-  characters: Character[], 
+  input: string,
+  characters: Character[],
   scenes: Scene[],
   count: number = 4
 ): StoryboardPanel[] {
@@ -736,65 +736,109 @@ export function generatePanelSequence(
   const mainCharacter = characters[0];
   const mainScene = scenes[0];
 
-  // Panel 1: Establishing shot
+  // Use the actual user input for descriptions instead of hardcoded values
+  const userIdea = input.trim();
+
+  // Create a meaningful breakdown of the user's idea across panels
+  const storyBeats = breakdownStoryIntoBeats(userIdea, count);
+
+  // Panel 1: Establishing shot using user's actual idea
   panels.push(createPanel(1, {
     panelType: PanelType.ESTABLISHING,
     composition: CompositionType.WIDE_SHOT,
-    sceneDescription: `Wide establishing shot of ${mainScene.location}`,
-    action: `Setting the scene in ${mainScene.environment}`,
+    sceneDescription: `${storyBeats[0] || userIdea} - establishing shot showing ${mainScene.location}`,
+    action: `${userIdea} - setting up the scene`,
     characters: [],
     sceneId: mainScene.id,
-    cameraAngle: "eye level wide shot",
-    mood: mainScene.mood
+    cameraAngle: "wide establishing angle",
+    mood: mainScene.mood,
+    visualNotes: `Scene context: ${userIdea}`
   }));
 
-  // Panel 2: Character introduction (if count >= 2)
+  // Panel 2: Character/subject introduction using user's idea
   if (count >= 2) {
     panels.push(createPanel(2, {
       panelType: PanelType.CHARACTER_INTRO,
       composition: CompositionType.MEDIUM_SHOT,
-      sceneDescription: `${mainCharacter.description} appears in the scene`,
-      action: `Introducing ${mainCharacter.name} in ${mainScene.location}`,
+      sceneDescription: `${storyBeats[1] || userIdea} - introducing the main subject`,
+      action: `${userIdea} - ${mainCharacter.description} in the scene`,
       characters: [mainCharacter.id],
       sceneId: mainScene.id,
-      cameraAngle: "medium shot focusing on character",
-      mood: "introduction"
+      cameraAngle: "medium shot on subject",
+      mood: "introduction",
+      visualNotes: storyBeats[1] || userIdea
     }));
   }
 
-  // Middle beats sized to count (Action-focused)
+  // Middle panels: Main action using user's actual story beats
   const middleSlots = Math.max(0, count - 2 - 1);
-  const actionDescription = generateActionFromInput(input, characters);
   for (let i = 0; i < middleSlots; i++) {
     const number = 3 + i;
-    const isDetail = actionDescription.toLowerCase().includes("detail");
+    const beatIndex = Math.min(2 + i, storyBeats.length - 1);
+    const currentBeat = storyBeats[beatIndex] || userIdea;
+
     panels.push(createPanel(number, {
       panelType: PanelType.ACTION,
-      composition: isDetail ? CompositionType.EXTREME_CLOSE_UP : CompositionType.CLOSE_UP,
-      sceneDescription: actionDescription,
-      action: `Main action: ${actionDescription}`,
+      composition: CompositionType.CLOSE_UP,
+      sceneDescription: `${currentBeat} - ${userIdea}`,
+      action: currentBeat,
       characters: characters.map(c => c.id),
       sceneId: mainScene.id,
-      cameraAngle: isDetail ? "macro technical close-up" : "close-up on the action",
-      mood: "engaging"
+      cameraAngle: "dynamic angle on action",
+      mood: "engaging",
+      visualNotes: `${userIdea} - panel ${number} of ${count}`
     }));
   }
 
-  // Final resolution (if count >= 3)
+  // Final panel: Resolution using user's idea
   if (count >= 3) {
+    const lastBeat = storyBeats[storyBeats.length - 1] || userIdea;
     panels.push(createPanel(count, {
       panelType: PanelType.RESOLUTION,
       composition: CompositionType.MEDIUM_SHOT,
-      sceneDescription: `Resolution of the scene with ${mainCharacter.name}`,
-      action: "Concluding moment showing the result or reaction",
+      sceneDescription: `${lastBeat} - conclusion`,
+      action: `${userIdea} - final moment`,
       characters: characters.map(c => c.id),
       sceneId: mainScene.id,
-      cameraAngle: "medium shot showing resolution",
-      mood: "conclusive"
+      cameraAngle: "medium resolution shot",
+      mood: "conclusive",
+      visualNotes: `${userIdea} - final panel showing resolution`
     }));
   }
 
   return panels;
+}
+
+/**
+ * Break down user's story idea into logical beats for each panel
+ */
+function breakdownStoryIntoBeats(input: string, panelCount: number): string[] {
+  const beats: string[] = [];
+
+  // Split the input into sentences or meaningful chunks
+  const sentences = input.split(/[.!?]+/).map(s => s.trim()).filter(s => s.length > 0);
+
+  if (sentences.length === 0) {
+    // If no sentences, use the full input for all beats
+    for (let i = 0; i < panelCount; i++) {
+      beats.push(input);
+    }
+    return beats;
+  }
+
+  // If we have multiple sentences, distribute them across panels
+  if (sentences.length >= panelCount) {
+    // More sentences than panels - use first N sentences
+    return sentences.slice(0, panelCount);
+  } else {
+    // Fewer sentences than panels - repeat strategically
+    for (let i = 0; i < panelCount; i++) {
+      const sentenceIndex = Math.floor((i * sentences.length) / panelCount);
+      beats.push(sentences[sentenceIndex] || sentences[sentences.length - 1]);
+    }
+  }
+
+  return beats;
 }
 
 /**

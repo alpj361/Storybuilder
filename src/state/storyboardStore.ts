@@ -11,7 +11,7 @@ import {
   ArchitecturalMetadata,
   ArchitecturalProjectKind
 } from "../types/storyboard";
-import { parseUserInput } from "../services/promptParser.simple";
+import { parseUserInput } from "../services/promptParser";
 import { generateAllPanelPrompts, applyAudienceTemplate, AUDIENCE_TEMPLATES } from "../templates/storyboardTemplates";
 import { parseArchitecturalInput } from "../services/architecturalParser";
 import { generateArchitecturalPanelPrompts, mergeArchitecturalMetadata, getDefaultArchitecturalMetadata } from "../templates/architecturalTemplates";
