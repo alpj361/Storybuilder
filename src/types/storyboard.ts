@@ -113,6 +113,8 @@ export interface Character {
   };
   personality?: string[];
   role: "protagonist" | "antagonist" | "supporting" | "background";
+  referenceImage?: string; // Base64 or URI of reference image
+  useReferenceInPrompt?: boolean; // Whether to use reference image in generation
 }
 
 export interface Scene {
