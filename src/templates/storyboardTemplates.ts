@@ -130,13 +130,13 @@ export function generateStoryboardPrompt(
 ): string {
   const styleTemplate = STYLE_TEMPLATES[prompt.style];
   const compositionTemplate = COMPOSITION_TEMPLATES[prompt.composition];
-  
+
   // Get character descriptions for this panel
-  const panelCharacters = characters.filter(char => 
+  const panelCharacters = characters.filter(char =>
     prompt.characters.includes(char.id)
   );
-  
-  // Build character description string
+
+  // Build character description string - use only appearance details, not full description
   const characterDescriptions = panelCharacters.map(char => {
     const appearance = char.appearance;
     const features = [
@@ -147,31 +147,37 @@ export function generateStoryboardPrompt(
       appearance.clothing && `wearing ${appearance.clothing}`,
       appearance.distinctiveFeatures?.join(", ")
     ].filter(Boolean).join(", ");
-    
-    return `${char.description}${features ? ` (${features})` : ""}`;
+
+    // Only use appearance features if available, otherwise use character name
+    return features || char.name;
   }).join(" and ");
 
-  // Build scene description
+  // Build scene description - avoid duplicate text
+  // Extract just the location name if scene.location contains the full user input
+  const locationName = scene.location.length > 50
+    ? scene.location.split(/[,.-]/)[0].trim() // Take first part if too long
+    : scene.location;
+
   const sceneDescription = [
-    scene.location,
+    locationName,
     scene.timeOfDay !== "unknown" && `during ${scene.timeOfDay}`,
-    scene.weather && `${scene.weather} weather`,
-    scene.environment
+    scene.weather && `${scene.weather} weather`
   ].filter(Boolean).join(", ");
 
-  // Construct the complete prompt
+  // Use prompt.action directly as it now contains the user's actual idea
+  const mainAction = prompt.action || prompt.sceneDescription;
+
+  // Construct the complete prompt with user's actual idea as the focus
   const promptParts = [
     styleTemplate.prefix,
     compositionTemplate.description,
-    prompt.sceneDescription,
-    characterDescriptions && `featuring ${characterDescriptions}`,
-    `in ${sceneDescription}`,
-    prompt.action && `${prompt.action}`,
-    prompt.cameraAngle && `camera angle: ${prompt.cameraAngle}`,
-    prompt.lighting && `lighting: ${prompt.lighting}`,
-    prompt.mood && `mood: ${prompt.mood}`,
+    mainAction, // User's actual story idea
+    characterDescriptions && `with ${characterDescriptions}`,
+    sceneDescription && `in ${sceneDescription}`,
+    prompt.cameraAngle && `${prompt.cameraAngle}`,
+    prompt.lighting && `${prompt.lighting}`,
+    prompt.mood && `${prompt.mood} mood`,
     compositionTemplate.framing,
-    prompt.visualNotes,
     styleTemplate.suffix
   ].filter(Boolean).join(", ");
 
