@@ -6,23 +6,6 @@ Starting Metro Bundler
 Waiting on http://localhost:8081
 Logs for your project will appear below.
 iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS ./index.ts ▓▓░░░░░░░░░░░░░░ 13.6% (132/358)
-iOS ./index.ts ▓▓▓▓▓▓░░░░░░░░░░ 39.0% (461/738)
-iOS ./index.ts ▓▓▓▓▓▓▓▓▓▓▓▓░░░░ 76.8% (793/905)
-iOS ./index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓░░░ 81.9% (1007/1119)
-iOS ./index.ts ▓▓▓▓▓▓▓▓▓▓▓▓▓▓░░ 90.7% (1177/1236)
-iOS Bundled 21526ms index.ts (1310 modules)
-iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS Bundled 45ms index.ts (1 module)
-iOS Bundled 52ms index.ts (1 module)
-iOS Bundled 82ms index.ts (1 module)
-iOS Bundled 66ms index.ts (1 module)
-iOS Bundled 43ms index.ts (1 module)
-iOS Bundled 53ms index.ts (1 module)
-iOS Bundled 38ms index.ts (1 module)
-iOS Bundled 38ms index.ts (1 module)
-iOS Bundled 40ms index.ts (1 module)
-iOS ./index.ts ░░░░░░░░░░░░░░░░  0.0% (0/1)
-iOS Bundled 37ms index.ts (1 module)
+iOS Bundled 2358ms index.ts (1310 modules)
  LOG  [index] Project ID is:  2c1f4dad-544a-428a-802e-7b51149f496b
  WARN  [Reanimated] Reduced motion setting is enabled on this device. This warning is visible only in the development mode. Some animations will be disabled by default. You can override the behavior for individual animations, see https://docs.swmansion.com/react-native-reanimated/docs/guides/troubleshooting#reduced-motion-setting-is-enabled-on-this-device.
