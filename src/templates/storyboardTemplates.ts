@@ -1,11 +1,12 @@
-import { 
-  StoryboardPrompt, 
-  StoryboardStyle, 
-  CompositionType, 
+import {
+  StoryboardPrompt,
+  StoryboardStyle,
+  CompositionType,
   PanelType,
   Character,
-  Scene 
+  Scene
 } from "../types/storyboard";
+import { getCharacterDescription } from "../services/characterDescriber";
 
 /**
  * Base style templates for different storyboard drawing styles
@@ -127,12 +128,12 @@ export const PANEL_TYPE_TEMPLATES = {
  * @param scene - The scene for this panel
  * @param previousPanelsSummary - Optional summary of previous panels for story continuity
  */
-export function generateStoryboardPrompt(
+export async function generateStoryboardPrompt(
   prompt: StoryboardPrompt,
   characters: Character[],
   scene: Scene,
   previousPanelsSummary?: string
-): string {
+): Promise<string> {
   console.log("[generateStoryboardPrompt] Input:", {
     panelNumber: prompt.panelNumber,
     style: prompt.style,
@@ -158,8 +159,23 @@ export function generateStoryboardPrompt(
 
   if (isFirstPanel) {
     // Panel 1: Use whatever appearance details we have (even if "unknown")
-    characterDescriptions = panelCharacters.map(char => {
+    // If character has reference image, get AI description
+    const characterDescPromises = panelCharacters.map(async char => {
       const appearance = char.appearance;
+
+      // If reference image is enabled, get AI description
+      if (char.referenceImage && char.useReferenceInPrompt) {
+        try {
+          const aiDescription = await getCharacterDescription(char.referenceImage);
+          console.log(`[generateStoryboardPrompt] AI description for ${char.name}:`, aiDescription);
+          return aiDescription;
+        } catch (error) {
+          console.warn(`[generateStoryboardPrompt] Failed to get AI description for ${char.name}:`, error);
+          // Fall back to manual features if AI fails
+        }
+      }
+
+      // Use manual appearance features if no reference or AI failed
       const features = [
         appearance.age && `${appearance.age}`,
         appearance.gender && `${appearance.gender}`,
@@ -171,7 +187,10 @@ export function generateStoryboardPrompt(
 
       // Only use appearance features if available, otherwise use character name
       return features || char.name;
-    }).join(" and ");
+    });
+
+    const characterDescArray = await Promise.all(characterDescPromises);
+    characterDescriptions = characterDescArray.join(" and ");
   } else {
     // Panels 2+: Reference the same characters from panel 1 for consistency
     characterDescriptions = panelCharacters.map(char => {
@@ -274,11 +293,11 @@ export function enhancePromptForStoryboard(basePrompt: string): string {
 /**
  * Generate prompts for an entire storyboard project with cumulative story context
  */
-export function generateAllPanelPrompts(
+export async function generateAllPanelPrompts(
   prompts: StoryboardPrompt[],
   characters: Character[],
   scenes: Scene[]
-): StoryboardPrompt[] {
+): Promise<StoryboardPrompt[]> {
   // Build story context progressively as we process each panel
   const processedPrompts: StoryboardPrompt[] = [];
   let cumulativeStoryContext = '';
@@ -290,7 +309,7 @@ export function generateAllPanelPrompts(
     // For panels 2+, pass summary of previous panels
     const previousPanelsSummary = i > 0 ? cumulativeStoryContext : undefined;
 
-    const generatedPrompt = generateStoryboardPrompt(
+    const generatedPrompt = await generateStoryboardPrompt(
       prompt,
       characters,
       scene,

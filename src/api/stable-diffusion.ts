@@ -1,9 +1,11 @@
 /**
  * Stable Diffusion API service for storyboard image generation
  * Uses the provided API key for generating draft/rough sketch style images
+ * Supports both text-to-image and image-to-image generation
  */
 
-const STABLE_DIFFUSION_API_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
+const STABLE_DIFFUSION_TEXT_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
+const STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image";
 
 export interface StableDiffusionOptions {
   width?: number;
@@ -65,7 +67,7 @@ export async function generateStoryboardImage(
   console.log("[StableDiffusion] Request body:", JSON.stringify(requestBody, null, 2));
 
   try {
-    const response = await fetch(STABLE_DIFFUSION_API_URL, {
+    const response = await fetch(STABLE_DIFFUSION_TEXT_TO_IMAGE_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -103,14 +105,33 @@ export async function generateStoryboardImage(
 /**
  * Generate a storyboard image with draft/rough sketch style
  * @param prompt The storyboard prompt (already includes style from template)
+ * @param referenceImage Optional reference image for img2img mode
+ * @param imageStrength Optional strength for img2img (0.2-0.6, default 0.35)
  * @returns Base64 encoded image data
  */
-export async function generateDraftStoryboardImage(prompt: string): Promise<string> {
+export async function generateDraftStoryboardImage(
+  prompt: string,
+  referenceImage?: string,
+  imageStrength?: number
+): Promise<string> {
   console.log("[generateDraftStoryboardImage] Called with prompt:", prompt);
   console.log("[generateDraftStoryboardImage] Prompt length:", prompt.length);
+  console.log("[generateDraftStoryboardImage] Has reference image:", !!referenceImage);
 
-  // Use the prompt directly - it already includes style information from STYLE_TEMPLATES
-  // The style_preset parameter will handle the visual style
+  // If reference image provided, use img2img mode
+  if (referenceImage) {
+    console.log("[generateDraftStoryboardImage] Using img2img mode");
+    const result = await generateImageWithReference(prompt, referenceImage, imageStrength || 0.35, {
+      style_preset: "line-art",
+      steps: 30,
+      cfg_scale: 7
+    });
+    console.log("[generateDraftStoryboardImage] img2img result length:", result.length);
+    return result;
+  }
+
+  // Otherwise use standard text-to-image
+  console.log("[generateDraftStoryboardImage] Using text-to-image mode");
   const result = await generateStoryboardImage(prompt, {
     style_preset: "line-art",
     steps: 30, // Increased for better quality
@@ -122,6 +143,93 @@ export async function generateDraftStoryboardImage(prompt: string): Promise<stri
   console.log("[generateDraftStoryboardImage] Returning result, length:", result.length);
 
   return result;
+}
+
+/**
+ * Generate an image using img2img (image-to-image) mode with a reference image
+ * @param prompt The text prompt for image generation
+ * @param referenceImageBase64 Base64 encoded reference image (with data:image prefix)
+ * @param imageStrength How much to transform the image (0-1, default 0.35)
+ * @param options Additional generation options
+ * @returns Base64 encoded image data
+ */
+export async function generateImageWithReference(
+  prompt: string,
+  referenceImageBase64: string,
+  imageStrength: number = 0.35,
+  options: StableDiffusionOptions = {}
+): Promise<string> {
+  const apiKey = "sk-vPIMZInP8snQecyXCCwYwyOuB4h5zE8lUfA31zNGbAojuD6P";
+
+  // Remove data:image prefix if present
+  const base64Data = referenceImageBase64.includes(',')
+    ? referenceImageBase64.split(',')[1]
+    : referenceImageBase64;
+
+  // Default options optimized for img2img with character reference
+  const defaultOptions: StableDiffusionOptions = {
+    steps: 30,
+    cfg_scale: 7,
+    samples: 1,
+    style_preset: "line-art", // Match storyboard style
+    ...options
+  };
+
+  console.log("[StableDiffusion img2img] Generating with reference image, strength:", imageStrength);
+  console.log("[StableDiffusion img2img] Prompt:", prompt);
+
+  const requestBody = {
+    text_prompts: [
+      {
+        text: prompt,
+        weight: 1
+      }
+    ],
+    init_image: base64Data,
+    init_image_mode: "IMAGE_STRENGTH",
+    image_strength: imageStrength,
+    ...defaultOptions
+  };
+
+  console.log("[StableDiffusion img2img] Request body (excluding image data):", {
+    ...requestBody,
+    init_image: `<base64 data, length: ${base64Data.length}>`
+  });
+
+  try {
+    const response = await fetch(STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`,
+        "Accept": "application/json"
+      },
+      body: JSON.stringify(requestBody)
+    });
+
+    console.log("[StableDiffusion img2img] Response status:", response.status);
+
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error("[StableDiffusion img2img] Error response:", errorData);
+      throw new Error(`Stable Diffusion img2img API error: ${response.status} ${errorData}`);
+    }
+
+    const result: StableDiffusionResponse = await response.json();
+
+    console.log("[StableDiffusion img2img] Response artifacts:", result.artifacts?.length || 0);
+
+    if (result.artifacts && result.artifacts.length > 0) {
+      const imageData = result.artifacts[0].base64;
+      console.log("[StableDiffusion img2img] Image generated successfully, base64 length:", imageData.length);
+      return `data:image/png;base64,${imageData}`;
+    } else {
+      throw new Error("No image artifacts returned from Stable Diffusion img2img API");
+    }
+  } catch (error) {
+    console.error("[StableDiffusion img2img] Image generation error:", error);
+    throw error;
+  }
 }
 
 /**

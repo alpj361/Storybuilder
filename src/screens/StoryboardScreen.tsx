@@ -14,6 +14,7 @@ import StoryboardInputModal from "../components/StoryboardInputModal";
 import PromptPreview from "../components/PromptPreview";
 import CharacterTag from "../components/CharacterTag";
 import { CharacterDetailsModal } from "../components/CharacterDetailsModal";
+import { CharacterEditModal } from "../components/CharacterEditModal";
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -231,6 +232,7 @@ export default function StoryboardScreen({
   const [showInputModal, setShowInputModal] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
+  const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
   const isFocused = useIsFocused();
   const currentProject = useCurrentProject();
   const projects = useProjects();
@@ -238,11 +240,24 @@ export default function StoryboardScreen({
   const generateAllPanelImages = useStoryboardStore(state => state.generateAllPanelImages);
   const isGenerating = useStoryboardStore(state => state.isGenerating);
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
+  const updateCharacter = useStoryboardStore(state => state.updateCharacter);
 
   // Handler for opening character details modal
   const handleCharacterPress = (character: Character) => {
     setSelectedCharacter(character);
     setShowCharacterModal(true);
+  };
+
+  // Handler for opening character edit modal
+  const handleEditCharacter = (character: Character) => {
+    setSelectedCharacter(character);
+    setShowCharacterModal(false);
+    setShowCharacterEditModal(true);
+  };
+
+  // Handler for saving character edits
+  const handleSaveCharacter = (character: Character) => {
+    updateCharacter(character.id, character);
   };
 
   // Calculate which panels a character appears in
@@ -585,6 +600,19 @@ export default function StoryboardScreen({
         }}
         character={selectedCharacter}
         panelNumbers={selectedCharacter ? getCharacterPanelNumbers(selectedCharacter.id) : []}
+        onEdit={handleEditCharacter}
+      />
+
+      {/* Character Edit Modal */}
+      <CharacterEditModal
+        visible={showCharacterEditModal}
+        onClose={() => {
+          setShowCharacterEditModal(false);
+          setSelectedCharacter(null);
+        }}
+        character={selectedCharacter}
+        onSave={handleSaveCharacter}
+        mode="edit"
       />
     </SafeAreaView>
   );

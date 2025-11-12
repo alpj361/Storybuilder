@@ -2,8 +2,10 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
-import { ProjectType, ArchitecturalProjectKind } from "../types/storyboard";
+import { ProjectType, ArchitecturalProjectKind, Character } from "../types/storyboard";
 import { cn } from "../utils/cn";
+import { CharacterEditModal } from "./CharacterEditModal";
+import CharacterTag from "./CharacterTag";
 
 interface StoryboardInputModalProps {
   visible: boolean;
@@ -25,6 +27,9 @@ export default function StoryboardInputModal({
   const isArchitectural = mode === "architectural";
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [characters, setCharacters] = useState<Character[]>([]);
+  const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
+  const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
   const createProjectFromInput = useStoryboardStore(state => state.createProjectFromInput);
   const createArchitecturalProjectFromInput = useStoryboardStore(state => state.createArchitecturalProjectFromInput);
   const appendPanelsFromInput = useStoryboardStore(state => state.appendPanelsFromInput);
@@ -77,6 +82,7 @@ export default function StoryboardInputModal({
       setPanelCount(`${defaultCreateCount}`);
       setAppendCount("1");
       setInput("");
+      setCharacters([]);
     }
   }, [visible, defaultCreateCount]);
 
@@ -88,6 +94,42 @@ export default function StoryboardInputModal({
     const maxPanels = isArchitectural ? 12 : 30;
     return Number.isFinite(n) && n > 0 ? Math.min(n, maxPanels) : fallback;
   }, [workflow, panelCount, appendCount, defaultCreateCount, isArchitectural]);
+
+  // Character management handlers
+  const handleAddCharacter = () => {
+    setEditingCharacter(null);
+    setShowCharacterEditModal(true);
+  };
+
+  const handleEditCharacter = (character: Character) => {
+    setEditingCharacter(character);
+    setShowCharacterEditModal(true);
+  };
+
+  const handleSaveCharacter = (character: Character) => {
+    if (editingCharacter) {
+      // Update existing character
+      setCharacters(prev => prev.map(c => c.id === character.id ? character : c));
+    } else {
+      // Add new character
+      setCharacters(prev => [...prev, character]);
+    }
+  };
+
+  const handleDeleteCharacter = (characterId: string) => {
+    Alert.alert(
+      "Delete Character",
+      "Are you sure you want to delete this character?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => setCharacters(prev => prev.filter(c => c.id !== characterId))
+        }
+      ]
+    );
+  };
 
   const handleGenerate = async () => {
     if (!input.trim()) {
@@ -108,10 +150,12 @@ export default function StoryboardInputModal({
         if (isArchitectural) {
           await createArchitecturalProjectFromInput(inputWithCount, { kind: architecturalKind });
         } else {
-          await createProjectFromInput(inputWithCount);
+          // Pass custom characters if provided
+          await createProjectFromInput(inputWithCount, characters.length > 0 ? characters : undefined);
         }
       }
       setInput("");
+      setCharacters([]);
       onClose();
     } catch (err) {
       console.error("Generation error:", err);
@@ -337,13 +381,94 @@ export default function StoryboardInputModal({
               multiline
               numberOfLines={4}
               className="border border-gray-300 rounded-lg p-3 text-gray-900 text-base"
-              style={{ 
+              style={{
                 minHeight: 100,
                 textAlignVertical: "top"
               }}
               editable={!isGenerating}
             />
           </View>
+
+          {/* Character Management - Only for Storyboard mode */}
+          {!isArchitectural && (
+            <View className="mb-6">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <Ionicons name="people" size={18} color="#374151" />
+                  <Text className="text-sm font-medium text-gray-700 ml-2">
+                    Characters ({characters.length})
+                  </Text>
+                </View>
+                <Pressable
+                  onPress={handleAddCharacter}
+                  disabled={isGenerating}
+                  className={cn(
+                    "flex-row items-center px-3 py-1.5 rounded-lg bg-blue-100",
+                    isGenerating && "opacity-50"
+                  )}
+                >
+                  <Ionicons name="add" size={16} color="#3b82f6" />
+                  <Text className="text-blue-600 font-medium text-xs ml-1">Add Character</Text>
+                </Pressable>
+              </View>
+
+              {characters.length > 0 ? (
+                <View className="space-y-2">
+                  {characters.map((character) => (
+                    <View
+                      key={character.id}
+                      className="flex-row items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <View className="flex-1 flex-row items-center">
+                        <CharacterTag character={character} size="small" />
+                        <View className="ml-3 flex-1">
+                          {character.description && (
+                            <Text className="text-xs text-gray-600 line-clamp-1">
+                              {character.description}
+                            </Text>
+                          )}
+                          {character.referenceImage && (
+                            <View className="flex-row items-center mt-1">
+                              <Ionicons name="image" size={12} color="#16a34a" />
+                              <Text className="text-xs text-green-600 ml-1">Has reference</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <Pressable
+                          onPress={() => handleEditCharacter(character)}
+                          disabled={isGenerating}
+                          className={cn(
+                            "p-2 rounded-full bg-blue-100",
+                            isGenerating && "opacity-50"
+                          )}
+                        >
+                          <Ionicons name="pencil" size={14} color="#3b82f6" />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteCharacter(character.id)}
+                          disabled={isGenerating}
+                          className={cn(
+                            "p-2 rounded-full bg-red-100",
+                            isGenerating && "opacity-50"
+                          )}
+                        >
+                          <Ionicons name="trash" size={14} color="#ef4444" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View className="p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <Text className="text-gray-500 text-xs text-center">
+                    No characters added yet. Characters will be automatically detected from your idea, or you can add them manually.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
 
           {/* Example Prompts */}
           <View className="mb-6">
@@ -453,6 +578,18 @@ export default function StoryboardInputModal({
           </Pressable>
         </View>
       </View>
+
+      {/* Character Edit Modal */}
+      <CharacterEditModal
+        visible={showCharacterEditModal}
+        onClose={() => {
+          setShowCharacterEditModal(false);
+          setEditingCharacter(null);
+        }}
+        character={editingCharacter}
+        onSave={handleSaveCharacter}
+        mode={editingCharacter ? "edit" : "create"}
+      />
     </Modal>
   );
 }
