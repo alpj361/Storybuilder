@@ -169,15 +169,7 @@ export async function generateImageWithReference(
     ? referenceImageBase64.split(',')[1]
     : referenceImageBase64;
 
-  // Convert base64 to Blob for multipart upload
-  const binaryString = atob(base64Data);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  const imageBlob = new Blob([bytes], { type: 'image/png' });
-
-  console.log("[StableDiffusion img2img] Image blob size:", imageBlob.size, "bytes");
+  console.log("[StableDiffusion img2img] Base64 data length:", base64Data.length);
 
   // Default options optimized for img2img with character reference
   const defaultOptions: StableDiffusionOptions = {
@@ -190,7 +182,16 @@ export async function generateImageWithReference(
 
   // Build FormData for multipart/form-data request
   const formData = new FormData();
-  formData.append('init_image', imageBlob, 'reference.png');
+
+  // Create a file-like object for React Native
+  // React Native's FormData expects: { uri, type, name }
+  const imageFile: any = {
+    uri: `data:image/png;base64,${base64Data}`,
+    type: 'image/png',
+    name: 'reference.png'
+  };
+
+  formData.append('init_image', imageFile);
   formData.append('text_prompts[0][text]', prompt);
   formData.append('text_prompts[0][weight]', '1');
   formData.append('image_strength', imageStrength.toString());
