@@ -43,6 +43,10 @@ interface StoryboardState {
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
   deleteProject: (projectId: string) => void;
+  duplicateProject: (projectId: string) => void;
+  renameProject: (projectId: string, newTitle: string) => void;
+  toggleFavorite: (projectId: string) => void;
+  addProjectTags: (projectId: string, tags: string[]) => void;
   setCurrentProject: (project: StoryboardProject | null) => void;
   regeneratePanel: (panelId: string) => Promise<void>;
   regenerateAllPanels: () => Promise<void>;
@@ -65,8 +69,7 @@ const defaultGenerationOptions: GenerationOptions = {
 };
 
 export const useStoryboardStore = create<StoryboardState>()(
-  // TEMPORARILY DISABLED PERSIST TO DEBUG CRASH
-  // persist(
+  persist(
     (set, get) => ({
       // Initial state
       currentProject: null,
@@ -513,17 +516,130 @@ export const useStoryboardStore = create<StoryboardState>()(
       deleteProject: (projectId: string) => {
         set(state => ({
           projects: state.projects.filter(p => p.id !== projectId),
-          currentProject: state.currentProject?.id === projectId 
-            ? null 
+          currentProject: state.currentProject?.id === projectId
+            ? null
             : state.currentProject
         }));
+      },
+
+      // Duplicate a project
+      duplicateProject: (projectId: string) => {
+        set(state => {
+          const projectToDuplicate = state.projects.find(p => p.id === projectId);
+          if (!projectToDuplicate) return state;
+
+          const duplicatedProject: StoryboardProject = {
+            ...projectToDuplicate,
+            id: uuidv4(),
+            title: `${projectToDuplicate.title} (Copy)`,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            lastOpenedAt: undefined,
+            // Generate new IDs for panels
+            panels: projectToDuplicate.panels.map(panel => ({
+              ...panel,
+              id: uuidv4(),
+              prompt: {
+                ...panel.prompt,
+                id: uuidv4()
+              }
+            }))
+          };
+
+          console.log('[storyboardStore] Duplicated project:', duplicatedProject.id);
+          return {
+            projects: [...state.projects, duplicatedProject]
+          };
+        });
+      },
+
+      // Rename a project
+      renameProject: (projectId: string, newTitle: string) => {
+        set(state => {
+          const updatedProjects = state.projects.map(project =>
+            project.id === projectId
+              ? { ...project, title: newTitle, updatedAt: new Date() }
+              : project
+          );
+
+          return {
+            projects: updatedProjects,
+            currentProject: state.currentProject?.id === projectId
+              ? { ...state.currentProject, title: newTitle, updatedAt: new Date() }
+              : state.currentProject
+          };
+        });
+      },
+
+      // Toggle favorite status
+      toggleFavorite: (projectId: string) => {
+        set(state => {
+          const updatedProjects = state.projects.map(project =>
+            project.id === projectId
+              ? { ...project, isFavorite: !project.isFavorite, updatedAt: new Date() }
+              : project
+          );
+
+          return {
+            projects: updatedProjects,
+            currentProject: state.currentProject?.id === projectId
+              ? { ...state.currentProject, isFavorite: !state.currentProject.isFavorite, updatedAt: new Date() }
+              : state.currentProject
+          };
+        });
+      },
+
+      // Add tags to a project
+      addProjectTags: (projectId: string, tags: string[]) => {
+        set(state => {
+          const updatedProjects = state.projects.map(project => {
+            if (project.id === projectId) {
+              const existingTags = project.tags || [];
+              const newTags = tags.filter(tag => !existingTags.includes(tag));
+              return {
+                ...project,
+                tags: [...existingTags, ...newTags],
+                updatedAt: new Date()
+              };
+            }
+            return project;
+          });
+
+          let updatedCurrentProject = state.currentProject;
+          if (state.currentProject?.id === projectId) {
+            const currentTags = state.currentProject.tags || [];
+            const newUniqueTags = tags.filter(tag => !currentTags.includes(tag));
+            updatedCurrentProject = {
+              ...state.currentProject,
+              tags: [...currentTags, ...newUniqueTags],
+              updatedAt: new Date()
+            };
+          }
+
+          return {
+            projects: updatedProjects,
+            currentProject: updatedCurrentProject
+          };
+        });
       },
 
       // Set current active project
       setCurrentProject: (project: StoryboardProject | null) => {
         const current = get().currentProject;
         if ((current?.id || null) === (project?.id || null)) return;
-        set({ currentProject: project });
+        
+        // Update lastOpenedAt when setting a project
+        if (project) {
+          const updatedProject = { ...project, lastOpenedAt: new Date() };
+          set(state => ({
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === project.id ? updatedProject : p
+            )
+          }));
+        } else {
+          set({ currentProject: null });
+        }
       },
 
       // Regenerate a specific panel's prompt
@@ -703,6 +819,15 @@ export const useStoryboardStore = create<StoryboardState>()(
             isGenerating: false,
             lastGenerated: new Date()
           });
+
+          // If this is the first panel and project doesn't have a thumbnail, set it
+          const currentState = get();
+          if (panel.panelNumber === 1 && currentState.currentProject && !currentState.currentProject.thumbnailUrl) {
+            console.log("[storyboardStore] Setting project thumbnail from first panel");
+            get().updateProject(currentState.currentProject.id, {
+              thumbnailUrl: imageUrl
+            });
+          }
         } catch (error) {
           console.error("[storyboardStore] Panel image generation error:", error);
           get().updatePanel(panelId, {
@@ -729,7 +854,7 @@ export const useStoryboardStore = create<StoryboardState>()(
               let referenceImage: string | undefined;
               let imageStrength: number | undefined;
 
-              if (panel.panelNumber === 1 && panel.prompt.characters.length > 0) {
+              if (panel.panelNumber === 1 && panel.prompt.characters.length > 0 && state.currentProject) {
                 const visualRefChar = state.currentProject.characters.find(char =>
                   panel.prompt.characters.includes(char.id) &&
                   char.useReferenceInPrompt &&
@@ -851,20 +976,21 @@ export const useStoryboardStore = create<StoryboardState>()(
       clearCurrentProject: () => {
         set({ currentProject: null });
       }
-    })
-    // TEMPORARILY DISABLED PERSIST TO DEBUG CRASH
-    // ,
-    // {
-    //   name: "storyboard-storage",
-    //   storage: createJSONStorage(() => AsyncStorage),
-    //   // Only persist projects and user preferences, not UI state
-    //   partialize: (state) => ({
-    //     projects: state.projects,
-    //     defaultStyle: state.defaultStyle,
-    //     generationOptions: state.generationOptions
-    //   })
-    // }
-  // )
+    }),
+    {
+      name: "storyboard-storage",
+      storage: createJSONStorage(() => AsyncStorage),
+      // Only persist projects and user preferences, not UI state
+      partialize: (state) => ({
+        projects: state.projects,
+        defaultStyle: state.defaultStyle,
+        generationOptions: state.generationOptions
+      }),
+      onRehydrateStorage: () => (state) => {
+        console.log('[storyboardStore] Rehydration complete, projects loaded:', state?.projects.length || 0);
+      }
+    }
+  )
 );
 
 // Selector hooks for better performance
