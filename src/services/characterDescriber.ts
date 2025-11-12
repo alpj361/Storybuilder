@@ -118,7 +118,9 @@ export async function getCharacterDescription(
   // Limit cache size to prevent memory issues
   if (descriptionCache.size > 50) {
     const firstKey = descriptionCache.keys().next().value;
-    descriptionCache.delete(firstKey);
+    if (firstKey !== undefined) {
+      descriptionCache.delete(firstKey);
+    }
   }
 
   return description;
