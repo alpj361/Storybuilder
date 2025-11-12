@@ -187,6 +187,10 @@ export interface StoryboardProject {
   style: StoryboardStyle;
   createdAt: Date;
   updatedAt: Date;
+  thumbnailUrl?: string; // URL of first generated panel image
+  tags?: string[]; // User-defined tags for organization
+  isFavorite?: boolean; // Star/favorite status
+  lastOpenedAt?: Date; // Track when project was last opened
   isComplete: boolean;
   metadata: {
     targetAudience: "animators" | "filmmakers" | "marketers" | "architects" | "general";
