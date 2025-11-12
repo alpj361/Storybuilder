@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Modal, ScrollView, Pressable, TextInput, Image, Switch, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import Slider from "@react-native-community/slider";
 import { Character } from "../types/storyboard";
 
 interface CharacterEditModalProps {
@@ -31,6 +32,8 @@ export function CharacterEditModal({
   const [role, setRole] = useState<Character["role"]>("supporting");
   const [referenceImage, setReferenceImage] = useState<string | undefined>();
   const [useReferenceInPrompt, setUseReferenceInPrompt] = useState(false);
+  const [referenceMode, setReferenceMode] = useState<"description" | "visual">("description");
+  const [imageStrength, setImageStrength] = useState(0.35);
 
   // Initialize form with character data
   useEffect(() => {
@@ -47,6 +50,8 @@ export function CharacterEditModal({
       setRole(character.role);
       setReferenceImage(character.referenceImage);
       setUseReferenceInPrompt(character.useReferenceInPrompt || false);
+      setReferenceMode(character.referenceMode || "description");
+      setImageStrength(character.imageStrength || 0.35);
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -61,6 +66,8 @@ export function CharacterEditModal({
       setRole("supporting");
       setReferenceImage(undefined);
       setUseReferenceInPrompt(false);
+      setReferenceMode("description");
+      setImageStrength(0.35);
     }
   }, [character, mode, visible]);
 
@@ -119,7 +126,9 @@ export function CharacterEditModal({
       },
       role,
       referenceImage,
-      useReferenceInPrompt: referenceImage ? useReferenceInPrompt : false
+      useReferenceInPrompt: referenceImage ? useReferenceInPrompt : false,
+      referenceMode: referenceImage && useReferenceInPrompt ? referenceMode : undefined,
+      imageStrength: referenceImage && useReferenceInPrompt && referenceMode === "visual" ? imageStrength : undefined
     };
 
     onSave(updatedCharacter);
@@ -306,6 +315,7 @@ export function CharacterEditModal({
                   className="w-full h-48 rounded-lg mb-3"
                   resizeMode="cover"
                 />
+                {/* Use in prompt toggle */}
                 <View className="flex-row items-center justify-between mb-3">
                   <View className="flex-row items-center flex-1 mr-3">
                     <Switch
@@ -325,6 +335,91 @@ export function CharacterEditModal({
                     <Text className="text-red-700 text-sm font-medium">Remove</Text>
                   </Pressable>
                 </View>
+
+                {/* Reference Mode Selection - Only show if enabled */}
+                {useReferenceInPrompt && (
+                  <View className="mb-3">
+                    <Text className="text-sm font-semibold text-gray-700 mb-2">
+                      Reference Mode
+                    </Text>
+
+                    {/* Mode 1: Description Only */}
+                    <Pressable
+                      onPress={() => setReferenceMode("description")}
+                      className={`p-3 rounded-lg border-2 mb-2 ${
+                        referenceMode === "description"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-300 bg-white"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-1">
+                          <Text className="font-medium text-gray-900">Reference Only</Text>
+                          <Text className="text-xs text-gray-600 mt-1">
+                            AI describes the image, uses text description only
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={referenceMode === "description" ? "radio-button-on" : "radio-button-off"}
+                          size={24}
+                          color={referenceMode === "description" ? "#3b82f6" : "#9ca3af"}
+                        />
+                      </View>
+                    </Pressable>
+
+                    {/* Mode 2: Visual Match */}
+                    <Pressable
+                      onPress={() => setReferenceMode("visual")}
+                      className={`p-3 rounded-lg border-2 ${
+                        referenceMode === "visual"
+                          ? "border-blue-500 bg-blue-50"
+                          : "border-gray-300 bg-white"
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-1">
+                          <Text className="font-medium text-gray-900">Visual Match</Text>
+                          <Text className="text-xs text-gray-600 mt-1">
+                            Uses actual image for stronger visual consistency
+                          </Text>
+                        </View>
+                        <Ionicons
+                          name={referenceMode === "visual" ? "radio-button-on" : "radio-button-off"}
+                          size={24}
+                          color={referenceMode === "visual" ? "#3b82f6" : "#9ca3af"}
+                        />
+                      </View>
+                    </Pressable>
+
+                    {/* Image Strength Slider - Only show for Visual Match mode */}
+                    {referenceMode === "visual" && (
+                      <View className="mt-3 p-3 bg-white rounded-lg border border-gray-300">
+                        <View className="flex-row justify-between items-center mb-2">
+                          <Text className="text-xs font-semibold text-gray-700">
+                            Match Strength
+                          </Text>
+                          <Text className="text-xs font-bold text-blue-600">
+                            {Math.round(imageStrength * 100)}%
+                          </Text>
+                        </View>
+                        <Slider
+                          value={imageStrength}
+                          onValueChange={setImageStrength}
+                          minimumValue={0.2}
+                          maximumValue={0.6}
+                          step={0.05}
+                          minimumTrackTintColor="#3b82f6"
+                          maximumTrackTintColor="#cbd5e0"
+                          thumbTintColor="#3b82f6"
+                        />
+                        <View className="flex-row justify-between mt-1">
+                          <Text className="text-xs text-gray-500">More creative</Text>
+                          <Text className="text-xs text-gray-500">Closer match</Text>
+                        </View>
+                      </View>
+                    )}
+                  </View>
+                )}
               </View>
             ) : (
               <Pressable

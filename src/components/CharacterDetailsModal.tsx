@@ -86,11 +86,23 @@ export function CharacterDetailsModal({
                 resizeMode="cover"
               />
               {character.useReferenceInPrompt && (
-                <View className="bg-green-50 border border-green-200 rounded-lg p-2 flex-row items-center">
-                  <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
-                  <Text className="text-xs text-green-700 ml-2">
-                    Used in prompt generation for visual consistency
-                  </Text>
+                <View className="space-y-2">
+                  <View className="bg-green-50 border border-green-200 rounded-lg p-2 flex-row items-center">
+                    <Ionicons name="checkmark-circle" size={16} color="#16a34a" />
+                    <Text className="text-xs text-green-700 ml-2">
+                      Used in prompt generation for visual consistency
+                    </Text>
+                  </View>
+                  <View className="bg-blue-50 border border-blue-200 rounded-lg p-2">
+                    <Text className="text-xs font-semibold text-blue-900 mb-1">
+                      Reference Mode: {character.referenceMode === "visual" ? "Visual Match" : "Reference Only"}
+                    </Text>
+                    <Text className="text-xs text-blue-700">
+                      {character.referenceMode === "visual"
+                        ? `Uses image-to-image generation with ${Math.round((character.imageStrength || 0.35) * 100)}% match strength`
+                        : "AI describes the image, uses text description in prompts"}
+                    </Text>
+                  </View>
                 </View>
               )}
             </View>

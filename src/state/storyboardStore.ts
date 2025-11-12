@@ -1,15 +1,16 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { 
-  StoryboardProject, 
-  StoryboardPanel, 
+import {
+  StoryboardProject,
+  StoryboardPanel,
   StoryboardPrompt,
   StoryboardStyle,
   GenerationOptions,
   ProjectType,
   ArchitecturalMetadata,
-  ArchitecturalProjectKind
+  ArchitecturalProjectKind,
+  Character
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
 import { parseUserInputWithAI, convertAIResultToAppFormat } from "../services/aiParser";
@@ -34,12 +35,13 @@ interface StoryboardState {
   generationOptions: GenerationOptions;
   
   // Actions
-  createProjectFromInput: (input: string) => Promise<void>;
+  createProjectFromInput: (input: string, customCharacters?: Character[]) => Promise<void>;
   createArchitecturalProjectFromInput: (input: string, options?: { kind?: ArchitecturalProjectKind }) => Promise<void>;
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
+  updateCharacter: (characterId: string, updates: Partial<Character>) => void;
   deleteProject: (projectId: string) => void;
   setCurrentProject: (project: StoryboardProject | null) => void;
   regeneratePanel: (panelId: string) => Promise<void>;
@@ -76,11 +78,12 @@ export const useStoryboardStore = create<StoryboardState>()(
       generationOptions: defaultGenerationOptions,
 
       // Create a new project from natural language input
-      createProjectFromInput: async (input: string) => {
+      createProjectFromInput: async (input: string, customCharacters?: Character[]) => {
         set({ isGenerating: true, error: null });
 
         try {
           console.log("[storyboardStore] Creating project from input:", input);
+          console.log("[storyboardStore] Custom characters provided:", customCharacters?.length || 0);
 
           // Extract panel count from input for AI parser
           const panelCountMatch = input.toLowerCase().match(/\((?:panels?|frames?):\s*(\d{1,2})\)|(\d{1,2})\s*(?:panels?|frames?)/);
@@ -101,6 +104,17 @@ export const useStoryboardStore = create<StoryboardState>()(
               storyBeats: converted.storyBeats.length
             });
 
+            // Use custom characters if provided, otherwise use AI-detected characters
+            const finalCharacters = customCharacters && customCharacters.length > 0
+              ? customCharacters
+              : converted.characters;
+
+            console.log("[storyboardStore] Using characters:", {
+              custom: customCharacters?.length || 0,
+              aiDetected: converted.characters.length,
+              final: finalCharacters.length
+            });
+
             // Build panels from AI-generated story beats
             const panels = aiResult.storyBeats.map((beat, index) => ({
               id: uuidv4(),
@@ -111,7 +125,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 panelType: index === 0 ? "establishing" as any : "action" as any,
                 action: beat,
                 sceneDescription: beat,
-                characters: converted.characters.map(c => c.id),
+                characters: finalCharacters.map(c => c.id),
                 sceneId: converted.scenes[0]?.id || uuidv4(),
                 style: get().defaultStyle,
                 composition: "medium_shot" as any,
@@ -131,7 +145,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 description: input,
                 userInput: input,
                 panels,
-                characters: converted.characters,
+                characters: finalCharacters,
                 scenes: converted.scenes,
                 style: get().defaultStyle,
                 metadata: {
@@ -149,6 +163,19 @@ export const useStoryboardStore = create<StoryboardState>()(
             console.warn("[storyboardStore] AI parsing failed, falling back to regex parser:", aiError);
             useAI = false;
             result = await parseUserInput(input);
+
+            // If using regex parser and custom characters provided, override the parsed characters
+            if (result.success && customCharacters && customCharacters.length > 0) {
+              result.project.characters = customCharacters;
+              // Update panel character references
+              result.project.panels = result.project.panels.map(panel => ({
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  characters: customCharacters.map(c => c.id)
+                }
+              }));
+            }
           }
 
           if (result.success) {
@@ -165,7 +192,7 @@ export const useStoryboardStore = create<StoryboardState>()(
             }));
 
             // Generate final prompts with template system
-            const enhancedPrompts = generateAllPanelPrompts(
+            const enhancedPrompts = await generateAllPanelPrompts(
               audiencePreparedPanels.map(p => p.prompt),
               result.project.characters,
               result.project.scenes
@@ -306,7 +333,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           }, audience));
 
           // Generate final prompts for the new panels using merged entities
-          const generatedPrompts = generateAllPanelPrompts(preparedPrompts, mergedCharacters, mergedScenes);
+          const generatedPrompts = await generateAllPanelPrompts(preparedPrompts, mergedCharacters, mergedScenes);
 
           // Build StoryboardPanel objects with incremented numbering
           const startIndex = state.currentProject.panels.length;
@@ -456,6 +483,32 @@ export const useStoryboardStore = create<StoryboardState>()(
         });
       },
 
+      // Update a character in the current project
+      updateCharacter: (characterId: string, updates: Partial<Character>) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedCharacters = state.currentProject.characters.map(character =>
+            character.id === characterId
+              ? { ...character, ...updates }
+              : character
+          );
+
+          const updatedProject = {
+            ...state.currentProject,
+            characters: updatedCharacters,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
       // Delete a project
       deleteProject: (projectId: string) => {
         set(state => ({
@@ -504,7 +557,7 @@ export const useStoryboardStore = create<StoryboardState>()(
               }
             ], metadata, kind);
           } else {
-            updatedPrompt = generateAllPanelPrompts(
+            updatedPrompt = await generateAllPanelPrompts(
               [panel.prompt],
               state.currentProject.characters,
               state.currentProject.scenes
@@ -558,7 +611,7 @@ export const useStoryboardStore = create<StoryboardState>()(
               kind
             );
           } else {
-            enhancedPrompts = generateAllPanelPrompts(
+            enhancedPrompts = await generateAllPanelPrompts(
               state.currentProject.panels.map(p => p.prompt),
               state.currentProject.characters,
               state.currentProject.scenes
@@ -615,7 +668,32 @@ export const useStoryboardStore = create<StoryboardState>()(
 
         try {
           console.log("[storyboardStore] Sending prompt to API:", panel.prompt.generatedPrompt);
-          const imageUrl = await generateDraftStoryboardImage(panel.prompt.generatedPrompt);
+
+          // Check if this is Panel 1 and has characters with visual reference mode
+          let referenceImage: string | undefined;
+          let imageStrength: number | undefined;
+
+          if (panel.panelNumber === 1 && panel.prompt.characters.length > 0) {
+            // Find the first character with visual reference mode
+            const visualRefChar = state.currentProject.characters.find(char =>
+              panel.prompt.characters.includes(char.id) &&
+              char.useReferenceInPrompt &&
+              char.referenceMode === "visual" &&
+              char.referenceImage
+            );
+
+            if (visualRefChar) {
+              console.log("[storyboardStore] Using visual reference mode for character:", visualRefChar.name);
+              referenceImage = visualRefChar.referenceImage;
+              imageStrength = visualRefChar.imageStrength || 0.35;
+            }
+          }
+
+          const imageUrl = await generateDraftStoryboardImage(
+            panel.prompt.generatedPrompt,
+            referenceImage,
+            imageStrength
+          );
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
 
@@ -647,7 +725,30 @@ export const useStoryboardStore = create<StoryboardState>()(
           // Generate images for all panels in parallel
           const imagePromises = state.currentProject.panels.map(async (panel) => {
             try {
-              const imageUrl = await generateDraftStoryboardImage(panel.prompt.generatedPrompt);
+              // Check if this is Panel 1 and has characters with visual reference mode
+              let referenceImage: string | undefined;
+              let imageStrength: number | undefined;
+
+              if (panel.panelNumber === 1 && panel.prompt.characters.length > 0) {
+                const visualRefChar = state.currentProject.characters.find(char =>
+                  panel.prompt.characters.includes(char.id) &&
+                  char.useReferenceInPrompt &&
+                  char.referenceMode === "visual" &&
+                  char.referenceImage
+                );
+
+                if (visualRefChar) {
+                  console.log("[storyboardStore] Using visual reference for character in Panel 1:", visualRefChar.name);
+                  referenceImage = visualRefChar.referenceImage;
+                  imageStrength = visualRefChar.imageStrength || 0.35;
+                }
+              }
+
+              const imageUrl = await generateDraftStoryboardImage(
+                panel.prompt.generatedPrompt,
+                referenceImage,
+                imageStrength
+              );
               return { panelId: panel.id, imageUrl };
             } catch (error) {
               console.error(`Failed to generate image for panel ${panel.id}:`, error);

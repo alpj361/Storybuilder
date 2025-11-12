@@ -115,6 +115,8 @@ export interface Character {
   role: "protagonist" | "antagonist" | "supporting" | "background";
   referenceImage?: string; // Base64 or URI of reference image
   useReferenceInPrompt?: boolean; // Whether to use reference image in generation
+  referenceMode?: "description" | "visual"; // How to use reference: text description or img2img
+  imageStrength?: number; // For img2img mode: 0-1 (default 0.35)
 }
 
 export interface Scene {
