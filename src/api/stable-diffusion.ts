@@ -161,10 +161,23 @@ export async function generateImageWithReference(
 ): Promise<string> {
   const apiKey = "sk-vPIMZInP8snQecyXCCwYwyOuB4h5zE8lUfA31zNGbAojuD6P";
 
+  console.log("[StableDiffusion img2img] Generating with reference image, strength:", imageStrength);
+  console.log("[StableDiffusion img2img] Prompt:", prompt);
+
   // Remove data:image prefix if present
   const base64Data = referenceImageBase64.includes(',')
     ? referenceImageBase64.split(',')[1]
     : referenceImageBase64;
+
+  // Convert base64 to Blob for multipart upload
+  const binaryString = atob(base64Data);
+  const bytes = new Uint8Array(binaryString.length);
+  for (let i = 0; i < binaryString.length; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  const imageBlob = new Blob([bytes], { type: 'image/png' });
+
+  console.log("[StableDiffusion img2img] Image blob size:", imageBlob.size, "bytes");
 
   // Default options optimized for img2img with character reference
   const defaultOptions: StableDiffusionOptions = {
@@ -175,36 +188,37 @@ export async function generateImageWithReference(
     ...options
   };
 
-  console.log("[StableDiffusion img2img] Generating with reference image, strength:", imageStrength);
-  console.log("[StableDiffusion img2img] Prompt:", prompt);
+  // Build FormData for multipart/form-data request
+  const formData = new FormData();
+  formData.append('init_image', imageBlob, 'reference.png');
+  formData.append('text_prompts[0][text]', prompt);
+  formData.append('text_prompts[0][weight]', '1');
+  formData.append('image_strength', imageStrength.toString());
+  formData.append('init_image_mode', 'IMAGE_STRENGTH');
 
-  const requestBody = {
-    text_prompts: [
-      {
-        text: prompt,
-        weight: 1
-      }
-    ],
-    init_image: base64Data,
-    init_image_mode: "IMAGE_STRENGTH",
+  // Add all options as form fields
+  Object.entries(defaultOptions).forEach(([key, value]) => {
+    if (value !== undefined) {
+      formData.append(key, value.toString());
+    }
+  });
+
+  console.log("[StableDiffusion img2img] Request parameters:", {
+    prompt: prompt.substring(0, 100) + '...',
     image_strength: imageStrength,
+    init_image_mode: 'IMAGE_STRENGTH',
     ...defaultOptions
-  };
-
-  console.log("[StableDiffusion img2img] Request body (excluding image data):", {
-    ...requestBody,
-    init_image: `<base64 data, length: ${base64Data.length}>`
   });
 
   try {
     const response = await fetch(STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
+        // DO NOT set Content-Type - browser auto-sets it with boundary for FormData
         "Authorization": `Bearer ${apiKey}`,
         "Accept": "application/json"
       },
-      body: JSON.stringify(requestBody)
+      body: formData // Send FormData, not JSON
     });
 
     console.log("[StableDiffusion img2img] Response status:", response.status);
