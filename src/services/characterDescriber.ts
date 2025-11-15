@@ -37,48 +37,45 @@ const replicate = new Replicate({
  */
 const getDescriptionPrompt = () => `You are helping a storyboard artist create fictional character descriptions for illustration purposes. Analyze this reference image and provide a DETAILED physical description suitable for drawing/sketching this character consistently across multiple panels.
 
-IMPORTANT: This is for creating fictional illustrated characters in storyboard art. Focus ONLY on observable physical attributes for artistic reference.
+CRITICAL: DO NOT ASSUME THIS IS A HUMAN. First identify what type of character this is, then describe accordingly.
 
-Describe these characteristics in detail:
+STEP 1 - IDENTIFY CHARACTER TYPE (MANDATORY):
+Start your response with the character type using this EXACT format:
+CHARACTER_TYPE: [human | creature | robot | animal | alien | hybrid | other]
+SPECIES: [specific species if applicable, e.g., "dragon", "wolf", "android", "alien being"]
 
-1. FACIAL FEATURES (most important for consistency):
-   - Face shape (oval, round, square, heart-shaped, angular, etc.)
-   - Eyes: size, shape, spacing (wide-set, close-set, almond-shaped, round, etc.)
-   - Eyebrows: thickness, shape, arch
-   - Nose: size and shape (small, button, prominent, straight, upturned, etc.)
-   - Mouth: size, lip fullness (thin lips, full lips, etc.)
-   - Jaw/chin: definition (strong jaw, soft chin, pointed chin, etc.)
-   - Cheekbones: prominence (high cheekbones, soft cheeks, etc.)
+Examples:
+- If it's a dragon: "CHARACTER_TYPE: creature | SPECIES: dragon"
+- If it's a wolf: "CHARACTER_TYPE: animal | SPECIES: wolf"
+- If it's a robot: "CHARACTER_TYPE: robot | SPECIES: android"
+- If it's a human: "CHARACTER_TYPE: human | SPECIES: N/A"
+- If it's an alien: "CHARACTER_TYPE: alien | SPECIES: extraterrestrial being"
 
-2. HAIR (detailed):
-   - Color (be specific: "dark brown", "platinum blonde", "black with blue tint")
-   - Length (very short, chin-length, shoulder-length, waist-length, etc.)
-   - Texture (straight, wavy, curly, kinky, coarse, fine)
-   - Style (loose, tied back, braided, messy, sleek, parted left/right/center, bangs, etc.)
+STEP 2 - DESCRIBE BASED ON CHARACTER TYPE:
 
-3. BODY & BUILD:
-   - Height impression (tall, average, short, petite)
-   - Build (slim, athletic, curvy, stocky, muscular, heavyset, etc.)
-   - Shoulder width (broad, narrow, average)
-   - Proportions relevant to drawing
+FOR HUMANS:
+1. FACIAL FEATURES: Face shape, eyes (size, shape, color), eyebrows, nose, mouth, jaw/chin, cheekbones
+2. HAIR: Color, length, texture, style
+3. BODY & BUILD: Height, build, shoulder width, posture
+4. SKIN: Skin tone and texture
+5. CLOTHING & STYLE: Primary clothing, colors, accessories
+6. DISTINCTIVE FEATURES: Glasses, facial hair, scars, tattoos, etc.
+7. AGE & EXPRESSION: Age range, gender, default expression
 
-4. DISTINCTIVE FEATURES:
-   - Glasses, facial hair, scars, tattoos, piercings, moles, freckles
-   - Unique characteristics that make this person recognizable
+FOR NON-HUMANS (creatures, robots, animals, aliens):
+1. BODY TYPE: Quadruped, bipedal, serpentine, humanoid, etc.
+2. SIZE: Massive, large, human-sized, small, tiny
+3. TEXTURE/SURFACE: Scales, fur, feathers, metallic plating, smooth skin, etc.
+4. COLORATION: Primary colors, patterns, accents (e.g., "crimson scales with golden accents")
+5. DISTINCTIVE FEATURES: Wings, horns, tail, claws, multiple limbs, antennae, etc.
+6. BUILD: Muscular, slender, bulky, sleek, etc.
+7. AGE & IMPRESSION: Young, adult, ancient; menacing, majestic, friendly, etc.
 
-5. CLOTHING & STYLE:
-   - Primary clothing items and colors
-   - Style (casual, formal, sporty, vintage, etc.)
-   - Accessories (jewelry, watches, bags, hats, etc.)
+Output format: Start with CHARACTER_TYPE and SPECIES on the first line, then provide a detailed comma-separated description optimized for AI image generation.
 
-6. AGE & OVERALL IMPRESSION:
-   - Age range (teens, 20s, 30s, middle-aged, elderly)
-   - Gender presentation
-   - Overall vibe/expression (friendly, serious, confident, etc.)
+Example for dragon: "CHARACTER_TYPE: creature | SPECIES: dragon | Massive quadruped dragon, crimson scales with golden accents along spine, large leathery wings folded at sides, long serpentine neck, fierce yellow eyes with slit pupils, rows of sharp ivory horns along head and back, powerful muscular build, long spiked tail, smoke wisps from nostrils, ancient and majestic presence"
 
-Output format: Detailed comma-separated description optimized for AI image generation. Focus on DISTINCTIVE features that will help maintain visual consistency. Use specific, visual language that works well for sketch/storyboard generation.
-
-Example: "Angular face with strong jawline, almond-shaped dark eyes with thick arched eyebrows, straight nose, full lips, high cheekbones, 20s female, long straight black hair parted in center reaching mid-back, slim athletic build with narrow shoulders, wearing oversized cream knit sweater and silver hoop earrings, confident expression with slight smile, distinctive small mole above left lip"`;
+Example for human: "CHARACTER_TYPE: human | SPECIES: N/A | Angular face with strong jawline, almond-shaped dark brown eyes, thick arched eyebrows, straight nose, full lips, high cheekbones, 20s female, long straight black hair parted center, slim athletic build, tan skin, wearing cream knit sweater, confident expression"`;
 
 export async function describeCharacterFromImage(
   imageBase64: string
@@ -175,6 +172,7 @@ export async function getCharacterDescription(
  * @returns Structured appearance object with individual fields populated
  */
 export function parseDescriptionIntoFields(aiDescription: string): {
+  characterType?: 'human' | 'creature' | 'robot' | 'animal' | 'alien' | 'hybrid' | 'other';
   age?: string;
   gender?: string;
   height?: string;
@@ -182,6 +180,7 @@ export function parseDescriptionIntoFields(aiDescription: string): {
   hair?: string;
   clothing?: string;
   distinctiveFeatures?: string[];
+  // Human-specific fields
   faceShape?: string;
   eyeShape?: string;
   eyeColor?: string;
@@ -194,10 +193,18 @@ export function parseDescriptionIntoFields(aiDescription: string): {
   posture?: string;
   skinTone?: string;
   defaultExpression?: string;
+  // Non-human specific fields
+  species?: string;
+  bodyType?: string;
+  texture?: string;
+  features?: string[];
+  coloration?: string;
+  size?: string;
 } {
   console.log('[CharacterDescriber] Parsing description into fields:', aiDescription);
 
   const result: {
+    characterType?: 'human' | 'creature' | 'robot' | 'animal' | 'alien' | 'hybrid' | 'other';
     age?: string;
     gender?: string;
     height?: string;
@@ -217,9 +224,32 @@ export function parseDescriptionIntoFields(aiDescription: string): {
     posture?: string;
     skinTone?: string;
     defaultExpression?: string;
+    species?: string;
+    bodyType?: string;
+    texture?: string;
+    features?: string[];
+    coloration?: string;
+    size?: string;
   } = {
-    distinctiveFeatures: []
+    distinctiveFeatures: [],
+    features: []
   };
+
+  // STEP 1: Extract CHARACTER_TYPE and SPECIES
+  const characterTypeMatch = aiDescription.match(/CHARACTER_TYPE:\s*(human|creature|robot|animal|alien|hybrid|other)/i);
+  if (characterTypeMatch) {
+    result.characterType = characterTypeMatch[1].toLowerCase() as any;
+    console.log('[CharacterDescriber] Detected character type:', result.characterType);
+  }
+
+  const speciesMatch = aiDescription.match(/SPECIES:\s*([^|]+)/i);
+  if (speciesMatch) {
+    const species = speciesMatch[1].trim();
+    if (species.toLowerCase() !== 'n/a') {
+      result.species = species;
+      console.log('[CharacterDescriber] Detected species:', result.species);
+    }
+  }
 
   // Convert to lowercase for easier pattern matching
   const desc = aiDescription.toLowerCase();
@@ -478,6 +508,91 @@ export function parseDescriptionIntoFields(aiDescription: string): {
       result.defaultExpression = match[0].trim();
       break;
     }
+  }
+
+  // STEP 2: Extract NON-HUMAN specific fields (if not human)
+  if (result.characterType && result.characterType !== 'human') {
+    console.log('[CharacterDescriber] Parsing non-human fields...');
+
+    // Extract body type
+    const bodyTypePatterns = [
+      /(quadruped|bipedal|serpentine|humanoid|multi-limbed|amorphous)/i,
+      /body type[:\s]+([^,]+)/i
+    ];
+    for (const pattern of bodyTypePatterns) {
+      const match = aiDescription.match(pattern);
+      if (match) {
+        result.bodyType = match[1] || match[0].trim();
+        break;
+      }
+    }
+
+    // Extract texture/surface
+    const texturePatterns = [
+      /(scales|fur|feathers|metallic plating|smooth skin|rough skin|crystalline|chitinous)/i,
+      /texture[:\s]+([^,]+)/i,
+      /covered in ([^,]+)/i
+    ];
+    for (const pattern of texturePatterns) {
+      const match = aiDescription.match(pattern);
+      if (match) {
+        result.texture = match[1] || match[0].trim();
+        break;
+      }
+    }
+
+    // Extract coloration
+    const colorationPatterns = [
+      /([a-z]+)[-\s](scales|fur|feathers|plating|skin)\s+with\s+([^,]+)/i,
+      /coloration[:\s]+([^,]+)/i,
+      /(crimson|golden|silver|black|white|blue|green|red|purple|multicolored)[^,]+(scales|fur|feathers|body)/i
+    ];
+    for (const pattern of colorationPatterns) {
+      const match = aiDescription.match(pattern);
+      if (match) {
+        result.coloration = match[0].trim();
+        break;
+      }
+    }
+
+    // Extract size
+    const sizePatterns = [
+      /(massive|huge|large|giant|enormous|colossal|medium|small|tiny|diminutive)/i,
+      /size[:\s]+([^,]+)/i
+    ];
+    for (const pattern of sizePatterns) {
+      const match = aiDescription.match(pattern);
+      if (match) {
+        result.size = match[1] || match[0].trim();
+        break;
+      }
+    }
+
+    // Extract features (wings, horns, tail, etc.)
+    const featureKeywords = [
+      'wings', 'horns', 'tail', 'claws', 'fangs', 'antennae', 'tentacles',
+      'spikes', 'fins', 'beak', 'talons', 'mane', 'crest', 'tusks'
+    ];
+
+    const detectedFeatures: string[] = [];
+    for (const keyword of featureKeywords) {
+      const regex = new RegExp(`\\b${keyword}\\b`, 'i');
+      if (regex.test(aiDescription)) {
+        detectedFeatures.push(keyword);
+      }
+    }
+
+    if (detectedFeatures.length > 0) {
+      result.features = detectedFeatures;
+    }
+
+    console.log('[CharacterDescriber] Non-human fields extracted:', {
+      bodyType: result.bodyType,
+      texture: result.texture,
+      coloration: result.coloration,
+      size: result.size,
+      features: result.features
+    });
   }
 
   console.log('[CharacterDescriber] Parsed fields:', result);
