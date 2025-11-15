@@ -9,11 +9,16 @@ import OpenAI from 'openai';
 // Initialize Clarifai client using OpenAI-compatible API
 // This uses Gemini 2.0 Flash through Clarifai's infrastructure
 const getClarifaiKey = () => {
-  const key = process.env.EXPO_PUBLIC_CLARIFAI_API_KEY || '8d0eb66180334f2d946476b65c790338';
+  const key = process.env.EXPO_PUBLIC_CLARIFAI_API_KEY;
   console.log('[CharacterDescriber] Clarifai API Key check:', {
     exists: !!key,
     prefix: key?.substring(0, 10)
   });
+
+  if (!key) {
+    throw new Error('EXPO_PUBLIC_CLARIFAI_API_KEY environment variable is not set');
+  }
+
   return key;
 };
 
