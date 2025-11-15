@@ -1,23 +1,25 @@
 /**
  * Character Description Service
- * Uses GPT-4 Vision to analyze character reference images
+ * Uses Gemini 2.0 Flash (via Clarifai) to analyze character reference images
  * and generate detailed appearance descriptions for image generation
  */
 
 import OpenAI from 'openai';
 
-// Initialize OpenAI client (reuse same configuration as aiParser)
-const getOpenAIKey = () => {
-  const key = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  console.log('[CharacterDescriber] OpenAI API Key check:', {
+// Initialize Clarifai client using OpenAI-compatible API
+// This uses Gemini 2.0 Flash through Clarifai's infrastructure
+const getClarifaiKey = () => {
+  const key = process.env.EXPO_PUBLIC_CLARIFAI_API_KEY || '8d0eb66180334f2d946476b65c790338';
+  console.log('[CharacterDescriber] Clarifai API Key check:', {
     exists: !!key,
     prefix: key?.substring(0, 10)
   });
-  return key || 'your-api-key-here';
+  return key;
 };
 
 const openai = new OpenAI({
-  apiKey: getOpenAIKey(),
+  baseURL: 'https://api.clarifai.com/v2/ext/openai/v1',
+  apiKey: getClarifaiKey(),
   dangerouslyAllowBrowser: true // Note: In production, use backend proxy
 });
 
@@ -35,7 +37,7 @@ export async function describeCharacterFromImage(
 
   try {
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+      model: 'https://clarifai.com/gcp/generate/models/gemini-2_0-flash',
       max_tokens: 500, // Increased for more detailed descriptions
       temperature: 0.2, // Very low temperature for highly consistent descriptions
       messages: [{
@@ -101,12 +103,12 @@ Example: "Angular face with strong jawline, almond-shaped dark eyes with thick a
 
     const description = response.choices[0].message.content?.trim() || '';
 
-    console.log('[CharacterDescriber] Generated description:', description);
+    console.log('[CharacterDescriber] Gemini 2.0 Flash - Generated description:', description);
     console.log('[CharacterDescriber] Tokens used:', response.usage);
 
     return description;
   } catch (error) {
-    console.error('[CharacterDescriber] Error analyzing image:', error);
+    console.error('[CharacterDescriber] Gemini 2.0 Flash - Error analyzing image:', error);
 
     // Check if it's a content policy error
     if (error instanceof Error) {
