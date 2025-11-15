@@ -158,19 +158,28 @@ export async function generateStoryboardPrompt(
   let characterDescriptions = '';
 
   if (isFirstPanel) {
-    // Panel 1: Use whatever appearance details we have (even if "unknown")
-    // If character has AI-generated description from reference image, use that
+    // Panel 1: Use the best available character description
+    // Priority order:
+    // 1. portraitDescription (canonical, optimized for storyboard style)
+    // 2. aiGeneratedDescription (from reference photo)
+    // 3. manual appearance fields
+    // 4. character name only
     const characterDescPromises = panelCharacters.map(async char => {
       const appearance = char.appearance;
 
-      // If character has AI-generated description saved, use it directly
+      // HIGHEST PRIORITY: Portrait description (canonical, optimized for consistency)
+      if (char.portraitDescription) {
+        console.log(`[generateStoryboardPrompt] Using portrait description for ${char.name}:`, char.portraitDescription);
+        return char.portraitDescription;
+      }
+
+      // SECOND PRIORITY: AI-generated description from reference photo
       if (char.aiGeneratedDescription) {
         console.log(`[generateStoryboardPrompt] Using saved AI description for ${char.name}:`, char.aiGeneratedDescription);
         return char.aiGeneratedDescription;
       }
 
-      // If reference image is enabled but no saved description, try to get AI description
-      // (This is a fallback for backwards compatibility with older characters)
+      // THIRD PRIORITY: Reference image analysis (backwards compatibility)
       if (char.referenceImage && char.useReferenceInPrompt && !char.aiGeneratedDescription) {
         try {
           const aiDescription = await getCharacterDescription(char.referenceImage);
@@ -182,7 +191,7 @@ export async function generateStoryboardPrompt(
         }
       }
 
-      // Use manual appearance features if no AI description
+      // FOURTH PRIORITY: Manual appearance features
       const features = [
         appearance.age && `${appearance.age}`,
         appearance.gender && `${appearance.gender}`,
@@ -192,7 +201,7 @@ export async function generateStoryboardPrompt(
         appearance.distinctiveFeatures?.join(", ")
       ].filter(Boolean).join(", ");
 
-      // Only use appearance features if available, otherwise use character name
+      // FALLBACK: Character name only
       return features || char.name;
     });
 

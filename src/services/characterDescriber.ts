@@ -165,3 +165,139 @@ export async function getCharacterDescription(
 
   return description;
 }
+
+/**
+ * Parse AI-generated character description into structured appearance fields
+ * This extracts key details from the comma-separated description and organizes them
+ * into the appearance structure used by the Character interface
+ *
+ * @param aiDescription - The AI-generated character description (comma-separated)
+ * @returns Structured appearance object with individual fields populated
+ */
+export function parseDescriptionIntoFields(aiDescription: string): {
+  age?: string;
+  gender?: string;
+  height?: string;
+  build?: string;
+  hair?: string;
+  clothing?: string;
+  distinctiveFeatures?: string[];
+} {
+  console.log('[CharacterDescriber] Parsing description into fields:', aiDescription);
+
+  const result: {
+    age?: string;
+    gender?: string;
+    height?: string;
+    build?: string;
+    hair?: string;
+    clothing?: string;
+    distinctiveFeatures?: string[];
+  } = {
+    distinctiveFeatures: []
+  };
+
+  // Convert to lowercase for easier pattern matching
+  const desc = aiDescription.toLowerCase();
+
+  // Extract age range
+  const agePatterns = [
+    /(\d{1,2}s)\s*(male|female|person)?/i,
+    /(teens|teenager|young adult|middle[-\s]?aged|elderly|senior)/i,
+    /(early|late|mid)[-\s]?(\d{1,2}s)/i
+  ];
+
+  for (const pattern of agePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.age = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract gender
+  if (desc.includes('female') || desc.includes('woman')) {
+    result.gender = 'Female';
+  } else if (desc.includes('male') || desc.includes('man')) {
+    result.gender = 'Male';
+  }
+
+  // Extract build/body type
+  const buildPatterns = [
+    /(slim|slender|lean|thin|petite)/i,
+    /(athletic|fit|toned|muscular)/i,
+    /(curvy|heavyset|stocky|robust|sturdy)/i,
+    /(average|medium) build/i
+  ];
+
+  for (const pattern of buildPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.build = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract height
+  const heightPatterns = [
+    /(tall|short|petite|average height)/i,
+  ];
+
+  for (const pattern of heightPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.height = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract hair description (most detailed extraction)
+  // Look for patterns like "long dark brown wavy hair" or "short black hair"
+  const hairMatch = aiDescription.match(
+    /(very )?(\w+)[-\s]?(length|long|short)?\s*(dark |light |platinum |jet |honey |auburn |chestnut |sandy |ash )?(\w+)\s*(hair|tresses|locks)/i
+  );
+
+  if (hairMatch) {
+    result.hair = hairMatch[0].trim();
+  } else {
+    // Fallback: look for color + hair
+    const simpleHairMatch = aiDescription.match(/(\w+\s+\w+)\s+hair/i);
+    if (simpleHairMatch) {
+      result.hair = simpleHairMatch[0].trim();
+    }
+  }
+
+  // Extract clothing
+  const clothingMatch = aiDescription.match(/wearing\s+([^,]+)/i);
+  if (clothingMatch) {
+    result.clothing = clothingMatch[1].trim();
+  }
+
+  // Extract distinctive features
+  const distinctivePatterns = [
+    /(full|thick|sparse|trimmed|neat|scruffy)\s+(beard|mustache|goatee|facial hair)/i,
+    /(glasses|spectacles)/i,
+    /(scar|scars)\s+([^,]+)/i,
+    /(tattoo|tattoos)\s+([^,]+)/i,
+    /(piercing|piercings)\s+([^,]+)/i,
+    /(mole|beauty mark)\s+([^,]+)/i,
+    /(freckles)/i,
+    /distinctive\s+([^,]+)/i
+  ];
+
+  for (const pattern of distinctivePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match && result.distinctiveFeatures) {
+      result.distinctiveFeatures.push(match[0].trim());
+    }
+  }
+
+  // If no distinctive features found, remove the empty array
+  if (result.distinctiveFeatures && result.distinctiveFeatures.length === 0) {
+    delete result.distinctiveFeatures;
+  }
+
+  console.log('[CharacterDescriber] Parsed fields:', result);
+
+  return result;
+}

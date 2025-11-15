@@ -118,6 +118,9 @@ export interface Character {
   referenceMode?: "description" | "visual"; // How to use reference: text description or img2img
   imageStrength?: number; // For img2img mode: 0-1 (default 0.35)
   aiGeneratedDescription?: string; // AI-generated visual description from reference image
+  portraitImage?: string; // Generated storyboard-style character portrait (Base64)
+  portraitDescription?: string; // AI description of the portrait (canonical, optimized for consistency)
+  isGeneratingPortrait?: boolean; // Whether portrait is currently being generated
 }
 
 export interface Scene {

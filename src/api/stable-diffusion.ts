@@ -266,6 +266,70 @@ export async function generateImageWithReference(
 }
 
 /**
+ * Generate a character portrait in storyboard style
+ * This creates a standalone character preview that can be used for:
+ * 1. User to approve character appearance before panel generation
+ * 2. Re-analysis to create a "canonical" description optimized for storyboard style
+ * 3. Visual reference for character consistency
+ *
+ * @param characterDescription AI-generated description from reference photo
+ * @param style The storyboard style to use (rough_sketch, pencil_drawing, etc.)
+ * @returns Base64 encoded portrait image
+ */
+export async function generateCharacterPortrait(
+  characterDescription: string,
+  style: "rough_sketch" | "pencil_drawing" | "clean_lines" | "concept_art" | "comic_style" = "rough_sketch"
+): Promise<string> {
+  console.log("[generateCharacterPortrait] Generating portrait for:", characterDescription);
+  console.log("[generateCharacterPortrait] Style:", style);
+
+  // Style-specific prefix and suffix for portrait generation
+  const styleTemplates = {
+    rough_sketch: {
+      prefix: "Rough pencil sketch character portrait, loose gestural lines, sketchy style, black and white, draft quality, quick sketch, hand-drawn appearance, minimal shading, rough outlines, concept art style",
+      suffix: "character design, front view portrait, neutral background, portrait framing, character reference sheet"
+    },
+    pencil_drawing: {
+      prefix: "Detailed pencil drawing character portrait, refined lines, grayscale, sketch style, hand-drawn, artistic shading, pencil texture, detailed illustration",
+      suffix: "character design, front view portrait, neutral background, portrait framing, character reference sheet"
+    },
+    clean_lines: {
+      prefix: "Clean line art character portrait, precise lines, black and white, professional illustration, clear outlines, minimal shading, vector-style",
+      suffix: "character design, front view portrait, neutral background, portrait framing, character reference sheet"
+    },
+    concept_art: {
+      prefix: "Professional concept art character portrait, detailed illustration, artist sketch, character design sheet, professional quality",
+      suffix: "character design, front view portrait, neutral background, portrait framing, character reference sheet"
+    },
+    comic_style: {
+      prefix: "Comic book style character portrait, bold lines, ink drawing, graphic novel art, dynamic illustration, comic book character design",
+      suffix: "character design, front view portrait, neutral background, portrait framing, character reference sheet"
+    }
+  };
+
+  const template = styleTemplates[style];
+
+  // Build portrait-specific prompt
+  // Focus on character details without action/scene context
+  const prompt = `${template.prefix}, ${characterDescription}, ${template.suffix}`;
+
+  console.log("[generateCharacterPortrait] Full prompt:", prompt);
+
+  // Generate using text-to-image with portrait-optimized settings
+  const portraitImage = await generateStoryboardImage(prompt, {
+    style_preset: "line-art",
+    steps: 35, // Slightly higher quality for character portraits
+    cfg_scale: 7.5, // Slightly higher to follow prompt more closely
+    width: 1024,
+    height: 1024
+  });
+
+  console.log("[generateCharacterPortrait] Portrait generated successfully");
+
+  return portraitImage;
+}
+
+/**
  * Convert base64 image to data URI for display in React Native
  * @param base64Data Base64 encoded image data
  * @returns Data URI for the image (compatible with React Native Image component)

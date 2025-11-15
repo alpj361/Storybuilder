@@ -4,8 +4,9 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Clipboard from "expo-clipboard";
 import Slider from "@react-native-community/slider";
-import { Character } from "../types/storyboard";
-import { getCharacterDescription } from "../services/characterDescriber";
+import { Character, StoryboardStyle } from "../types/storyboard";
+import { getCharacterDescription, parseDescriptionIntoFields } from "../services/characterDescriber";
+import { generateCharacterPortrait } from "../api/stable-diffusion";
 
 interface CharacterEditModalProps {
   visible: boolean;
@@ -39,6 +40,9 @@ export function CharacterEditModal({
   const [aiGeneratedDescription, setAiGeneratedDescription] = useState<string>("");
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
   const [imageUrlInput, setImageUrlInput] = useState<string>("");
+  const [portraitImage, setPortraitImage] = useState<string | undefined>();
+  const [portraitDescription, setPortraitDescription] = useState<string>("");
+  const [isGeneratingPortrait, setIsGeneratingPortrait] = useState(false);
 
   // Initialize form with character data
   useEffect(() => {
@@ -58,6 +62,8 @@ export function CharacterEditModal({
       setReferenceMode(character.referenceMode || "description");
       setImageStrength(character.imageStrength || 0.35);
       setAiGeneratedDescription(character.aiGeneratedDescription || "");
+      setPortraitImage(character.portraitImage);
+      setPortraitDescription(character.portraitDescription || "");
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -75,6 +81,8 @@ export function CharacterEditModal({
       setReferenceMode("description");
       setImageStrength(0.35);
       setAiGeneratedDescription("");
+      setPortraitImage(undefined);
+      setPortraitDescription("");
     }
   }, [character, mode, visible]);
 
@@ -178,6 +186,94 @@ export function CharacterEditModal({
     setReferenceImage(undefined);
     setUseReferenceInPrompt(false);
     setAiGeneratedDescription('');
+    setPortraitImage(undefined);
+    setPortraitDescription('');
+  };
+
+  // Generate character portrait from AI description
+  const generatePortrait = async () => {
+    if (!aiGeneratedDescription) {
+      Alert.alert(
+        'No Description',
+        'Please upload a reference image first to generate an AI description.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setIsGeneratingPortrait(true);
+    try {
+      console.log('[CharacterEditModal] Generating character portrait...');
+
+      // Generate portrait using rough_sketch style (default for storyboard)
+      const portrait = await generateCharacterPortrait(aiGeneratedDescription, 'rough_sketch');
+
+      setPortraitImage(portrait);
+      console.log('[CharacterEditModal] Portrait generated successfully');
+
+      // Auto-populate appearance fields from AI description
+      const parsedFields = parseDescriptionIntoFields(aiGeneratedDescription);
+      if (parsedFields.age) setAge(parsedFields.age);
+      if (parsedFields.gender) setGender(parsedFields.gender);
+      if (parsedFields.height) setHeight(parsedFields.height);
+      if (parsedFields.build) setBuild(parsedFields.build);
+      if (parsedFields.hair) setHair(parsedFields.hair);
+      if (parsedFields.clothing) setClothing(parsedFields.clothing);
+      if (parsedFields.distinctiveFeatures?.length) {
+        setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
+      }
+
+      Alert.alert(
+        'Portrait Generated!',
+        'Character portrait created successfully. You can now re-analyze this portrait to get a description optimized for storyboard style.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('[CharacterEditModal] Failed to generate portrait:', error);
+      Alert.alert(
+        'Generation Failed',
+        error instanceof Error ? error.message : 'Could not generate character portrait. Please try again.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsGeneratingPortrait(false);
+    }
+  };
+
+  // Re-analyze the generated portrait to get canonical description
+  const analyzePortrait = async () => {
+    if (!portraitImage) {
+      Alert.alert(
+        'No Portrait',
+        'Please generate a character portrait first.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    setIsAnalyzingImage(true);
+    try {
+      console.log('[CharacterEditModal] Re-analyzing portrait for canonical description...');
+      const description = await getCharacterDescription(portraitImage);
+      console.log('[CharacterEditModal] Portrait canonical description:', description);
+
+      setPortraitDescription(description);
+
+      Alert.alert(
+        'Portrait Analyzed!',
+        'Canonical description created from the portrait. This will be used for consistent character generation across all panels.',
+        [{ text: 'OK' }]
+      );
+    } catch (error) {
+      console.error('[CharacterEditModal] Failed to analyze portrait:', error);
+      Alert.alert(
+        'Analysis Failed',
+        error instanceof Error ? error.message : 'Could not analyze portrait. You can still use the portrait without re-analysis.',
+        [{ text: 'OK' }]
+      );
+    } finally {
+      setIsAnalyzingImage(false);
+    }
   };
 
   const handleSave = () => {
@@ -207,7 +303,10 @@ export function CharacterEditModal({
       useReferenceInPrompt: referenceImage ? useReferenceInPrompt : false,
       referenceMode: referenceImage && useReferenceInPrompt ? referenceMode : undefined,
       imageStrength: referenceImage && useReferenceInPrompt && referenceMode === "visual" ? imageStrength : undefined,
-      aiGeneratedDescription: aiGeneratedDescription || undefined
+      aiGeneratedDescription: aiGeneratedDescription || undefined,
+      portraitImage: portraitImage || undefined,
+      portraitDescription: portraitDescription || undefined,
+      isGeneratingPortrait: false
     };
 
     onSave(updatedCharacter);
@@ -459,6 +558,83 @@ export function CharacterEditModal({
                     <Text className="text-xs text-green-700 mt-2">
                       You can edit this description to fine-tune the character's appearance.
                     </Text>
+                  </View>
+                )}
+
+                {/* Character Portrait Generation */}
+                {aiGeneratedDescription && !isAnalyzingImage && (
+                  <View className="bg-purple-50 border border-purple-300 rounded-lg p-4 mb-3">
+                    <View className="flex-row items-start mb-2">
+                      <Ionicons name="person-circle" size={18} color="#9333ea" />
+                      <Text className="text-sm font-semibold text-purple-900 ml-2">
+                        Character Portrait Preview
+                      </Text>
+                    </View>
+
+                    {portraitImage ? (
+                      <View>
+                        <Image
+                          source={{ uri: portraitImage }}
+                          className="w-full h-64 rounded-lg mb-3"
+                          resizeMode="contain"
+                        />
+
+                        {portraitDescription ? (
+                          <View className="bg-white border border-purple-200 rounded-lg p-3 mb-3">
+                            <Text className="text-xs font-semibold text-purple-900 mb-1">
+                              Canonical Description (for consistency):
+                            </Text>
+                            <TextInput
+                              value={portraitDescription}
+                              onChangeText={setPortraitDescription}
+                              multiline
+                              numberOfLines={3}
+                              className="bg-purple-50 border border-purple-200 rounded-lg px-3 py-2 text-sm text-purple-700"
+                              textAlignVertical="top"
+                            />
+                          </View>
+                        ) : (
+                          <Pressable
+                            onPress={analyzePortrait}
+                            disabled={isAnalyzingImage}
+                            className="bg-purple-600 py-2 px-4 rounded-lg items-center mb-3"
+                          >
+                            {isAnalyzingImage ? (
+                              <View className="flex-row items-center">
+                                <ActivityIndicator size="small" color="#fff" />
+                                <Text className="text-white font-medium ml-2">Analyzing...</Text>
+                              </View>
+                            ) : (
+                              <Text className="text-white font-medium">Re-analyze Portrait for Consistency</Text>
+                            )}
+                          </Pressable>
+                        )}
+
+                        <Text className="text-xs text-purple-700">
+                          This portrait will be used as the visual reference for all storyboard panels.
+                        </Text>
+                      </View>
+                    ) : (
+                      <View>
+                        <Text className="text-xs text-purple-700 mb-3">
+                          Generate a character portrait in storyboard style to preview how the character will look.
+                        </Text>
+                        <Pressable
+                          onPress={generatePortrait}
+                          disabled={isGeneratingPortrait}
+                          className="bg-purple-600 py-3 px-4 rounded-lg items-center"
+                        >
+                          {isGeneratingPortrait ? (
+                            <View className="flex-row items-center">
+                              <ActivityIndicator size="small" color="#fff" />
+                              <Text className="text-white font-medium ml-2">Generating Portrait...</Text>
+                            </View>
+                          ) : (
+                            <Text className="text-white font-medium">Generate Character Portrait</Text>
+                          )}
+                        </Pressable>
+                      </View>
+                    )}
                   </View>
                 )}
               </View>
