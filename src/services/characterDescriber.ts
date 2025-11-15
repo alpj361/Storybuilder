@@ -43,17 +43,15 @@ export async function describeCharacterFromImage(
         content: [
           {
             type: 'text',
-            text: `You are helping a storyboard artist create fictional character descriptions for illustration purposes. Analyze this reference image and provide a detailed physical description suitable for drawing/sketching this character.
+            text: `Analyze this reference ONLY to extract generic visual traits (age range, hair, clothing, expression). Do not infer identity. This is for fictional art, not for identifying a real person.
 
-IMPORTANT: This is for creating fictional illustrated characters in storyboard art. Focus ONLY on observable physical attributes for artistic reference.
-
-Describe the following visible characteristics:
+Describe these observable visual attributes:
 - Approximate age range (e.g., "20s", "middle-aged", "elderly")
 - Gender presentation
 - Build/physique (e.g., "athletic", "slim", "average build")
 - Hair: color, length, style/texture
 - Clothing: style, colors, key items visible
-- Notable features: accessories, glasses, facial hair, etc.
+- Notable features: accessories, glasses, facial hair, expression
 
 Output format: Single comma-separated sentence, under 50 words, suitable for art direction.
 
