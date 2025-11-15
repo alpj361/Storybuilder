@@ -103,16 +103,19 @@ export interface Character {
   name: string;
   description: string;
   appearance: {
-    // Basic information
+    // Character type (detected by AI or manually set)
+    characterType?: 'human' | 'creature' | 'robot' | 'animal' | 'alien' | 'hybrid' | 'other';
+
+    // Universal fields (apply to all character types)
     age?: string;
     gender?: string;
     height?: string;
     build?: string;
-    hair?: string;
     clothing?: string;
     distinctiveFeatures?: string[];
 
-    // Face details
+    // HUMAN-SPECIFIC FIELDS (only for characterType === 'human')
+    hair?: string;
     faceShape?: string;
     eyeShape?: string;
     eyeColor?: string;
@@ -121,16 +124,18 @@ export interface Character {
     mouth?: string;
     jawline?: string;
     cheekbones?: string;
-
-    // Body details
     shoulderWidth?: string;
     posture?: string;
-
-    // Skin details
     skinTone?: string;
-
-    // Expression
     defaultExpression?: string;
+
+    // NON-HUMAN SPECIFIC FIELDS (for creatures, robots, animals, aliens, etc.)
+    species?: string; // e.g., "dragon", "wolf", "android", "alien being"
+    bodyType?: string; // e.g., "quadruped", "bipedal", "serpentine", "humanoid"
+    texture?: string; // e.g., "scales", "fur", "metallic plating", "smooth skin"
+    features?: string[]; // e.g., ["wings", "horns", "tail", "claws"]
+    coloration?: string; // e.g., "crimson scales with gold accents"
+    size?: string; // e.g., "massive", "small", "human-sized"
   };
   personality?: string[];
   role: "protagonist" | "antagonist" | "supporting" | "background";

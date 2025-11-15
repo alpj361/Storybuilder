@@ -60,6 +60,15 @@ export function CharacterEditModal({
   const [skinTone, setSkinTone] = useState("");
   const [defaultExpression, setDefaultExpression] = useState("");
 
+  // Character type and non-human fields
+  const [characterType, setCharacterType] = useState<'human' | 'creature' | 'robot' | 'animal' | 'alien' | 'hybrid' | 'other'>('human');
+  const [species, setSpecies] = useState("");
+  const [bodyType, setBodyType] = useState("");
+  const [texture, setTexture] = useState("");
+  const [features, setFeatures] = useState("");
+  const [coloration, setColoration] = useState("");
+  const [size, setSize] = useState("");
+
   // UI state for collapsible sections
   const [showBasicInfo, setShowBasicInfo] = useState(true);
   const [showFaceDetails, setShowFaceDetails] = useState(false);
@@ -101,6 +110,14 @@ export function CharacterEditModal({
       setPosture(character.appearance.posture || "");
       setSkinTone(character.appearance.skinTone || "");
       setDefaultExpression(character.appearance.defaultExpression || "");
+      // Character type and non-human fields
+      setCharacterType(character.appearance.characterType || 'human');
+      setSpecies(character.appearance.species || "");
+      setBodyType(character.appearance.bodyType || "");
+      setTexture(character.appearance.texture || "");
+      setFeatures(character.appearance.features?.join(", ") || "");
+      setColoration(character.appearance.coloration || "");
+      setSize(character.appearance.size || "");
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -132,6 +149,14 @@ export function CharacterEditModal({
       setPosture("");
       setSkinTone("");
       setDefaultExpression("");
+      // Reset character type and non-human fields
+      setCharacterType('human');
+      setSpecies("");
+      setBodyType("");
+      setTexture("");
+      setFeatures("");
+      setColoration("");
+      setSize("");
     }
   }, [character, mode, visible]);
 
@@ -166,16 +191,22 @@ export function CharacterEditModal({
 
       // Auto-populate ALL appearance fields from AI description
       const parsedFields = parseDescriptionIntoFields(description);
+
+      // Character type
+      if (parsedFields.characterType) setCharacterType(parsedFields.characterType);
+
+      // Universal fields
       if (parsedFields.age) setAge(parsedFields.age);
       if (parsedFields.gender) setGender(parsedFields.gender);
       if (parsedFields.height) setHeight(parsedFields.height);
       if (parsedFields.build) setBuild(parsedFields.build);
-      if (parsedFields.hair) setHair(parsedFields.hair);
       if (parsedFields.clothing) setClothing(parsedFields.clothing);
       if (parsedFields.distinctiveFeatures?.length) {
         setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
       }
-      // Enhanced appearance fields
+
+      // Human-specific fields
+      if (parsedFields.hair) setHair(parsedFields.hair);
       if (parsedFields.faceShape) setFaceShape(parsedFields.faceShape);
       if (parsedFields.eyeShape) setEyeShape(parsedFields.eyeShape);
       if (parsedFields.eyeColor) setEyeColor(parsedFields.eyeColor);
@@ -188,6 +219,15 @@ export function CharacterEditModal({
       if (parsedFields.posture) setPosture(parsedFields.posture);
       if (parsedFields.skinTone) setSkinTone(parsedFields.skinTone);
       if (parsedFields.defaultExpression) setDefaultExpression(parsedFields.defaultExpression);
+
+      // Non-human specific fields
+      if (parsedFields.species) setSpecies(parsedFields.species);
+      if (parsedFields.bodyType) setBodyType(parsedFields.bodyType);
+      if (parsedFields.texture) setTexture(parsedFields.texture);
+      if (parsedFields.features?.length) setFeatures(parsedFields.features.join(', '));
+      if (parsedFields.coloration) setColoration(parsedFields.coloration);
+      if (parsedFields.size) setSize(parsedFields.size);
+
       console.log('[CharacterEditModal] ALL appearance fields auto-populated from AI description');
     } catch (error) {
       console.error('[CharacterEditModal] Failed to generate AI description:', error);
@@ -283,27 +323,46 @@ export function CharacterEditModal({
 
   // Generate character portrait from appearance fields
   const generatePortrait = async () => {
-    // Build a structured, short description from ALL appearance fields
-    const descriptionParts = [
-      age,
-      gender,
-      build && `${build} build`,
-      height,
-      shoulderWidth,
-      posture,
-      hair,
-      faceShape && `${faceShape} face`,
-      skinTone && `${skinTone} skin`,
-      eyeShape && eyeColor ? `${eyeShape} ${eyeColor} eyes` : (eyeShape || eyeColor),
-      eyebrows,
-      nose,
-      mouth,
-      jawline,
-      cheekbones,
-      defaultExpression && `${defaultExpression} expression`,
-      clothing && `wearing ${clothing}`,
-      distinctiveFeatures
-    ].filter(Boolean);
+    // Build description based on character type
+    let descriptionParts: string[] = [];
+
+    if (characterType === 'human') {
+      // HUMAN: Use human-specific fields
+      descriptionParts = [
+        age,
+        gender,
+        build && `${build} build`,
+        height,
+        shoulderWidth,
+        posture,
+        hair,
+        faceShape && `${faceShape} face`,
+        skinTone && `${skinTone} skin`,
+        eyeShape && eyeColor ? `${eyeShape} ${eyeColor} eyes` : (eyeShape || eyeColor),
+        eyebrows,
+        nose,
+        mouth,
+        jawline,
+        cheekbones,
+        defaultExpression && `${defaultExpression} expression`,
+        clothing && `wearing ${clothing}`,
+        distinctiveFeatures
+      ].filter(Boolean);
+    } else {
+      // NON-HUMAN: Use creature/robot/animal/alien-specific fields
+      descriptionParts = [
+        species,
+        size,
+        bodyType,
+        build,
+        texture,
+        coloration,
+        features && `distinctive features: ${features}`,
+        age,
+        clothing,
+        distinctiveFeatures
+      ].filter(Boolean);
+    }
 
     if (descriptionParts.length === 0) {
       Alert.alert(
@@ -315,6 +374,7 @@ export function CharacterEditModal({
     }
 
     const structuredDescription = descriptionParts.join(', ');
+    console.log('[CharacterEditModal] Character type:', characterType);
     console.log('[CharacterEditModal] Structured description for portrait:', structuredDescription);
 
     // Check if description is too long (Stable Diffusion has ~2000 char limit for prompts)
@@ -375,16 +435,22 @@ export function CharacterEditModal({
 
       // Update ALL appearance fields from portrait analysis (overwrite existing)
       const parsedFields = parseDescriptionIntoFields(description);
+
+      // Character type
+      if (parsedFields.characterType) setCharacterType(parsedFields.characterType);
+
+      // Universal fields
       if (parsedFields.age) setAge(parsedFields.age);
       if (parsedFields.gender) setGender(parsedFields.gender);
       if (parsedFields.height) setHeight(parsedFields.height);
       if (parsedFields.build) setBuild(parsedFields.build);
-      if (parsedFields.hair) setHair(parsedFields.hair);
       if (parsedFields.clothing) setClothing(parsedFields.clothing);
       if (parsedFields.distinctiveFeatures?.length) {
         setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
       }
-      // Update new detailed appearance fields
+
+      // Human-specific fields
+      if (parsedFields.hair) setHair(parsedFields.hair);
       if (parsedFields.faceShape) setFaceShape(parsedFields.faceShape);
       if (parsedFields.eyeShape) setEyeShape(parsedFields.eyeShape);
       if (parsedFields.eyeColor) setEyeColor(parsedFields.eyeColor);
@@ -397,6 +463,15 @@ export function CharacterEditModal({
       if (parsedFields.posture) setPosture(parsedFields.posture);
       if (parsedFields.skinTone) setSkinTone(parsedFields.skinTone);
       if (parsedFields.defaultExpression) setDefaultExpression(parsedFields.defaultExpression);
+
+      // Non-human specific fields
+      if (parsedFields.species) setSpecies(parsedFields.species);
+      if (parsedFields.bodyType) setBodyType(parsedFields.bodyType);
+      if (parsedFields.texture) setTexture(parsedFields.texture);
+      if (parsedFields.features?.length) setFeatures(parsedFields.features.join(', '));
+      if (parsedFields.coloration) setColoration(parsedFields.coloration);
+      if (parsedFields.size) setSize(parsedFields.size);
+
       console.log('[CharacterEditModal] ALL appearance fields updated from portrait analysis');
 
       Alert.alert(
@@ -427,17 +502,22 @@ export function CharacterEditModal({
       name: name.trim(),
       description: description.trim(),
       appearance: {
+        // Character type
+        characterType: characterType,
+
+        // Universal fields
         age: age.trim() || undefined,
         gender: gender.trim() || undefined,
         height: height.trim() || undefined,
         build: build.trim() || undefined,
-        hair: hair.trim() || undefined,
         clothing: clothing.trim() || undefined,
         distinctiveFeatures: distinctiveFeatures
           .split(",")
           .map(f => f.trim())
           .filter(f => f.length > 0),
-        // Enhanced appearance fields
+
+        // Human-specific fields
+        hair: hair.trim() || undefined,
         faceShape: faceShape.trim() || undefined,
         eyeShape: eyeShape.trim() || undefined,
         eyeColor: eyeColor.trim() || undefined,
@@ -449,7 +529,18 @@ export function CharacterEditModal({
         shoulderWidth: shoulderWidth.trim() || undefined,
         posture: posture.trim() || undefined,
         skinTone: skinTone.trim() || undefined,
-        defaultExpression: defaultExpression.trim() || undefined
+        defaultExpression: defaultExpression.trim() || undefined,
+
+        // Non-human specific fields
+        species: species.trim() || undefined,
+        bodyType: bodyType.trim() || undefined,
+        texture: texture.trim() || undefined,
+        features: features
+          .split(",")
+          .map(f => f.trim())
+          .filter(f => f.length > 0),
+        coloration: coloration.trim() || undefined,
+        size: size.trim() || undefined
       },
       role,
       referenceImage,
@@ -478,16 +569,22 @@ export function CharacterEditModal({
       name: name.trim(),
       description: description.trim(),
       appearance: {
+        // Character type
+        characterType: characterType,
+
+        // Universal fields
         age: age.trim() || undefined,
         gender: gender.trim() || undefined,
         height: height.trim() || undefined,
         build: build.trim() || undefined,
-        hair: hair.trim() || undefined,
         clothing: clothing.trim() || undefined,
         distinctiveFeatures: distinctiveFeatures
           .split(",")
           .map(f => f.trim())
           .filter(f => f.length > 0),
+
+        // Human-specific fields
+        hair: hair.trim() || undefined,
         faceShape: faceShape.trim() || undefined,
         eyeShape: eyeShape.trim() || undefined,
         eyeColor: eyeColor.trim() || undefined,
@@ -499,7 +596,18 @@ export function CharacterEditModal({
         shoulderWidth: shoulderWidth.trim() || undefined,
         posture: posture.trim() || undefined,
         skinTone: skinTone.trim() || undefined,
-        defaultExpression: defaultExpression.trim() || undefined
+        defaultExpression: defaultExpression.trim() || undefined,
+
+        // Non-human specific fields
+        species: species.trim() || undefined,
+        bodyType: bodyType.trim() || undefined,
+        texture: texture.trim() || undefined,
+        features: features
+          .split(",")
+          .map(f => f.trim())
+          .filter(f => f.length > 0),
+        coloration: coloration.trim() || undefined,
+        size: size.trim() || undefined
       },
       role,
       referenceImage,
@@ -534,13 +642,20 @@ export function CharacterEditModal({
     // Populate all fields from the loaded character
     setName(loadedCharacter.name || "");
     setDescription(loadedCharacter.description || "");
+
+    // Character type
+    setCharacterType(loadedCharacter.appearance.characterType || 'human');
+
+    // Universal fields
     setAge(loadedCharacter.appearance.age || "");
     setGender(loadedCharacter.appearance.gender || "");
     setHeight(loadedCharacter.appearance.height || "");
     setBuild(loadedCharacter.appearance.build || "");
-    setHair(loadedCharacter.appearance.hair || "");
     setClothing(loadedCharacter.appearance.clothing || "");
     setDistinctiveFeatures(loadedCharacter.appearance.distinctiveFeatures?.join(", ") || "");
+
+    // Human-specific fields
+    setHair(loadedCharacter.appearance.hair || "");
     setFaceShape(loadedCharacter.appearance.faceShape || "");
     setEyeShape(loadedCharacter.appearance.eyeShape || "");
     setEyeColor(loadedCharacter.appearance.eyeColor || "");
@@ -553,6 +668,15 @@ export function CharacterEditModal({
     setPosture(loadedCharacter.appearance.posture || "");
     setSkinTone(loadedCharacter.appearance.skinTone || "");
     setDefaultExpression(loadedCharacter.appearance.defaultExpression || "");
+
+    // Non-human specific fields
+    setSpecies(loadedCharacter.appearance.species || "");
+    setBodyType(loadedCharacter.appearance.bodyType || "");
+    setTexture(loadedCharacter.appearance.texture || "");
+    setFeatures(loadedCharacter.appearance.features?.join(", ") || "");
+    setColoration(loadedCharacter.appearance.coloration || "");
+    setSize(loadedCharacter.appearance.size || "");
+
     setRole(loadedCharacter.role);
     setReferenceImage(loadedCharacter.referenceImage);
     setUseReferenceInPrompt(loadedCharacter.useReferenceInPrompt || false);
@@ -657,6 +781,32 @@ export function CharacterEditModal({
           <View className="mb-4 bg-gray-50 rounded-lg p-4">
             <Text className="text-base font-bold text-gray-900 mb-3">Appearance</Text>
 
+            {/* Character Type Selector */}
+            <View className="mb-4">
+              <Text className="text-xs font-semibold text-gray-600 mb-2">Character Type</Text>
+              <View className="flex-row flex-wrap gap-2">
+                {(['human', 'creature', 'robot', 'animal', 'alien', 'hybrid', 'other'] as const).map((type) => (
+                  <Pressable
+                    key={type}
+                    onPress={() => setCharacterType(type)}
+                    className={`px-3 py-2 rounded-lg border ${
+                      characterType === type
+                        ? 'bg-purple-600 border-purple-600'
+                        : 'bg-white border-gray-300'
+                    }`}
+                  >
+                    <Text
+                      className={`text-xs font-medium capitalize ${
+                        characterType === type ? 'text-white' : 'text-gray-700'
+                      }`}
+                    >
+                      {type}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+
             {/* Basic Info Section */}
             <View className="mb-3">
               <Pressable
@@ -751,19 +901,20 @@ export function CharacterEditModal({
               )}
             </View>
 
-            {/* Face Details Section */}
-            <View className="mb-3">
-              <Pressable
-                onPress={() => setShowFaceDetails(!showFaceDetails)}
-                className="flex-row items-center justify-between mb-2"
-              >
-                <Text className="text-sm font-bold text-gray-800">Face Details</Text>
-                <Ionicons
-                  name={showFaceDetails ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#4b5563"
-                />
-              </Pressable>
+            {/* Face Details Section (HUMAN ONLY) */}
+            {characterType === 'human' && (
+              <View className="mb-3">
+                <Pressable
+                  onPress={() => setShowFaceDetails(!showFaceDetails)}
+                  className="flex-row items-center justify-between mb-2"
+                >
+                  <Text className="text-sm font-bold text-gray-800">Face Details</Text>
+                  <Ionicons
+                    name={showFaceDetails ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#4b5563"
+                  />
+                </Pressable>
 
               {showFaceDetails && (
                 <View className="space-y-3">
@@ -868,46 +1019,137 @@ export function CharacterEditModal({
                   </View>
                 </View>
               )}
-            </View>
+              </View>
+            )}
 
-            {/* Body Details Section */}
-            <View className="mb-3">
-              <Pressable
-                onPress={() => setShowBodyDetails(!showBodyDetails)}
-                className="flex-row items-center justify-between mb-2"
-              >
-                <Text className="text-sm font-bold text-gray-800">Body Details</Text>
-                <Ionicons
-                  name={showBodyDetails ? "chevron-up" : "chevron-down"}
-                  size={20}
-                  color="#4b5563"
-                />
-              </Pressable>
+            {/* Body Details Section (HUMAN ONLY) */}
+            {characterType === 'human' && (
+              <View className="mb-3">
+                <Pressable
+                  onPress={() => setShowBodyDetails(!showBodyDetails)}
+                  className="flex-row items-center justify-between mb-2"
+                >
+                  <Text className="text-sm font-bold text-gray-800">Body Details</Text>
+                  <Ionicons
+                    name={showBodyDetails ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#4b5563"
+                  />
+                </Pressable>
 
-              {showBodyDetails && (
-                <View className="space-y-3">
-                  <View>
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Shoulder Width</Text>
-                    <TextInput
-                      value={shoulderWidth}
-                      onChangeText={setShoulderWidth}
-                      placeholder="e.g., broad, narrow, average"
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                    />
+                {showBodyDetails && (
+                  <View className="space-y-3">
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Shoulder Width</Text>
+                      <TextInput
+                        value={shoulderWidth}
+                        onChangeText={setShoulderWidth}
+                        placeholder="e.g., broad, narrow, average"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Posture</Text>
+                      <TextInput
+                        value={posture}
+                        onChangeText={setPosture}
+                        placeholder="e.g., upright, slouched, confident stance"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
                   </View>
+                )}
+              </View>
+            )}
 
-                  <View>
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Posture</Text>
-                    <TextInput
-                      value={posture}
-                      onChangeText={setPosture}
-                      placeholder="e.g., upright, slouched, confident stance"
-                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                    />
+            {/* Non-Human Details Section (creature, robot, animal, alien, etc.) */}
+            {characterType !== 'human' && (
+              <View className="mb-3">
+                <Pressable
+                  onPress={() => setShowFaceDetails(!showFaceDetails)}
+                  className="flex-row items-center justify-between mb-2"
+                >
+                  <Text className="text-sm font-bold text-gray-800">
+                    {characterType.charAt(0).toUpperCase() + characterType.slice(1)} Details
+                  </Text>
+                  <Ionicons
+                    name={showFaceDetails ? "chevron-up" : "chevron-down"}
+                    size={20}
+                    color="#4b5563"
+                  />
+                </Pressable>
+
+                {showFaceDetails && (
+                  <View className="space-y-3">
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Species</Text>
+                      <TextInput
+                        value={species}
+                        onChangeText={setSpecies}
+                        placeholder="e.g., dragon, wolf, android, alien being"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Size</Text>
+                      <TextInput
+                        value={size}
+                        onChangeText={setSize}
+                        placeholder="e.g., massive, large, human-sized, small"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Body Type</Text>
+                      <TextInput
+                        value={bodyType}
+                        onChangeText={setBodyType}
+                        placeholder="e.g., quadruped, bipedal, serpentine, humanoid"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Texture/Surface</Text>
+                      <TextInput
+                        value={texture}
+                        onChangeText={setTexture}
+                        placeholder="e.g., scales, fur, metallic plating, smooth skin"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">Coloration</Text>
+                      <TextInput
+                        value={coloration}
+                        onChangeText={setColoration}
+                        placeholder="e.g., crimson scales with golden accents"
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      />
+                    </View>
+
+                    <View>
+                      <Text className="text-xs font-semibold text-gray-600 mb-1">
+                        Features (comma-separated)
+                      </Text>
+                      <TextInput
+                        value={features}
+                        onChangeText={setFeatures}
+                        placeholder="e.g., wings, horns, tail, claws"
+                        multiline
+                        numberOfLines={2}
+                        className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                        textAlignVertical="top"
+                      />
+                    </View>
                   </View>
-                </View>
-              )}
-            </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* Reference Image Section */}
