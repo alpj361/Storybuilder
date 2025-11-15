@@ -1,29 +1,28 @@
 /**
  * Character Description Service
- * Uses OpenAI GPT-4o to analyze character reference images
+ * Uses Gemini 2.5 Flash (via Replicate) to analyze character reference images
  * and generate detailed appearance descriptions for image generation
  */
 
-import OpenAI from 'openai';
+import Replicate from 'replicate';
 
-// Initialize OpenAI client
-const getOpenAIKey = () => {
-  const key = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
-  console.log('[CharacterDescriber] OpenAI API Key check:', {
+// Initialize Replicate client
+const getReplicateKey = () => {
+  const key = process.env.EXPO_PUBLIC_REPLICATE_API_KEY;
+  console.log('[CharacterDescriber] Replicate API Key check:', {
     exists: !!key,
     prefix: key?.substring(0, 10)
   });
 
   if (!key) {
-    throw new Error('EXPO_PUBLIC_OPENAI_API_KEY environment variable is not set');
+    throw new Error('EXPO_PUBLIC_REPLICATE_API_KEY environment variable is not set');
   }
 
   return key;
 };
 
-const openai = new OpenAI({
-  apiKey: getOpenAIKey(),
-  dangerouslyAllowBrowser: true // Note: In production, use backend proxy
+const replicate = new Replicate({
+  auth: getReplicateKey(),
 });
 
 /**
@@ -84,36 +83,32 @@ Example: "Angular face with strong jawline, almond-shaped dark eyes with thick a
 export async function describeCharacterFromImage(
   imageBase64: string
 ): Promise<string> {
-  console.log('[CharacterDescriber] Analyzing character reference image with OpenAI GPT-4o...');
+  console.log('[CharacterDescriber] Analyzing character reference image with Gemini 2.5 Flash via Replicate...');
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 500, // Increased for more detailed descriptions
-      temperature: 0.2, // Very low temperature for highly consistent descriptions
-      messages: [{
-        role: 'user',
-        content: [
-          { type: 'text', text: getDescriptionPrompt() },
-          {
-            type: 'image_url',
-            image_url: {
-              url: imageBase64,
-              detail: 'high' // Use 'high' for better facial feature recognition
-            }
-          }
-        ]
-      }]
-    });
+    // Gemini 2.5 Flash on Replicate
+    const input = {
+      images: [imageBase64], // Replicate accepts data URIs
+      prompt: getDescriptionPrompt(),
+      temperature: 0.2, // Low temperature for consistent descriptions
+      max_tokens: 500,
+    };
 
-    const description = response.choices[0].message.content?.trim() || '';
+    console.log('[CharacterDescriber] Running Gemini 2.5 Flash prediction...');
 
-    console.log('[CharacterDescriber] Generated description:', description);
-    console.log('[CharacterDescriber] Tokens used:', response.usage);
+    // Run the prediction - not streaming for simpler response handling
+    const output = await replicate.run(
+      "google/gemini-2.5-flash",
+      { input }
+    ) as string;
+
+    const description = (typeof output === 'string' ? output : JSON.stringify(output)).trim();
+
+    console.log('[CharacterDescriber] ✓ Gemini 2.5 Flash - Success:', description);
 
     return description;
   } catch (error) {
-    console.error('[CharacterDescriber] Error analyzing image:', error);
+    console.error('[CharacterDescriber] ✗ Gemini 2.5 Flash failed:', error);
 
     // Check if it's a content policy error
     if (error instanceof Error) {
@@ -126,7 +121,7 @@ export async function describeCharacterFromImage(
         throw new Error('Image analysis blocked by content policy. Please manually enter appearance details in the fields below, or try a different reference image (e.g., illustration/artwork instead of photos).');
       }
 
-      throw new Error(`Failed to analyze character image: ${errorMessage}`);
+      throw new Error(`Failed to analyze character image: ${error.message}`);
     }
 
     throw new Error('Failed to analyze character image');
