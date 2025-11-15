@@ -5,6 +5,7 @@
  */
 
 import * as FileSystem from 'expo-file-system';
+import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 
 const STABLE_DIFFUSION_TEXT_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
 const STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image";
@@ -166,54 +167,63 @@ export async function generateImageWithReference(
   console.log("[StableDiffusion img2img] Generating with reference image, strength:", imageStrength);
   console.log("[StableDiffusion img2img] Prompt:", prompt);
 
-  // Remove data:image prefix if present
-  const base64Data = referenceImageBase64.includes(',')
-    ? referenceImageBase64.split(',')[1]
-    : referenceImageBase64;
-
-  console.log("[StableDiffusion img2img] Base64 data length:", base64Data.length);
-
-  // Default options optimized for img2img with character reference
-  const defaultOptions: StableDiffusionOptions = {
-    steps: 30,
-    cfg_scale: 7,
-    samples: 1,
-    style_preset: "line-art", // Match storyboard style
-    ...options
-  };
-
-  // Build FormData for multipart/form-data request
-  const formData = new FormData();
-
-  // Create a file-like object for React Native
-  // React Native's FormData expects: { uri, type, name }
-  const imageFile: any = {
-    uri: `data:image/png;base64,${base64Data}`,
-    type: 'image/png',
-    name: 'reference.png'
-  };
-
-  formData.append('init_image', imageFile);
-  formData.append('text_prompts[0][text]', prompt);
-  formData.append('text_prompts[0][weight]', '1');
-  formData.append('image_strength', imageStrength.toString());
-  formData.append('init_image_mode', 'IMAGE_STRENGTH');
-
-  // Add all options as form fields
-  Object.entries(defaultOptions).forEach(([key, value]) => {
-    if (value !== undefined) {
-      formData.append(key, value.toString());
-    }
-  });
-
-  console.log("[StableDiffusion img2img] Request parameters:", {
-    prompt: prompt.substring(0, 100) + '...',
-    image_strength: imageStrength,
-    init_image_mode: 'IMAGE_STRENGTH',
-    ...defaultOptions
-  });
+  // Resize image to 1024x1024 before sending to API
+  // This ensures the API receives the correct dimensions
+  console.log("[StableDiffusion img2img] Resizing image to 1024x1024...");
 
   try {
+    const resizedImage = await manipulateAsync(
+      referenceImageBase64,
+      [{ resize: { width: 1024, height: 1024 } }],
+      { compress: 0.8, format: SaveFormat.PNG, base64: true }
+    );
+
+    console.log("[StableDiffusion img2img] Image resized successfully");
+
+    // Use the resized base64 data
+    const base64Data = resizedImage.base64!;
+    console.log("[StableDiffusion img2img] Resized base64 data length:", base64Data.length);
+
+    // Default options optimized for img2img with character reference
+    const defaultOptions: StableDiffusionOptions = {
+      steps: 30,
+      cfg_scale: 7,
+      samples: 1,
+      style_preset: "line-art", // Match storyboard style
+      ...options
+    };
+
+    // Build FormData for multipart/form-data request
+    const formData = new FormData();
+
+    // Create a file-like object for React Native
+    // React Native's FormData expects: { uri, type, name }
+    const imageFile: any = {
+      uri: `data:image/png;base64,${base64Data}`,
+      type: 'image/png',
+      name: 'reference.png'
+    };
+
+    formData.append('init_image', imageFile);
+    formData.append('text_prompts[0][text]', prompt);
+    formData.append('text_prompts[0][weight]', '1');
+    formData.append('image_strength', imageStrength.toString());
+    formData.append('init_image_mode', 'IMAGE_STRENGTH');
+
+    // Add all options as form fields
+    Object.entries(defaultOptions).forEach(([key, value]) => {
+      if (value !== undefined) {
+        formData.append(key, value.toString());
+      }
+    });
+
+    console.log("[StableDiffusion img2img] Request parameters:", {
+      prompt: prompt.substring(0, 100) + '...',
+      image_strength: imageStrength,
+      init_image_mode: 'IMAGE_STRENGTH',
+      ...defaultOptions
+    });
+
     const response = await fetch(STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL, {
       method: "POST",
       headers: {
@@ -244,7 +254,7 @@ export async function generateImageWithReference(
       throw new Error("No image artifacts returned from Stable Diffusion img2img API");
     }
   } catch (error) {
-    console.error("[StableDiffusion img2img] Image generation error:", error);
+    console.error("[StableDiffusion img2img] Image generation/resize error:", error);
     throw error;
   }
 }
