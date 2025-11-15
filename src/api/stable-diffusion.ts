@@ -172,10 +172,12 @@ export async function generateImageWithReference(
   console.log("[StableDiffusion img2img] Resizing image to 1024x1024...");
 
   try {
+    // First, resize and compress as JPEG to reduce file size
+    // Stable Diffusion API has a 5MB limit for init_image
     const resizedImage = await manipulateAsync(
       referenceImageBase64,
       [{ resize: { width: 1024, height: 1024 } }],
-      { compress: 0.8, format: SaveFormat.PNG, base64: true }
+      { compress: 0.6, format: SaveFormat.JPEG, base64: true } // JPEG with 60% quality
     );
 
     console.log("[StableDiffusion img2img] Image resized successfully");
@@ -183,6 +185,10 @@ export async function generateImageWithReference(
     // Use the resized base64 data
     const base64Data = resizedImage.base64!;
     console.log("[StableDiffusion img2img] Resized base64 data length:", base64Data.length);
+
+    // Calculate approximate file size (base64 is ~33% larger than binary)
+    const approximateFileSize = (base64Data.length * 3) / 4;
+    console.log("[StableDiffusion img2img] Approximate file size:", Math.round(approximateFileSize / 1024), "KB");
 
     // Default options optimized for img2img with character reference
     const defaultOptions: StableDiffusionOptions = {
@@ -199,9 +205,9 @@ export async function generateImageWithReference(
     // Create a file-like object for React Native
     // React Native's FormData expects: { uri, type, name }
     const imageFile: any = {
-      uri: `data:image/png;base64,${base64Data}`,
-      type: 'image/png',
-      name: 'reference.png'
+      uri: `data:image/jpeg;base64,${base64Data}`,
+      type: 'image/jpeg',
+      name: 'reference.jpg'
     };
 
     formData.append('init_image', imageFile);
