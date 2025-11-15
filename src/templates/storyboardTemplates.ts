@@ -159,15 +159,22 @@ export async function generateStoryboardPrompt(
 
   if (isFirstPanel) {
     // Panel 1: Use whatever appearance details we have (even if "unknown")
-    // If character has reference image, get AI description
+    // If character has AI-generated description from reference image, use that
     const characterDescPromises = panelCharacters.map(async char => {
       const appearance = char.appearance;
 
-      // If reference image is enabled, get AI description
-      if (char.referenceImage && char.useReferenceInPrompt) {
+      // If character has AI-generated description saved, use it directly
+      if (char.aiGeneratedDescription) {
+        console.log(`[generateStoryboardPrompt] Using saved AI description for ${char.name}:`, char.aiGeneratedDescription);
+        return char.aiGeneratedDescription;
+      }
+
+      // If reference image is enabled but no saved description, try to get AI description
+      // (This is a fallback for backwards compatibility with older characters)
+      if (char.referenceImage && char.useReferenceInPrompt && !char.aiGeneratedDescription) {
         try {
           const aiDescription = await getCharacterDescription(char.referenceImage);
-          console.log(`[generateStoryboardPrompt] AI description for ${char.name}:`, aiDescription);
+          console.log(`[generateStoryboardPrompt] Generated AI description for ${char.name}:`, aiDescription);
           return aiDescription;
         } catch (error) {
           console.warn(`[generateStoryboardPrompt] Failed to get AI description for ${char.name}:`, error);
@@ -175,7 +182,7 @@ export async function generateStoryboardPrompt(
         }
       }
 
-      // Use manual appearance features if no reference or AI failed
+      // Use manual appearance features if no AI description
       const features = [
         appearance.age && `${appearance.age}`,
         appearance.gender && `${appearance.gender}`,
