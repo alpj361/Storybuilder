@@ -8,7 +8,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import StoryboardScreen from "./src/screens/StoryboardScreen";
 import ArchitecturalScreen from "./src/screens/ArchitecturalScreen";
-import ProjectsLibraryScreen from "./src/screens/ProjectsLibraryScreen";
 
 // Keep the splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
@@ -53,9 +52,7 @@ export default function App() {
               tabBarInactiveTintColor: "#9CA3AF",
               tabBarIcon: ({ color, size }) => {
                 let iconName: string;
-                if (route.name === "Projects") {
-                  iconName = "folder-outline";
-                } else if (route.name === "Storyboard") {
+                if (route.name === "Storyboard") {
                   iconName = "images-outline";
                 } else {
                   iconName = "construct-outline";
@@ -64,13 +61,6 @@ export default function App() {
               }
             })}
           >
-            <Tab.Screen
-              name="Projects"
-              component={ProjectsLibraryScreen}
-              options={{
-                tabBarLabel: "Projects"
-              }}
-            />
             <Tab.Screen name="Storyboard" component={StoryboardScreen} />
             <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} />
           </Tab.Navigator>
