@@ -117,6 +117,7 @@ export interface Character {
   useReferenceInPrompt?: boolean; // Whether to use reference image in generation
   referenceMode?: "description" | "visual"; // How to use reference: text description or img2img
   imageStrength?: number; // For img2img mode: 0-1 (default 0.35)
+  aiGeneratedDescription?: string; // AI-generated visual description from reference image
 }
 
 export interface Scene {

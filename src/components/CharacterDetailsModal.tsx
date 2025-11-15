@@ -93,6 +93,19 @@ export function CharacterDetailsModal({
                       Used in prompt generation for visual consistency
                     </Text>
                   </View>
+
+                  {/* Show AI-generated description if available */}
+                  {character.aiGeneratedDescription && (
+                    <View className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+                      <Text className="text-xs font-semibold text-purple-900 mb-1">
+                        AI Visual Description:
+                      </Text>
+                      <Text className="text-xs text-purple-700 leading-5">
+                        {character.aiGeneratedDescription}
+                      </Text>
+                    </View>
+                  )}
+
                   <View className="bg-blue-50 border border-blue-200 rounded-lg p-2">
                     <Text className="text-xs font-semibold text-blue-900 mb-1">
                       How it works:

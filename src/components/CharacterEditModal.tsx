@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, Modal, ScrollView, Pressable, TextInput, Image, Switch, Alert } from "react-native";
+import { View, Text, Modal, ScrollView, Pressable, TextInput, Image, Switch, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import Slider from "@react-native-community/slider";
 import { Character } from "../types/storyboard";
+import { getCharacterDescription } from "../services/characterDescriber";
 
 interface CharacterEditModalProps {
   visible: boolean;
@@ -34,6 +35,8 @@ export function CharacterEditModal({
   const [useReferenceInPrompt, setUseReferenceInPrompt] = useState(false);
   const [referenceMode, setReferenceMode] = useState<"description" | "visual">("description");
   const [imageStrength, setImageStrength] = useState(0.35);
+  const [aiGeneratedDescription, setAiGeneratedDescription] = useState<string>("");
+  const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
 
   // Initialize form with character data
   useEffect(() => {
@@ -52,6 +55,7 @@ export function CharacterEditModal({
       setUseReferenceInPrompt(character.useReferenceInPrompt || false);
       setReferenceMode(character.referenceMode || "description");
       setImageStrength(character.imageStrength || 0.35);
+      setAiGeneratedDescription(character.aiGeneratedDescription || "");
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -68,6 +72,7 @@ export function CharacterEditModal({
       setUseReferenceInPrompt(false);
       setReferenceMode("description");
       setImageStrength(0.35);
+      setAiGeneratedDescription("");
     }
   }, [character, mode, visible]);
 
@@ -94,12 +99,33 @@ export function CharacterEditModal({
         ? `data:image/jpeg;base64,${asset.base64}`
         : asset.uri;
       setReferenceImage(base64Image);
+
+      // Automatically generate AI description from the reference image
+      setIsAnalyzingImage(true);
+      try {
+        console.log('[CharacterEditModal] Generating AI description from reference image...');
+        const description = await getCharacterDescription(base64Image);
+        console.log('[CharacterEditModal] AI description generated:', description);
+        setAiGeneratedDescription(description);
+        setUseReferenceInPrompt(true); // Auto-enable since they uploaded a reference
+      } catch (error) {
+        console.error('[CharacterEditModal] Failed to generate AI description:', error);
+        Alert.alert(
+          'Description Generation Failed',
+          'Could not analyze the reference image. You can still use it, but manual appearance details may be needed.',
+          [{ text: 'OK' }]
+        );
+        setAiGeneratedDescription('');
+      } finally {
+        setIsAnalyzingImage(false);
+      }
     }
   };
 
   const removeImage = () => {
     setReferenceImage(undefined);
     setUseReferenceInPrompt(false);
+    setAiGeneratedDescription('');
   };
 
   const handleSave = () => {
@@ -128,7 +154,8 @@ export function CharacterEditModal({
       referenceImage,
       useReferenceInPrompt: referenceImage ? useReferenceInPrompt : false,
       referenceMode: referenceImage && useReferenceInPrompt ? referenceMode : undefined,
-      imageStrength: referenceImage && useReferenceInPrompt && referenceMode === "visual" ? imageStrength : undefined
+      imageStrength: referenceImage && useReferenceInPrompt && referenceMode === "visual" ? imageStrength : undefined,
+      aiGeneratedDescription: aiGeneratedDescription || undefined
     };
 
     onSave(updatedCharacter);
@@ -345,6 +372,41 @@ export function CharacterEditModal({
                         AI will analyze this image and create a detailed visual description. This description is used in Panel 1's prompt to draw the character in storyboard style.
                       </Text>
                     </View>
+                  </View>
+                )}
+
+                {/* AI-Generated Description Display */}
+                {isAnalyzingImage && (
+                  <View className="bg-white border border-blue-300 rounded-lg p-4 mb-3">
+                    <View className="flex-row items-center">
+                      <ActivityIndicator size="small" color="#3b82f6" />
+                      <Text className="text-sm text-blue-900 ml-3 font-medium">
+                        Analyzing reference image...
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {aiGeneratedDescription && !isAnalyzingImage && (
+                  <View className="bg-green-50 border border-green-300 rounded-lg p-4 mb-3">
+                    <View className="flex-row items-start mb-2">
+                      <Ionicons name="checkmark-circle" size={18} color="#16a34a" />
+                      <Text className="text-sm font-semibold text-green-900 ml-2">
+                        AI Visual Description:
+                      </Text>
+                    </View>
+                    <TextInput
+                      value={aiGeneratedDescription}
+                      onChangeText={setAiGeneratedDescription}
+                      multiline
+                      numberOfLines={3}
+                      className="bg-white border border-green-200 rounded-lg px-3 py-2 text-sm text-gray-700"
+                      textAlignVertical="top"
+                      placeholder="AI-generated description will appear here..."
+                    />
+                    <Text className="text-xs text-green-700 mt-2">
+                      You can edit this description to fine-tune the character's appearance.
+                    </Text>
                   </View>
                 )}
               </View>
