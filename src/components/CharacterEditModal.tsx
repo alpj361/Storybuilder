@@ -336,88 +336,15 @@ export function CharacterEditModal({
                   </Pressable>
                 </View>
 
-                {/* Reference Mode Selection - Only show if enabled */}
+                {/* Info about how reference works */}
                 {useReferenceInPrompt && (
-                  <View className="mb-3">
-                    <Text className="text-sm font-semibold text-gray-700 mb-2">
-                      Reference Mode
-                    </Text>
-
-                    {/* Mode 1: Description Only */}
-                    <Pressable
-                      onPress={() => setReferenceMode("description")}
-                      className={`p-3 rounded-lg border-2 mb-2 ${
-                        referenceMode === "description"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                          <Text className="font-medium text-gray-900">Reference Only</Text>
-                          <Text className="text-xs text-gray-600 mt-1">
-                            AI describes the image, uses text description only
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={referenceMode === "description" ? "radio-button-on" : "radio-button-off"}
-                          size={24}
-                          color={referenceMode === "description" ? "#3b82f6" : "#9ca3af"}
-                        />
-                      </View>
-                    </Pressable>
-
-                    {/* Mode 2: Visual Match */}
-                    <Pressable
-                      onPress={() => setReferenceMode("visual")}
-                      className={`p-3 rounded-lg border-2 ${
-                        referenceMode === "visual"
-                          ? "border-blue-500 bg-blue-50"
-                          : "border-gray-300 bg-white"
-                      }`}
-                    >
-                      <View className="flex-row items-center justify-between">
-                        <View className="flex-1">
-                          <Text className="font-medium text-gray-900">Visual Match</Text>
-                          <Text className="text-xs text-gray-600 mt-1">
-                            Uses actual image for stronger visual consistency
-                          </Text>
-                        </View>
-                        <Ionicons
-                          name={referenceMode === "visual" ? "radio-button-on" : "radio-button-off"}
-                          size={24}
-                          color={referenceMode === "visual" ? "#3b82f6" : "#9ca3af"}
-                        />
-                      </View>
-                    </Pressable>
-
-                    {/* Image Strength Slider - Only show for Visual Match mode */}
-                    {referenceMode === "visual" && (
-                      <View className="mt-3 p-3 bg-white rounded-lg border border-gray-300">
-                        <View className="flex-row justify-between items-center mb-2">
-                          <Text className="text-xs font-semibold text-gray-700">
-                            Match Strength
-                          </Text>
-                          <Text className="text-xs font-bold text-blue-600">
-                            {Math.round(imageStrength * 100)}%
-                          </Text>
-                        </View>
-                        <Slider
-                          value={imageStrength}
-                          onValueChange={setImageStrength}
-                          minimumValue={0.2}
-                          maximumValue={0.6}
-                          step={0.05}
-                          minimumTrackTintColor="#3b82f6"
-                          maximumTrackTintColor="#cbd5e0"
-                          thumbTintColor="#3b82f6"
-                        />
-                        <View className="flex-row justify-between mt-1">
-                          <Text className="text-xs text-gray-500">More creative</Text>
-                          <Text className="text-xs text-gray-500">Closer match</Text>
-                        </View>
-                      </View>
-                    )}
+                  <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                    <View className="flex-row items-start">
+                      <Ionicons name="information-circle" size={18} color="#3b82f6" />
+                      <Text className="text-xs text-blue-900 ml-2 flex-1 leading-5">
+                        AI will analyze this image and create a detailed visual description. This description is used in Panel 1's prompt to draw the character in storyboard style.
+                      </Text>
+                    </View>
                   </View>
                 )}
               </View>

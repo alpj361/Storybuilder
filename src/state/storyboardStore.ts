@@ -785,30 +785,10 @@ export const useStoryboardStore = create<StoryboardState>()(
         try {
           console.log("[storyboardStore] Sending prompt to API:", panel.prompt.generatedPrompt);
 
-          // Check if this is Panel 1 and has characters with visual reference mode
-          let referenceImage: string | undefined;
-          let imageStrength: number | undefined;
-
-          if (panel.panelNumber === 1 && panel.prompt.characters.length > 0) {
-            // Find the first character with visual reference mode
-            const visualRefChar = state.currentProject.characters.find(char =>
-              panel.prompt.characters.includes(char.id) &&
-              char.useReferenceInPrompt &&
-              char.referenceMode === "visual" &&
-              char.referenceImage
-            );
-
-            if (visualRefChar) {
-              console.log("[storyboardStore] Using visual reference mode for character:", visualRefChar.name);
-              referenceImage = visualRefChar.referenceImage;
-              imageStrength = visualRefChar.imageStrength || 0.35;
-            }
-          }
-
+          // Generate image using text-to-image (no img2img)
+          // Character visual descriptions are already in the prompt from generateAllPanelPrompts
           const imageUrl = await generateDraftStoryboardImage(
-            panel.prompt.generatedPrompt,
-            referenceImage,
-            imageStrength
+            panel.prompt.generatedPrompt
           );
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
@@ -850,29 +830,10 @@ export const useStoryboardStore = create<StoryboardState>()(
           // Generate images for all panels in parallel
           const imagePromises = state.currentProject.panels.map(async (panel) => {
             try {
-              // Check if this is Panel 1 and has characters with visual reference mode
-              let referenceImage: string | undefined;
-              let imageStrength: number | undefined;
-
-              if (panel.panelNumber === 1 && panel.prompt.characters.length > 0 && state.currentProject) {
-                const visualRefChar = state.currentProject.characters.find(char =>
-                  panel.prompt.characters.includes(char.id) &&
-                  char.useReferenceInPrompt &&
-                  char.referenceMode === "visual" &&
-                  char.referenceImage
-                );
-
-                if (visualRefChar) {
-                  console.log("[storyboardStore] Using visual reference for character in Panel 1:", visualRefChar.name);
-                  referenceImage = visualRefChar.referenceImage;
-                  imageStrength = visualRefChar.imageStrength || 0.35;
-                }
-              }
-
+              // Generate image using text-to-image (no img2img)
+              // Character visual descriptions are already in the prompt
               const imageUrl = await generateDraftStoryboardImage(
-                panel.prompt.generatedPrompt,
-                referenceImage,
-                imageStrength
+                panel.prompt.generatedPrompt
               );
               return { panelId: panel.id, imageUrl };
             } catch (error) {
