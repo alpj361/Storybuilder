@@ -15,6 +15,7 @@ import PromptPreview from "../components/PromptPreview";
 import CharacterTag from "../components/CharacterTag";
 import { CharacterDetailsModal } from "../components/CharacterDetailsModal";
 import { CharacterEditModal } from "../components/CharacterEditModal";
+import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -230,6 +231,7 @@ export default function StoryboardScreen({
   const title = titleProp;
   const isArchitectural = mode === "architectural";
   const [showInputModal, setShowInputModal] = useState(false);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -360,24 +362,35 @@ export default function StoryboardScreen({
     }
   };
 
+  const handleSelectProject = (project: any) => {
+    setCurrentProject(project);
+  };
+
+  const handleCreateNewFromSelector = () => {
+    setShowInputModal(true);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-4 py-3">
         <View className="flex-row justify-between items-center">
-          <View>
+          <Pressable onPress={() => setShowProjectSelector(true)} className="flex-1">
             <Text className="text-xl font-bold text-gray-900">{title}</Text>
-            <Text className="text-sm text-gray-500">
-              {activeProject?.title || "No Project"}
-            </Text>
-          </View>
+            <View className="flex-row items-center">
+              <Text className="text-sm text-gray-500">
+                {activeProject?.title || "No Project"}
+              </Text>
+              <Ionicons name="chevron-down" size={16} color="#6B7280" style={{ marginLeft: 4 }} />
+            </View>
+          </Pressable>
           <View className="flex-row space-x-3">
             {activeProject && (
               <Pressable onPress={handleGenerateAllImages} disabled={isGenerating}>
-                <Ionicons 
-                  name="images-outline" 
-                  size={24} 
-                  color={isGenerating ? "#9CA3AF" : "#3B82F6"} 
+                <Ionicons
+                  name="images-outline"
+                  size={24}
+                  color={isGenerating ? "#9CA3AF" : "#3B82F6"}
                 />
               </Pressable>
             )}
@@ -613,6 +626,15 @@ export default function StoryboardScreen({
         character={selectedCharacter}
         onSave={handleSaveCharacter}
         mode="edit"
+      />
+
+      {/* Project Selector Modal */}
+      <ProjectSelectorModal
+        visible={showProjectSelector}
+        onClose={() => setShowProjectSelector(false)}
+        currentProjectType={isArchitectural ? ProjectType.ARCHITECTURAL : ProjectType.STORYBOARD}
+        onSelectProject={handleSelectProject}
+        onCreateNew={handleCreateNewFromSelector}
       />
     </SafeAreaView>
   );
