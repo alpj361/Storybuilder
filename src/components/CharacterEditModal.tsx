@@ -110,9 +110,16 @@ export function CharacterEditModal({
         setUseReferenceInPrompt(true); // Auto-enable since they uploaded a reference
       } catch (error) {
         console.error('[CharacterEditModal] Failed to generate AI description:', error);
+
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        const isContentPolicyError = errorMessage.includes('content policy') ||
+                                      errorMessage.includes('safety');
+
         Alert.alert(
-          'Description Generation Failed',
-          'Could not analyze the reference image. You can still use it, but manual appearance details may be needed.',
+          'AI Description Failed',
+          isContentPolicyError
+            ? errorMessage
+            : 'Could not analyze the reference image. Please enter appearance details manually in the fields below, or try a different reference image.',
           [{ text: 'OK' }]
         );
         setAiGeneratedDescription('');

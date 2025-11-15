@@ -43,21 +43,21 @@ export async function describeCharacterFromImage(
         content: [
           {
             type: 'text',
-            text: `Analyze this character image and provide a detailed physical description suitable for image generation prompts.
+            text: `You are helping a storyboard artist create fictional character descriptions for illustration purposes. Analyze this reference image and provide a detailed physical description suitable for drawing/sketching this character.
 
-IMPORTANT: Focus ONLY on visible physical attributes. Be specific and concise.
+IMPORTANT: This is for creating fictional illustrated characters in storyboard art. Focus ONLY on observable physical attributes for artistic reference.
 
-Include:
-- Age range (e.g., "20s", "middle-aged", "elderly")
+Describe the following visible characteristics:
+- Approximate age range (e.g., "20s", "middle-aged", "elderly")
 - Gender presentation
-- Build/physique (e.g., "athletic", "slim", "stocky")
-- Hair: color, length, style
-- Clothing: style, colors, distinctive items
-- Distinctive features: scars, tattoos, glasses, facial hair, etc.
+- Build/physique (e.g., "athletic", "slim", "average build")
+- Hair: color, length, style/texture
+- Clothing: style, colors, key items visible
+- Notable features: accessories, glasses, facial hair, etc.
 
-Format as a comma-separated description. Keep it under 50 words.
+Output format: Single comma-separated sentence, under 50 words, suitable for art direction.
 
-Example output: "30s male, athletic build, short dark brown hair, stubble beard, wearing navy blue casual jacket over white t-shirt, jeans, warm smile, friendly appearance"`
+Example: "20s female, slim build, long dark brown hair, wearing black top with beaded bracelet, casual office setting, friendly expression"`
           },
           {
             type: 'image_url',
@@ -79,8 +79,17 @@ Example output: "30s male, athletic build, short dark brown hair, stubble beard,
   } catch (error) {
     console.error('[CharacterDescriber] Error analyzing image:', error);
 
-    // Return a fallback description
+    // Check if it's a content policy error
     if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+
+      if (errorMessage.includes('content_policy') ||
+          errorMessage.includes('safety') ||
+          errorMessage.includes('violated') ||
+          errorMessage.includes('cannot help')) {
+        throw new Error('Image analysis blocked by content policy. Please manually enter appearance details in the fields below, or try a different reference image (e.g., illustration/artwork instead of photos).');
+      }
+
       throw new Error(`Failed to analyze character image: ${error.message}`);
     }
 
