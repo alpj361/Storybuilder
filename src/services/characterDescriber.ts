@@ -182,6 +182,18 @@ export function parseDescriptionIntoFields(aiDescription: string): {
   hair?: string;
   clothing?: string;
   distinctiveFeatures?: string[];
+  faceShape?: string;
+  eyeShape?: string;
+  eyeColor?: string;
+  eyebrows?: string;
+  nose?: string;
+  mouth?: string;
+  jawline?: string;
+  cheekbones?: string;
+  shoulderWidth?: string;
+  posture?: string;
+  skinTone?: string;
+  defaultExpression?: string;
 } {
   console.log('[CharacterDescriber] Parsing description into fields:', aiDescription);
 
@@ -193,6 +205,18 @@ export function parseDescriptionIntoFields(aiDescription: string): {
     hair?: string;
     clothing?: string;
     distinctiveFeatures?: string[];
+    faceShape?: string;
+    eyeShape?: string;
+    eyeColor?: string;
+    eyebrows?: string;
+    nose?: string;
+    mouth?: string;
+    jawline?: string;
+    cheekbones?: string;
+    shoulderWidth?: string;
+    posture?: string;
+    skinTone?: string;
+    defaultExpression?: string;
   } = {
     distinctiveFeatures: []
   };
@@ -295,6 +319,165 @@ export function parseDescriptionIntoFields(aiDescription: string): {
   // If no distinctive features found, remove the empty array
   if (result.distinctiveFeatures && result.distinctiveFeatures.length === 0) {
     delete result.distinctiveFeatures;
+  }
+
+  // Extract face shape
+  const faceShapePatterns = [
+    /(oval|round|square|heart[-\s]?shaped|angular|rectangular|diamond|triangular|oblong)[-\s]?face/i,
+    /face[-\s]?shape[:\s]+(oval|round|square|heart[-\s]?shaped|angular|rectangular|diamond|triangular|oblong)/i
+  ];
+  for (const pattern of faceShapePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.faceShape = match[1]?.trim() || match[0].trim();
+      break;
+    }
+  }
+
+  // Extract eye shape and color
+  const eyeShapePatterns = [
+    /(almond[-\s]?shaped|round|wide[-\s]?set|close[-\s]?set|hooded|upturned|downturned|monolid|deep[-\s]?set)[-\s]?eyes/i,
+    /eyes[:\s]+([^,]+?)(,|with|and)/i
+  ];
+  for (const pattern of eyeShapePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.eyeShape = match[1]?.trim() || match[0].trim();
+      break;
+    }
+  }
+
+  const eyeColorPatterns = [
+    /(blue|brown|green|hazel|amber|gray|grey|dark|light)[-\s]?eyes/i,
+    /eyes[^,]*?(blue|brown|green|hazel|amber|gray|grey|dark|light)/i
+  ];
+  for (const pattern of eyeColorPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.eyeColor = match[1]?.trim();
+      break;
+    }
+  }
+
+  // Extract eyebrows
+  const eyebrowPatterns = [
+    /(thick|thin|sparse|arched|straight|bushy|groomed|neat)[-\s]?(arched|straight)?[-\s]?eyebrows/i,
+    /eyebrows[:\s]+([^,]+)/i
+  ];
+  for (const pattern of eyebrowPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.eyebrows = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract nose
+  const nosePatterns = [
+    /(small|large|button|prominent|straight|upturned|aquiline|roman|wide|narrow|pointed)[-\s]?nose/i,
+    /nose[:\s]+([^,]+)/i
+  ];
+  for (const pattern of nosePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.nose = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract mouth/lips
+  const mouthPatterns = [
+    /(full|thin|wide|small|cupid's bow|pouty)[-\s]?lips/i,
+    /(thin|full|wide|narrow)[-\s]?mouth/i,
+    /lips[:\s]+([^,]+)/i
+  ];
+  for (const pattern of mouthPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.mouth = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract jawline
+  const jawlinePatterns = [
+    /(strong|soft|defined|angular|square|round|weak|pronounced|chiseled)[-\s]?(jaw|jawline|chin)/i,
+    /(pointed|rounded|square|soft|strong)[-\s]?chin/i
+  ];
+  for (const pattern of jawlinePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.jawline = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract cheekbones
+  const cheekbonePatterns = [
+    /(high|prominent|soft|defined|angular)[-\s]?cheekbones/i,
+    /cheekbones[:\s]+([^,]+)/i
+  ];
+  for (const pattern of cheekbonePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.cheekbones = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract shoulder width
+  const shoulderPatterns = [
+    /(broad|narrow|wide|average)[-\s]?shoulders/i,
+    /shoulders[:\s]+([^,]+)/i
+  ];
+  for (const pattern of shoulderPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.shoulderWidth = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract posture
+  const posturePatterns = [
+    /(upright|slouched|relaxed|tense|confident|hunched)[-\s]?posture/i,
+    /posture[:\s]+([^,]+)/i,
+    /(standing|sitting)[-\s]?(upright|straight|relaxed|slouched)/i
+  ];
+  for (const pattern of posturePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.posture = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract skin tone
+  const skinTonePatterns = [
+    /(fair|light|pale|olive|tan|brown|dark|ebony|porcelain|ivory|beige|bronze)[-\s]?(skin|complexion|skin tone)/i,
+    /skin[-\s]?tone[:\s]+([^,]+)/i,
+    /complexion[:\s]+([^,]+)/i
+  ];
+  for (const pattern of skinTonePatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.skinTone = match[0].trim();
+      break;
+    }
+  }
+
+  // Extract default expression
+  const expressionPatterns = [
+    /(friendly|serious|confident|shy|stern|warm|cold|neutral|happy|sad|angry|calm|intense)[-\s]?expression/i,
+    /expression[:\s]+([^,]+)/i,
+    /(smiling|frowning|grinning|smirking|neutral face)/i
+  ];
+  for (const pattern of expressionPatterns) {
+    const match = aiDescription.match(pattern);
+    if (match) {
+      result.defaultExpression = match[0].trim();
+      break;
+    }
   }
 
   console.log('[CharacterDescriber] Parsed fields:', result);
