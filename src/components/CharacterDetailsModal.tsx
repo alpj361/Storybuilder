@@ -95,12 +95,10 @@ export function CharacterDetailsModal({
                   </View>
                   <View className="bg-blue-50 border border-blue-200 rounded-lg p-2">
                     <Text className="text-xs font-semibold text-blue-900 mb-1">
-                      Reference Mode: {character.referenceMode === "visual" ? "Visual Match" : "Reference Only"}
+                      How it works:
                     </Text>
                     <Text className="text-xs text-blue-700">
-                      {character.referenceMode === "visual"
-                        ? `Uses image-to-image generation with ${Math.round((character.imageStrength || 0.35) * 100)}% match strength`
-                        : "AI describes the image, uses text description in prompts"}
+                      AI analyzes this image and generates a detailed visual description. This description is included in Panel 1's prompt to create a drawn/sketch version of the character in storyboard style.
                     </Text>
                   </View>
                 </View>
