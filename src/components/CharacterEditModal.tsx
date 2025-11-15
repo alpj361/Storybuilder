@@ -38,6 +38,7 @@ export function CharacterEditModal({
   const [imageStrength, setImageStrength] = useState(0.35);
   const [aiGeneratedDescription, setAiGeneratedDescription] = useState<string>("");
   const [isAnalyzingImage, setIsAnalyzingImage] = useState(false);
+  const [imageUrlInput, setImageUrlInput] = useState<string>("");
 
   // Initialize form with character data
   useEffect(() => {
