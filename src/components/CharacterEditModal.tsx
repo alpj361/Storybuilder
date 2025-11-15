@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { View, Text, Modal, ScrollView, Pressable, TextInput, Image, Switch, Alert, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
+import * as Clipboard from "expo-clipboard";
 import Slider from "@react-native-community/slider";
 import { Character } from "../types/storyboard";
 import { getCharacterDescription } from "../services/characterDescriber";
@@ -76,6 +77,38 @@ export function CharacterEditModal({
     }
   }, [character, mode, visible]);
 
+  // Helper function to process and analyze image
+  const processImage = async (imageUri: string) => {
+    setReferenceImage(imageUri);
+
+    // Automatically generate AI description from the reference image
+    setIsAnalyzingImage(true);
+    try {
+      console.log('[CharacterEditModal] Generating AI description from reference image...');
+      const description = await getCharacterDescription(imageUri);
+      console.log('[CharacterEditModal] AI description generated:', description);
+      setAiGeneratedDescription(description);
+      setUseReferenceInPrompt(true); // Auto-enable since they uploaded a reference
+    } catch (error) {
+      console.error('[CharacterEditModal] Failed to generate AI description:', error);
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const isContentPolicyError = errorMessage.includes('content policy') ||
+                                    errorMessage.includes('safety');
+
+      Alert.alert(
+        'AI Description Failed',
+        isContentPolicyError
+          ? errorMessage
+          : 'Could not analyze the reference image. Please enter appearance details manually in the fields below, or try a different reference image.',
+        [{ text: 'OK' }]
+      );
+      setAiGeneratedDescription('');
+    } finally {
+      setIsAnalyzingImage(false);
+    }
+  };
+
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -98,34 +131,45 @@ export function CharacterEditModal({
       const base64Image = asset.base64
         ? `data:image/jpeg;base64,${asset.base64}`
         : asset.uri;
-      setReferenceImage(base64Image);
 
-      // Automatically generate AI description from the reference image
-      setIsAnalyzingImage(true);
-      try {
-        console.log('[CharacterEditModal] Generating AI description from reference image...');
-        const description = await getCharacterDescription(base64Image);
-        console.log('[CharacterEditModal] AI description generated:', description);
-        setAiGeneratedDescription(description);
-        setUseReferenceInPrompt(true); // Auto-enable since they uploaded a reference
-      } catch (error) {
-        console.error('[CharacterEditModal] Failed to generate AI description:', error);
+      await processImage(base64Image);
+    }
+  };
 
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        const isContentPolicyError = errorMessage.includes('content policy') ||
-                                      errorMessage.includes('safety');
+  const pasteImage = async () => {
+    try {
+      // Check if clipboard has an image
+      const hasImage = await Clipboard.hasImageAsync();
 
+      if (!hasImage) {
         Alert.alert(
-          'AI Description Failed',
-          isContentPolicyError
-            ? errorMessage
-            : 'Could not analyze the reference image. Please enter appearance details manually in the fields below, or try a different reference image.',
+          'No Image Found',
+          'No image found in clipboard. Please copy an image first.',
           [{ text: 'OK' }]
         );
-        setAiGeneratedDescription('');
-      } finally {
-        setIsAnalyzingImage(false);
+        return;
       }
+
+      // Get the image from clipboard
+      const image = await Clipboard.getImageAsync({ format: 'jpeg' });
+
+      if (image && image.data) {
+        const base64Image = `data:image/jpeg;base64,${image.data}`;
+        await processImage(base64Image);
+      } else {
+        Alert.alert(
+          'Paste Failed',
+          'Could not paste image from clipboard.',
+          [{ text: 'OK' }]
+        );
+      }
+    } catch (error) {
+      console.error('[CharacterEditModal] Error pasting image:', error);
+      Alert.alert(
+        'Paste Failed',
+        'Could not paste image from clipboard. Please try selecting an image instead.',
+        [{ text: 'OK' }]
+      );
     }
   };
 
@@ -418,14 +462,26 @@ export function CharacterEditModal({
                 )}
               </View>
             ) : (
-              <Pressable
-                onPress={pickImage}
-                className="border-2 border-dashed border-blue-300 rounded-lg py-8 items-center bg-white"
-              >
-                <Ionicons name="image-outline" size={40} color="#60a5fa" />
-                <Text className="text-blue-600 font-medium mt-2">Tap to upload image</Text>
-                <Text className="text-xs text-gray-500 mt-1">JPG, PNG (recommended 1:1 aspect)</Text>
-              </Pressable>
+              <View>
+                {/* Upload Button */}
+                <Pressable
+                  onPress={pickImage}
+                  className="border-2 border-dashed border-blue-300 rounded-lg py-8 items-center bg-white mb-3"
+                >
+                  <Ionicons name="image-outline" size={40} color="#60a5fa" />
+                  <Text className="text-blue-600 font-medium mt-2">Tap to upload image</Text>
+                  <Text className="text-xs text-gray-500 mt-1">JPG, PNG (recommended 1:1 aspect)</Text>
+                </Pressable>
+
+                {/* Paste Button */}
+                <Pressable
+                  onPress={pasteImage}
+                  className="border border-gray-300 rounded-lg py-3 items-center bg-gray-50 flex-row justify-center"
+                >
+                  <Ionicons name="clipboard-outline" size={20} color="#6B7280" />
+                  <Text className="text-gray-700 font-medium ml-2">Paste from clipboard</Text>
+                </Pressable>
+              </View>
             )}
           </View>
 
