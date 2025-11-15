@@ -1,36 +1,30 @@
 /**
  * Character Description Service
- * Uses Gemini 2.0 Flash (via Clarifai) to analyze character reference images
+ * Uses OpenAI GPT-4o to analyze character reference images
  * and generate detailed appearance descriptions for image generation
- * Falls back to OpenAI GPT-4o if Clarifai fails
  */
 
 import OpenAI from 'openai';
 
-// Initialize Clarifai client using OpenAI-compatible API
-// This uses Gemini 2.0 Flash through Clarifai's infrastructure
-const getClarifaiKey = () => {
-  const key = process.env.EXPO_PUBLIC_CLARIFAI_API_KEY;
-  return key;
-};
-
+// Initialize OpenAI client
 const getOpenAIKey = () => {
   const key = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+  console.log('[CharacterDescriber] OpenAI API Key check:', {
+    exists: !!key,
+    prefix: key?.substring(0, 10)
+  });
+
+  if (!key) {
+    throw new Error('EXPO_PUBLIC_OPENAI_API_KEY environment variable is not set');
+  }
+
   return key;
 };
 
-// Clarifai client (Gemini 2.0 Flash)
-const clarifaiClient = getClarifaiKey() ? new OpenAI({
-  baseURL: 'https://api.clarifai.com/v2/ext/openai/v1',
-  apiKey: getClarifaiKey()!,
-  dangerouslyAllowBrowser: true
-}) : null;
-
-// OpenAI client (GPT-4o fallback)
-const openaiClient = getOpenAIKey() ? new OpenAI({
-  apiKey: getOpenAIKey()!,
-  dangerouslyAllowBrowser: true
-}) : null;
+const openai = new OpenAI({
+  apiKey: getOpenAIKey(),
+  dangerouslyAllowBrowser: true // Note: In production, use backend proxy
+});
 
 /**
  * Analyze a character reference image and generate a detailed description
@@ -90,109 +84,53 @@ Example: "Angular face with strong jawline, almond-shaped dark eyes with thick a
 export async function describeCharacterFromImage(
   imageBase64: string
 ): Promise<string> {
-  console.log('[CharacterDescriber] Analyzing character reference image...');
+  console.log('[CharacterDescriber] Analyzing character reference image with OpenAI GPT-4o...');
 
-  // Try Clarifai Gemini 2.0 Flash first
-  if (clarifaiClient) {
-    try {
-      console.log('[CharacterDescriber] Trying Clarifai Gemini 2.0 Flash...');
-      const response = await clarifaiClient.chat.completions.create({
-        model: 'https://clarifai.com/gcp/generate/models/gemini-2_0-flash',
-        max_tokens: 500,
-        temperature: 0.2,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: getDescriptionPrompt() },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageBase64,
-                detail: 'high'
-              }
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 500, // Increased for more detailed descriptions
+      temperature: 0.2, // Very low temperature for highly consistent descriptions
+      messages: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: getDescriptionPrompt() },
+          {
+            type: 'image_url',
+            image_url: {
+              url: imageBase64,
+              detail: 'high' // Use 'high' for better facial feature recognition
             }
-          ]
-        }]
-      });
+          }
+        ]
+      }]
+    });
 
-      const description = response.choices[0].message.content?.trim() || '';
-      console.log('[CharacterDescriber] ✓ Gemini 2.0 Flash - Success:', description);
-      console.log('[CharacterDescriber] Tokens used:', response.usage);
-      return description;
+    const description = response.choices[0].message.content?.trim() || '';
 
-    } catch (clarifaiError) {
-      console.error('[CharacterDescriber] ✗ Clarifai Gemini failed:', clarifaiError);
+    console.log('[CharacterDescriber] Generated description:', description);
+    console.log('[CharacterDescriber] Tokens used:', response.usage);
 
-      // Check if it's a 402 payment/quota error or content policy issue
-      if (clarifaiError instanceof Error) {
-        const errorMsg = clarifaiError.message.toLowerCase();
+    return description;
+  } catch (error) {
+    console.error('[CharacterDescriber] Error analyzing image:', error);
 
-        if (errorMsg.includes('402') || errorMsg.includes('payment') || errorMsg.includes('quota')) {
-          console.warn('[CharacterDescriber] Clarifai quota/payment issue (402). Falling back to OpenAI GPT-4o...');
-        } else if (errorMsg.includes('content_policy') || errorMsg.includes('safety')) {
-          console.warn('[CharacterDescriber] Clarifai content policy issue. Falling back to OpenAI GPT-4o...');
-        } else {
-          console.warn('[CharacterDescriber] Clarifai error:', errorMsg, '. Falling back to OpenAI GPT-4o...');
-        }
+    // Check if it's a content policy error
+    if (error instanceof Error) {
+      const errorMessage = error.message.toLowerCase();
+
+      if (errorMessage.includes('content_policy') ||
+          errorMessage.includes('safety') ||
+          errorMessage.includes('violated') ||
+          errorMessage.includes('cannot help')) {
+        throw new Error('Image analysis blocked by content policy. Please manually enter appearance details in the fields below, or try a different reference image (e.g., illustration/artwork instead of photos).');
       }
 
-      // Fall through to OpenAI fallback
+      throw new Error(`Failed to analyze character image: ${errorMessage}`);
     }
-  } else {
-    console.log('[CharacterDescriber] Clarifai API key not configured, using OpenAI GPT-4o...');
+
+    throw new Error('Failed to analyze character image');
   }
-
-  // Fallback to OpenAI GPT-4o
-  if (openaiClient) {
-    try {
-      console.log('[CharacterDescriber] Using OpenAI GPT-4o fallback...');
-      const response = await openaiClient.chat.completions.create({
-        model: 'gpt-4o',
-        max_tokens: 500,
-        temperature: 0.2,
-        messages: [{
-          role: 'user',
-          content: [
-            { type: 'text', text: getDescriptionPrompt() },
-            {
-              type: 'image_url',
-              image_url: {
-                url: imageBase64,
-                detail: 'high'
-              }
-            }
-          ]
-        }]
-      });
-
-      const description = response.choices[0].message.content?.trim() || '';
-      console.log('[CharacterDescriber] ✓ OpenAI GPT-4o - Success:', description);
-      console.log('[CharacterDescriber] Tokens used:', response.usage);
-      return description;
-
-    } catch (openaiError) {
-      console.error('[CharacterDescriber] ✗ OpenAI GPT-4o failed:', openaiError);
-
-      // Check if it's a content policy error
-      if (openaiError instanceof Error) {
-        const errorMessage = openaiError.message.toLowerCase();
-
-        if (errorMessage.includes('content_policy') ||
-            errorMessage.includes('safety') ||
-            errorMessage.includes('violated') ||
-            errorMessage.includes('cannot help')) {
-          throw new Error('Image analysis blocked by content policy. Please manually enter appearance details in the fields below, or try a different reference image (e.g., illustration/artwork instead of photos).');
-        }
-
-        throw new Error(`Failed to analyze character image: ${openaiError.message}`);
-      }
-
-      throw new Error('Failed to analyze character image');
-    }
-  }
-
-  // No API keys configured
-  throw new Error('No API keys configured. Please set EXPO_PUBLIC_CLARIFAI_API_KEY or EXPO_PUBLIC_OPENAI_API_KEY in your environment.');
 }
 
 /**
