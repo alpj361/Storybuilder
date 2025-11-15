@@ -98,6 +98,19 @@ export function CharacterEditModal({
       console.log('[CharacterEditModal] AI description generated:', description);
       setAiGeneratedDescription(description);
       setUseReferenceInPrompt(true); // Auto-enable since they uploaded a reference
+
+      // Auto-populate appearance fields from AI description
+      const parsedFields = parseDescriptionIntoFields(description);
+      if (parsedFields.age) setAge(parsedFields.age);
+      if (parsedFields.gender) setGender(parsedFields.gender);
+      if (parsedFields.height) setHeight(parsedFields.height);
+      if (parsedFields.build) setBuild(parsedFields.build);
+      if (parsedFields.hair) setHair(parsedFields.hair);
+      if (parsedFields.clothing) setClothing(parsedFields.clothing);
+      if (parsedFields.distinctiveFeatures?.length) {
+        setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
+      }
+      console.log('[CharacterEditModal] Appearance fields auto-populated from AI description');
     } catch (error) {
       console.error('[CharacterEditModal] Failed to generate AI description:', error);
 
@@ -190,12 +203,35 @@ export function CharacterEditModal({
     setPortraitDescription('');
   };
 
-  // Generate character portrait from AI description
+  // Generate character portrait from appearance fields
   const generatePortrait = async () => {
-    if (!aiGeneratedDescription) {
+    // Build a structured, short description from the appearance fields
+    const descriptionParts = [
+      age,
+      gender,
+      build && `${build} build`,
+      hair,
+      clothing && `wearing ${clothing}`,
+      distinctiveFeatures
+    ].filter(Boolean);
+
+    if (descriptionParts.length === 0) {
       Alert.alert(
-        'No Description',
-        'Please upload a reference image first to generate an AI description.',
+        'No Character Details',
+        'Please upload a reference image first or manually fill in appearance details.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    const structuredDescription = descriptionParts.join(', ');
+    console.log('[CharacterEditModal] Structured description for portrait:', structuredDescription);
+
+    // Check if description is too long (Stable Diffusion has ~2000 char limit for prompts)
+    if (structuredDescription.length > 500) {
+      Alert.alert(
+        'Description Too Long',
+        'Character description is too detailed. Please simplify the appearance fields and try again.',
         [{ text: 'OK' }]
       );
       return;
@@ -205,27 +241,15 @@ export function CharacterEditModal({
     try {
       console.log('[CharacterEditModal] Generating character portrait...');
 
-      // Generate portrait using rough_sketch style (default for storyboard)
-      const portrait = await generateCharacterPortrait(aiGeneratedDescription, 'rough_sketch');
+      // Generate portrait using the structured description
+      const portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
 
       setPortraitImage(portrait);
       console.log('[CharacterEditModal] Portrait generated successfully');
 
-      // Auto-populate appearance fields from AI description
-      const parsedFields = parseDescriptionIntoFields(aiGeneratedDescription);
-      if (parsedFields.age) setAge(parsedFields.age);
-      if (parsedFields.gender) setGender(parsedFields.gender);
-      if (parsedFields.height) setHeight(parsedFields.height);
-      if (parsedFields.build) setBuild(parsedFields.build);
-      if (parsedFields.hair) setHair(parsedFields.hair);
-      if (parsedFields.clothing) setClothing(parsedFields.clothing);
-      if (parsedFields.distinctiveFeatures?.length) {
-        setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
-      }
-
       Alert.alert(
         'Portrait Generated!',
-        'Character portrait created successfully. You can now re-analyze this portrait to get a description optimized for storyboard style.',
+        'Character portrait created successfully. You can now re-analyze this portrait to refine the character details.',
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -259,9 +283,22 @@ export function CharacterEditModal({
 
       setPortraitDescription(description);
 
+      // Update appearance fields from portrait analysis (overwrite existing)
+      const parsedFields = parseDescriptionIntoFields(description);
+      if (parsedFields.age) setAge(parsedFields.age);
+      if (parsedFields.gender) setGender(parsedFields.gender);
+      if (parsedFields.height) setHeight(parsedFields.height);
+      if (parsedFields.build) setBuild(parsedFields.build);
+      if (parsedFields.hair) setHair(parsedFields.hair);
+      if (parsedFields.clothing) setClothing(parsedFields.clothing);
+      if (parsedFields.distinctiveFeatures?.length) {
+        setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
+      }
+      console.log('[CharacterEditModal] Appearance fields updated from portrait analysis');
+
       Alert.alert(
         'Portrait Analyzed!',
-        'Canonical description created from the portrait. This will be used for consistent character generation across all panels.',
+        'Character details have been updated based on the portrait. This description will be used for consistent character generation across all panels.',
         [{ text: 'OK' }]
       );
     } catch (error) {
