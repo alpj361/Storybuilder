@@ -147,6 +147,11 @@ export interface Character {
   portraitImage?: string; // Generated storyboard-style character portrait (Base64)
   portraitDescription?: string; // AI description of the portrait (canonical, optimized for consistency)
   isGeneratingPortrait?: boolean; // Whether portrait is currently being generated
+
+  // Visual Identity Preservation (InstantID)
+  useVisualIdentity?: boolean; // Use InstantID to preserve visual identity from reference image
+  identityStrength?: number; // Strength of identity preservation (0.0-1.0, default 0.8)
+  portraitStyle?: 'sketch' | 'artistic' | 'photorealistic'; // Style for portrait generation
 }
 
 export interface Scene {

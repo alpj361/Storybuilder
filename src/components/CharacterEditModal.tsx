@@ -7,6 +7,7 @@ import Slider from "@react-native-community/slider";
 import { Character, StoryboardStyle } from "../types/storyboard";
 import { getCharacterDescription, parseDescriptionIntoFields } from "../services/characterDescriber";
 import { generateCharacterPortrait } from "../api/stable-diffusion";
+import { generatePortraitWithInstantID, isInstantIDAvailable } from "../services/instantId";
 import { saveCharacterToLibrary, isCharacterInLibrary } from "../services/characterLibrary";
 import CharacterLibraryModal from "./CharacterLibraryModal";
 
@@ -69,6 +70,11 @@ export function CharacterEditModal({
   const [coloration, setColoration] = useState("");
   const [size, setSize] = useState("");
 
+  // Visual Identity Preservation state
+  const [useVisualIdentity, setUseVisualIdentity] = useState(false);
+  const [identityStrength, setIdentityStrength] = useState(0.8);
+  const [portraitStyle, setPortraitStyle] = useState<'sketch' | 'artistic' | 'photorealistic'>('sketch');
+
   // UI state for collapsible sections
   const [showBasicInfo, setShowBasicInfo] = useState(true);
   const [showFaceDetails, setShowFaceDetails] = useState(false);
@@ -118,6 +124,10 @@ export function CharacterEditModal({
       setFeatures(character.appearance.features?.join(", ") || "");
       setColoration(character.appearance.coloration || "");
       setSize(character.appearance.size || "");
+      // Visual Identity fields
+      setUseVisualIdentity(character.useVisualIdentity || false);
+      setIdentityStrength(character.identityStrength || 0.8);
+      setPortraitStyle(character.portraitStyle || 'sketch');
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -157,6 +167,10 @@ export function CharacterEditModal({
       setFeatures("");
       setColoration("");
       setSize("");
+      // Reset visual identity fields
+      setUseVisualIdentity(false);
+      setIdentityStrength(0.8);
+      setPortraitStyle('sketch');
     }
   }, [character, mode, visible]);
 
@@ -391,15 +405,50 @@ export function CharacterEditModal({
     try {
       console.log('[CharacterEditModal] Generating character portrait...');
 
-      // Generate portrait using the structured description
-      const portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
+      let portrait: string;
+
+      // DECISION: Use InstantID for visual identity preservation OR standard SD
+      if (useVisualIdentity && referenceImage && isInstantIDAvailable()) {
+        // Use InstantID to preserve visual identity from reference image
+        console.log('[CharacterEditModal] Using InstantID for identity preservation');
+        console.log('[CharacterEditModal] Identity strength:', identityStrength);
+        console.log('[CharacterEditModal] Portrait style:', portraitStyle);
+
+        portrait = await generatePortraitWithInstantID({
+          prompt: structuredDescription,
+          faceImage: referenceImage,
+          identityStrength: identityStrength,
+          style: portraitStyle,
+          width: 1024,
+          height: 1024
+        });
+
+        console.log('[CharacterEditModal] InstantID portrait generated successfully');
+      } else {
+        // Use standard Stable Diffusion text-to-image
+        console.log('[CharacterEditModal] Using standard Stable Diffusion');
+
+        if (useVisualIdentity && !referenceImage) {
+          Alert.alert(
+            'No Reference Image',
+            'Visual identity preservation requires a reference image. Please upload one first.',
+            [{ text: 'OK' }]
+          );
+          setIsGeneratingPortrait(false);
+          return;
+        }
+
+        portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
+        console.log('[CharacterEditModal] Standard portrait generated successfully');
+      }
 
       setPortraitImage(portrait);
-      console.log('[CharacterEditModal] Portrait generated successfully');
 
       Alert.alert(
         'Portrait Generated!',
-        'Character portrait created successfully. You can now re-analyze this portrait to refine the character details.',
+        useVisualIdentity
+          ? 'Character portrait created with visual identity preserved! You can regenerate with different settings.'
+          : 'Character portrait created successfully. You can now re-analyze this portrait to refine the character details.',
         [{ text: 'OK' }]
       );
     } catch (error) {
