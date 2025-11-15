@@ -7,6 +7,8 @@ import Slider from "@react-native-community/slider";
 import { Character, StoryboardStyle } from "../types/storyboard";
 import { getCharacterDescription, parseDescriptionIntoFields } from "../services/characterDescriber";
 import { generateCharacterPortrait } from "../api/stable-diffusion";
+import { saveCharacterToLibrary, isCharacterInLibrary } from "../services/characterLibrary";
+import CharacterLibraryModal from "./CharacterLibraryModal";
 
 interface CharacterEditModalProps {
   visible: boolean;
@@ -62,6 +64,10 @@ export function CharacterEditModal({
   const [showBasicInfo, setShowBasicInfo] = useState(true);
   const [showFaceDetails, setShowFaceDetails] = useState(false);
   const [showBodyDetails, setShowBodyDetails] = useState(false);
+
+  // Character Library state
+  const [showLibraryModal, setShowLibraryModal] = useState(false);
+  const [isCharacterSaved, setIsCharacterSaved] = useState(false);
 
   // Initialize form with character data
   useEffect(() => {
@@ -128,6 +134,22 @@ export function CharacterEditModal({
       setDefaultExpression("");
     }
   }, [character, mode, visible]);
+
+  // Check if character is saved in library
+  useEffect(() => {
+    const checkLibraryStatus = async () => {
+      if (character?.id) {
+        const saved = await isCharacterInLibrary(character.id);
+        setIsCharacterSaved(saved);
+      } else {
+        setIsCharacterSaved(false);
+      }
+    };
+
+    if (visible) {
+      checkLibraryStatus();
+    }
+  }, [character, visible]);
 
   // Helper function to process and analyze image
   const processImage = async (imageUri: string) => {
@@ -261,12 +283,24 @@ export function CharacterEditModal({
 
   // Generate character portrait from appearance fields
   const generatePortrait = async () => {
-    // Build a structured, short description from the appearance fields
+    // Build a structured, short description from ALL appearance fields
     const descriptionParts = [
       age,
       gender,
       build && `${build} build`,
+      height,
+      shoulderWidth,
+      posture,
       hair,
+      faceShape && `${faceShape} face`,
+      skinTone && `${skinTone} skin`,
+      eyeShape && eyeColor ? `${eyeShape} ${eyeColor} eyes` : (eyeShape || eyeColor),
+      eyebrows,
+      nose,
+      mouth,
+      jawline,
+      cheekbones,
+      defaultExpression && `${defaultExpression} expression`,
       clothing && `wearing ${clothing}`,
       distinctiveFeatures
     ].filter(Boolean);
@@ -339,7 +373,7 @@ export function CharacterEditModal({
 
       setPortraitDescription(description);
 
-      // Update appearance fields from portrait analysis (overwrite existing)
+      // Update ALL appearance fields from portrait analysis (overwrite existing)
       const parsedFields = parseDescriptionIntoFields(description);
       if (parsedFields.age) setAge(parsedFields.age);
       if (parsedFields.gender) setGender(parsedFields.gender);
@@ -350,7 +384,20 @@ export function CharacterEditModal({
       if (parsedFields.distinctiveFeatures?.length) {
         setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
       }
-      console.log('[CharacterEditModal] Appearance fields updated from portrait analysis');
+      // Update new detailed appearance fields
+      if (parsedFields.faceShape) setFaceShape(parsedFields.faceShape);
+      if (parsedFields.eyeShape) setEyeShape(parsedFields.eyeShape);
+      if (parsedFields.eyeColor) setEyeColor(parsedFields.eyeColor);
+      if (parsedFields.eyebrows) setEyebrows(parsedFields.eyebrows);
+      if (parsedFields.nose) setNose(parsedFields.nose);
+      if (parsedFields.mouth) setMouth(parsedFields.mouth);
+      if (parsedFields.jawline) setJawline(parsedFields.jawline);
+      if (parsedFields.cheekbones) setCheekbones(parsedFields.cheekbones);
+      if (parsedFields.shoulderWidth) setShoulderWidth(parsedFields.shoulderWidth);
+      if (parsedFields.posture) setPosture(parsedFields.posture);
+      if (parsedFields.skinTone) setSkinTone(parsedFields.skinTone);
+      if (parsedFields.defaultExpression) setDefaultExpression(parsedFields.defaultExpression);
+      console.log('[CharacterEditModal] ALL appearance fields updated from portrait analysis');
 
       Alert.alert(
         'Portrait Analyzed!',
@@ -389,7 +436,20 @@ export function CharacterEditModal({
         distinctiveFeatures: distinctiveFeatures
           .split(",")
           .map(f => f.trim())
-          .filter(f => f.length > 0)
+          .filter(f => f.length > 0),
+        // Enhanced appearance fields
+        faceShape: faceShape.trim() || undefined,
+        eyeShape: eyeShape.trim() || undefined,
+        eyeColor: eyeColor.trim() || undefined,
+        eyebrows: eyebrows.trim() || undefined,
+        nose: nose.trim() || undefined,
+        mouth: mouth.trim() || undefined,
+        jawline: jawline.trim() || undefined,
+        cheekbones: cheekbones.trim() || undefined,
+        shoulderWidth: shoulderWidth.trim() || undefined,
+        posture: posture.trim() || undefined,
+        skinTone: skinTone.trim() || undefined,
+        defaultExpression: defaultExpression.trim() || undefined
       },
       role,
       referenceImage,
@@ -404,6 +464,109 @@ export function CharacterEditModal({
 
     onSave(updatedCharacter);
     onClose();
+  };
+
+  // Save character to library
+  const handleSaveToLibrary = async () => {
+    if (!name.trim()) {
+      Alert.alert("Validation Error", "Character name is required.");
+      return;
+    }
+
+    const characterToSave: Character = {
+      id: character?.id || `char-${Date.now()}`,
+      name: name.trim(),
+      description: description.trim(),
+      appearance: {
+        age: age.trim() || undefined,
+        gender: gender.trim() || undefined,
+        height: height.trim() || undefined,
+        build: build.trim() || undefined,
+        hair: hair.trim() || undefined,
+        clothing: clothing.trim() || undefined,
+        distinctiveFeatures: distinctiveFeatures
+          .split(",")
+          .map(f => f.trim())
+          .filter(f => f.length > 0),
+        faceShape: faceShape.trim() || undefined,
+        eyeShape: eyeShape.trim() || undefined,
+        eyeColor: eyeColor.trim() || undefined,
+        eyebrows: eyebrows.trim() || undefined,
+        nose: nose.trim() || undefined,
+        mouth: mouth.trim() || undefined,
+        jawline: jawline.trim() || undefined,
+        cheekbones: cheekbones.trim() || undefined,
+        shoulderWidth: shoulderWidth.trim() || undefined,
+        posture: posture.trim() || undefined,
+        skinTone: skinTone.trim() || undefined,
+        defaultExpression: defaultExpression.trim() || undefined
+      },
+      role,
+      referenceImage,
+      useReferenceInPrompt: referenceImage ? useReferenceInPrompt : false,
+      referenceMode: referenceImage && useReferenceInPrompt ? referenceMode : undefined,
+      imageStrength: referenceImage && useReferenceInPrompt && referenceMode === "visual" ? imageStrength : undefined,
+      aiGeneratedDescription: aiGeneratedDescription || undefined,
+      portraitImage: portraitImage || undefined,
+      portraitDescription: portraitDescription || undefined,
+      isGeneratingPortrait: false
+    };
+
+    try {
+      await saveCharacterToLibrary(characterToSave);
+      setIsCharacterSaved(true);
+      Alert.alert(
+        "Saved to Library!",
+        `${name} has been saved to your character library and can be reused in future projects.`,
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      Alert.alert(
+        "Save Failed",
+        "Could not save character to library. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
+  // Load character from library
+  const handleLoadFromLibrary = (loadedCharacter: Character) => {
+    // Populate all fields from the loaded character
+    setName(loadedCharacter.name || "");
+    setDescription(loadedCharacter.description || "");
+    setAge(loadedCharacter.appearance.age || "");
+    setGender(loadedCharacter.appearance.gender || "");
+    setHeight(loadedCharacter.appearance.height || "");
+    setBuild(loadedCharacter.appearance.build || "");
+    setHair(loadedCharacter.appearance.hair || "");
+    setClothing(loadedCharacter.appearance.clothing || "");
+    setDistinctiveFeatures(loadedCharacter.appearance.distinctiveFeatures?.join(", ") || "");
+    setFaceShape(loadedCharacter.appearance.faceShape || "");
+    setEyeShape(loadedCharacter.appearance.eyeShape || "");
+    setEyeColor(loadedCharacter.appearance.eyeColor || "");
+    setEyebrows(loadedCharacter.appearance.eyebrows || "");
+    setNose(loadedCharacter.appearance.nose || "");
+    setMouth(loadedCharacter.appearance.mouth || "");
+    setJawline(loadedCharacter.appearance.jawline || "");
+    setCheekbones(loadedCharacter.appearance.cheekbones || "");
+    setShoulderWidth(loadedCharacter.appearance.shoulderWidth || "");
+    setPosture(loadedCharacter.appearance.posture || "");
+    setSkinTone(loadedCharacter.appearance.skinTone || "");
+    setDefaultExpression(loadedCharacter.appearance.defaultExpression || "");
+    setRole(loadedCharacter.role);
+    setReferenceImage(loadedCharacter.referenceImage);
+    setUseReferenceInPrompt(loadedCharacter.useReferenceInPrompt || false);
+    setReferenceMode(loadedCharacter.referenceMode || "description");
+    setImageStrength(loadedCharacter.imageStrength || 0.35);
+    setAiGeneratedDescription(loadedCharacter.aiGeneratedDescription || "");
+    setPortraitImage(loadedCharacter.portraitImage);
+    setPortraitDescription(loadedCharacter.portraitDescription || "");
+
+    Alert.alert(
+      "Character Loaded",
+      `${loadedCharacter.name} has been loaded from your library. You can now use or modify this character.`,
+      [{ text: "OK" }]
+    );
   };
 
   const roleOptions: Array<{ value: Character["role"]; label: string; color: string }> = [
@@ -494,81 +657,256 @@ export function CharacterEditModal({
           <View className="mb-4 bg-gray-50 rounded-lg p-4">
             <Text className="text-base font-bold text-gray-900 mb-3">Appearance</Text>
 
-            <View className="space-y-3">
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">Age</Text>
-                <TextInput
-                  value={age}
-                  onChangeText={setAge}
-                  placeholder="e.g., 30s, young adult, elderly"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+            {/* Basic Info Section */}
+            <View className="mb-3">
+              <Pressable
+                onPress={() => setShowBasicInfo(!showBasicInfo)}
+                className="flex-row items-center justify-between mb-2"
+              >
+                <Text className="text-sm font-bold text-gray-800">Basic Info</Text>
+                <Ionicons
+                  name={showBasicInfo ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#4b5563"
                 />
-              </View>
+              </Pressable>
 
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">Gender</Text>
-                <TextInput
-                  value={gender}
-                  onChangeText={setGender}
-                  placeholder="e.g., male, female, non-binary"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                />
-              </View>
+              {showBasicInfo && (
+                <View className="space-y-3">
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Age</Text>
+                    <TextInput
+                      value={age}
+                      onChangeText={setAge}
+                      placeholder="e.g., 30s, young adult, elderly"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
 
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">Height</Text>
-                <TextInput
-                  value={height}
-                  onChangeText={setHeight}
-                  placeholder="e.g., tall, average, short"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                />
-              </View>
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Gender</Text>
+                    <TextInput
+                      value={gender}
+                      onChangeText={setGender}
+                      placeholder="e.g., male, female, non-binary"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
 
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">Build</Text>
-                <TextInput
-                  value={build}
-                  onChangeText={setBuild}
-                  placeholder="e.g., athletic, slim, muscular"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                />
-              </View>
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Height</Text>
+                    <TextInput
+                      value={height}
+                      onChangeText={setHeight}
+                      placeholder="e.g., tall, average, short"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
 
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">Hair</Text>
-                <TextInput
-                  value={hair}
-                  onChangeText={setHair}
-                  placeholder="e.g., short brown hair, long blonde"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                />
-              </View>
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Build</Text>
+                    <TextInput
+                      value={build}
+                      onChangeText={setBuild}
+                      placeholder="e.g., athletic, slim, muscular"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
 
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">Clothing</Text>
-                <TextInput
-                  value={clothing}
-                  onChangeText={setClothing}
-                  placeholder="e.g., business suit, casual jeans"
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                />
-              </View>
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Hair</Text>
+                    <TextInput
+                      value={hair}
+                      onChangeText={setHair}
+                      placeholder="e.g., short brown hair, long blonde"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
 
-              <View>
-                <Text className="text-xs font-semibold text-gray-600 mb-1">
-                  Distinctive Features (comma-separated)
-                </Text>
-                <TextInput
-                  value={distinctiveFeatures}
-                  onChangeText={setDistinctiveFeatures}
-                  placeholder="e.g., scar on left cheek, glasses, tattoo"
-                  multiline
-                  numberOfLines={2}
-                  className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
-                  textAlignVertical="top"
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Clothing</Text>
+                    <TextInput
+                      value={clothing}
+                      onChangeText={setClothing}
+                      placeholder="e.g., business suit, casual jeans"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">
+                      Distinctive Features (comma-separated)
+                    </Text>
+                    <TextInput
+                      value={distinctiveFeatures}
+                      onChangeText={setDistinctiveFeatures}
+                      placeholder="e.g., scar on left cheek, glasses, tattoo"
+                      multiline
+                      numberOfLines={2}
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                      textAlignVertical="top"
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Face Details Section */}
+            <View className="mb-3">
+              <Pressable
+                onPress={() => setShowFaceDetails(!showFaceDetails)}
+                className="flex-row items-center justify-between mb-2"
+              >
+                <Text className="text-sm font-bold text-gray-800">Face Details</Text>
+                <Ionicons
+                  name={showFaceDetails ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#4b5563"
                 />
-              </View>
+              </Pressable>
+
+              {showFaceDetails && (
+                <View className="space-y-3">
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Face Shape</Text>
+                    <TextInput
+                      value={faceShape}
+                      onChangeText={setFaceShape}
+                      placeholder="e.g., oval, round, square, heart-shaped"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Skin Tone</Text>
+                    <TextInput
+                      value={skinTone}
+                      onChangeText={setSkinTone}
+                      placeholder="e.g., fair, olive, tan, deep brown"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Eye Shape</Text>
+                    <TextInput
+                      value={eyeShape}
+                      onChangeText={setEyeShape}
+                      placeholder="e.g., almond, round, hooded"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Eye Color</Text>
+                    <TextInput
+                      value={eyeColor}
+                      onChangeText={setEyeColor}
+                      placeholder="e.g., brown, blue, green, hazel"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Eyebrows</Text>
+                    <TextInput
+                      value={eyebrows}
+                      onChangeText={setEyebrows}
+                      placeholder="e.g., thick dark eyebrows, arched"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Nose</Text>
+                    <TextInput
+                      value={nose}
+                      onChangeText={setNose}
+                      placeholder="e.g., straight, button, aquiline"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Mouth/Lips</Text>
+                    <TextInput
+                      value={mouth}
+                      onChangeText={setMouth}
+                      placeholder="e.g., full lips, thin lips, wide smile"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Jawline</Text>
+                    <TextInput
+                      value={jawline}
+                      onChangeText={setJawline}
+                      placeholder="e.g., strong, soft, angular"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Cheekbones</Text>
+                    <TextInput
+                      value={cheekbones}
+                      onChangeText={setCheekbones}
+                      placeholder="e.g., high, prominent, soft"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Default Expression</Text>
+                    <TextInput
+                      value={defaultExpression}
+                      onChangeText={setDefaultExpression}
+                      placeholder="e.g., neutral, smiling, serious"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+                </View>
+              )}
+            </View>
+
+            {/* Body Details Section */}
+            <View className="mb-3">
+              <Pressable
+                onPress={() => setShowBodyDetails(!showBodyDetails)}
+                className="flex-row items-center justify-between mb-2"
+              >
+                <Text className="text-sm font-bold text-gray-800">Body Details</Text>
+                <Ionicons
+                  name={showBodyDetails ? "chevron-up" : "chevron-down"}
+                  size={20}
+                  color="#4b5563"
+                />
+              </Pressable>
+
+              {showBodyDetails && (
+                <View className="space-y-3">
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Shoulder Width</Text>
+                    <TextInput
+                      value={shoulderWidth}
+                      onChangeText={setShoulderWidth}
+                      placeholder="e.g., broad, narrow, average"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Posture</Text>
+                    <TextInput
+                      value={posture}
+                      onChangeText={setPosture}
+                      placeholder="e.g., upright, slouched, confident stance"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                  </View>
+                </View>
+              )}
             </View>
           </View>
 
@@ -672,6 +1010,22 @@ export function CharacterEditModal({
                           resizeMode="contain"
                         />
 
+                        {/* Regenerate Portrait Button */}
+                        <Pressable
+                          onPress={generatePortrait}
+                          disabled={isGeneratingPortrait}
+                          className="bg-purple-500 py-2 px-4 rounded-lg items-center mb-3"
+                        >
+                          {isGeneratingPortrait ? (
+                            <View className="flex-row items-center">
+                              <ActivityIndicator size="small" color="#fff" />
+                              <Text className="text-white font-medium ml-2">Regenerating...</Text>
+                            </View>
+                          ) : (
+                            <Text className="text-white font-medium">Regenerate Portrait</Text>
+                          )}
+                        </Pressable>
+
                         {portraitDescription ? (
                           <View className="bg-white border border-purple-200 rounded-lg p-3 mb-3">
                             <Text className="text-xs font-semibold text-purple-900 mb-1">
@@ -769,6 +1123,30 @@ export function CharacterEditModal({
           </View>
         </ScrollView>
 
+        {/* Library Buttons */}
+        <View className="border-t border-gray-200 px-4 pt-3 bg-gray-50 flex-row gap-2">
+          <Pressable
+            onPress={() => setShowLibraryModal(true)}
+            className="flex-1 bg-purple-100 border border-purple-300 py-2 px-4 rounded-lg items-center active:opacity-80"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name="folder-open" size={16} color="#7c3aed" />
+              <Text className="text-purple-700 font-medium text-sm ml-2">Load from Library</Text>
+            </View>
+          </Pressable>
+          <Pressable
+            onPress={handleSaveToLibrary}
+            className="flex-1 bg-purple-600 py-2 px-4 rounded-lg items-center active:opacity-80"
+          >
+            <View className="flex-row items-center">
+              <Ionicons name={isCharacterSaved ? "checkmark-circle" : "save"} size={16} color="#fff" />
+              <Text className="text-white font-medium text-sm ml-2">
+                {isCharacterSaved ? "Update Library" : "Save to Library"}
+              </Text>
+            </View>
+          </Pressable>
+        </View>
+
         {/* Action Buttons */}
         <View className="border-t border-gray-200 p-4 bg-white flex-row gap-3">
           <Pressable
@@ -787,6 +1165,13 @@ export function CharacterEditModal({
           </Pressable>
         </View>
       </View>
+
+      {/* Character Library Modal */}
+      <CharacterLibraryModal
+        visible={showLibraryModal}
+        onClose={() => setShowLibraryModal(false)}
+        onSelectCharacter={handleLoadFromLibrary}
+      />
     </Modal>
   );
 }
