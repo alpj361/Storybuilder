@@ -103,6 +103,7 @@ export interface Character {
   name: string;
   description: string;
   appearance: {
+    // Basic information
     age?: string;
     gender?: string;
     height?: string;
@@ -110,6 +111,26 @@ export interface Character {
     hair?: string;
     clothing?: string;
     distinctiveFeatures?: string[];
+
+    // Face details
+    faceShape?: string;
+    eyeShape?: string;
+    eyeColor?: string;
+    eyebrows?: string;
+    nose?: string;
+    mouth?: string;
+    jawline?: string;
+    cheekbones?: string;
+
+    // Body details
+    shoulderWidth?: string;
+    posture?: string;
+
+    // Skin details
+    skinTone?: string;
+
+    // Expression
+    defaultExpression?: string;
   };
   personality?: string[];
   role: "protagonist" | "antagonist" | "supporting" | "background";

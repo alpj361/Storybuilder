@@ -44,6 +44,25 @@ export function CharacterEditModal({
   const [portraitDescription, setPortraitDescription] = useState<string>("");
   const [isGeneratingPortrait, setIsGeneratingPortrait] = useState(false);
 
+  // Enhanced appearance fields
+  const [faceShape, setFaceShape] = useState("");
+  const [eyeShape, setEyeShape] = useState("");
+  const [eyeColor, setEyeColor] = useState("");
+  const [eyebrows, setEyebrows] = useState("");
+  const [nose, setNose] = useState("");
+  const [mouth, setMouth] = useState("");
+  const [jawline, setJawline] = useState("");
+  const [cheekbones, setCheekbones] = useState("");
+  const [shoulderWidth, setShoulderWidth] = useState("");
+  const [posture, setPosture] = useState("");
+  const [skinTone, setSkinTone] = useState("");
+  const [defaultExpression, setDefaultExpression] = useState("");
+
+  // UI state for collapsible sections
+  const [showBasicInfo, setShowBasicInfo] = useState(true);
+  const [showFaceDetails, setShowFaceDetails] = useState(false);
+  const [showBodyDetails, setShowBodyDetails] = useState(false);
+
   // Initialize form with character data
   useEffect(() => {
     if (character) {
@@ -64,6 +83,18 @@ export function CharacterEditModal({
       setAiGeneratedDescription(character.aiGeneratedDescription || "");
       setPortraitImage(character.portraitImage);
       setPortraitDescription(character.portraitDescription || "");
+      setFaceShape(character.appearance.faceShape || "");
+      setEyeShape(character.appearance.eyeShape || "");
+      setEyeColor(character.appearance.eyeColor || "");
+      setEyebrows(character.appearance.eyebrows || "");
+      setNose(character.appearance.nose || "");
+      setMouth(character.appearance.mouth || "");
+      setJawline(character.appearance.jawline || "");
+      setCheekbones(character.appearance.cheekbones || "");
+      setShoulderWidth(character.appearance.shoulderWidth || "");
+      setPosture(character.appearance.posture || "");
+      setSkinTone(character.appearance.skinTone || "");
+      setDefaultExpression(character.appearance.defaultExpression || "");
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -83,6 +114,18 @@ export function CharacterEditModal({
       setAiGeneratedDescription("");
       setPortraitImage(undefined);
       setPortraitDescription("");
+      setFaceShape("");
+      setEyeShape("");
+      setEyeColor("");
+      setEyebrows("");
+      setNose("");
+      setMouth("");
+      setJawline("");
+      setCheekbones("");
+      setShoulderWidth("");
+      setPosture("");
+      setSkinTone("");
+      setDefaultExpression("");
     }
   }, [character, mode, visible]);
 
@@ -99,7 +142,7 @@ export function CharacterEditModal({
       setAiGeneratedDescription(description);
       setUseReferenceInPrompt(true); // Auto-enable since they uploaded a reference
 
-      // Auto-populate appearance fields from AI description
+      // Auto-populate ALL appearance fields from AI description
       const parsedFields = parseDescriptionIntoFields(description);
       if (parsedFields.age) setAge(parsedFields.age);
       if (parsedFields.gender) setGender(parsedFields.gender);
@@ -110,7 +153,20 @@ export function CharacterEditModal({
       if (parsedFields.distinctiveFeatures?.length) {
         setDistinctiveFeatures(parsedFields.distinctiveFeatures.join(', '));
       }
-      console.log('[CharacterEditModal] Appearance fields auto-populated from AI description');
+      // Enhanced appearance fields
+      if (parsedFields.faceShape) setFaceShape(parsedFields.faceShape);
+      if (parsedFields.eyeShape) setEyeShape(parsedFields.eyeShape);
+      if (parsedFields.eyeColor) setEyeColor(parsedFields.eyeColor);
+      if (parsedFields.eyebrows) setEyebrows(parsedFields.eyebrows);
+      if (parsedFields.nose) setNose(parsedFields.nose);
+      if (parsedFields.mouth) setMouth(parsedFields.mouth);
+      if (parsedFields.jawline) setJawline(parsedFields.jawline);
+      if (parsedFields.cheekbones) setCheekbones(parsedFields.cheekbones);
+      if (parsedFields.shoulderWidth) setShoulderWidth(parsedFields.shoulderWidth);
+      if (parsedFields.posture) setPosture(parsedFields.posture);
+      if (parsedFields.skinTone) setSkinTone(parsedFields.skinTone);
+      if (parsedFields.defaultExpression) setDefaultExpression(parsedFields.defaultExpression);
+      console.log('[CharacterEditModal] ALL appearance fields auto-populated from AI description');
     } catch (error) {
       console.error('[CharacterEditModal] Failed to generate AI description:', error);
 
