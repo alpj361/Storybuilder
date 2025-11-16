@@ -5,6 +5,7 @@
  */
 
 import Replicate from 'replicate';
+import * as FileSystem from 'expo-file-system';
 
 // Consistent Character model version
 export const CONSISTENT_CHARACTER_VERSION = "9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460456b831c8772";
@@ -63,42 +64,76 @@ export async function generatePortraitWithConsistentCharacter(
     if (!isUrl) {
       console.log('[ConsistentCharacter] Uploading image to Replicate Files API...');
 
-      // Convert data URI to blob/buffer for upload
-      let imageBlob: Blob;
-
-      if (imageInput.startsWith('data:')) {
-        // It's a data URI - convert to blob
-        const base64Data = imageInput.split('base64,')[1];
-        if (!base64Data) {
-          throw new Error('Invalid data URI: no base64 data found');
-        }
-
-        // Decode base64 to binary
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
-
-        // Get MIME type from data URI
-        const mimeMatch = imageInput.match(/data:([^;]+);/);
-        const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
-
-        imageBlob = new Blob([bytes], { type: mimeType });
-        console.log('[ConsistentCharacter] Converted data URI to blob:', {
-          mimeType,
-          size: imageBlob.size
-        });
-      } else {
+      if (!imageInput.startsWith('data:')) {
         throw new Error('Unsupported image format. Please use data URI or public URL.');
       }
 
-      // Upload to Replicate Files API
-      const file = await replicate.files.create(imageBlob);
-      imageInput = file.urls.get;
+      // Extract base64 data from data URI
+      const base64Data = imageInput.split('base64,')[1];
+      if (!base64Data) {
+        throw new Error('Invalid data URI: no base64 data found');
+      }
 
-      console.log('[ConsistentCharacter] Image uploaded to Replicate Files API');
-      console.log('[ConsistentCharacter] Temporary URL:', imageInput);
+      // Get MIME type from data URI
+      const mimeMatch = imageInput.match(/data:([^;]+);/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+      const extension = mimeType.split('/')[1] || 'jpg';
+
+      console.log('[ConsistentCharacter] Data URI info:', {
+        mimeType,
+        extension,
+        base64Length: base64Data.length
+      });
+
+      // Write base64 to temporary file using FileSystem
+      const tempFileName = `replicate_upload_${Date.now()}.${extension}`;
+      const tempFileUri = `${FileSystem.cacheDirectory}${tempFileName}`;
+
+      console.log('[ConsistentCharacter] Writing to temporary file:', tempFileUri);
+
+      await FileSystem.writeAsStringAsync(tempFileUri, base64Data, {
+        encoding: FileSystem.EncodingType.Base64
+      });
+
+      console.log('[ConsistentCharacter] File written, preparing upload...');
+
+      try {
+        // Create FormData for file upload (React Native compatible)
+        const formData = new FormData();
+        formData.append('content', {
+          uri: tempFileUri,
+          type: mimeType,
+          name: tempFileName
+        } as any);
+
+        // Upload to Replicate Files API using fetch
+        const uploadResponse = await fetch('https://api.replicate.com/v1/files', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Token ${getReplicateKey()}`
+          },
+          body: formData
+        });
+
+        if (!uploadResponse.ok) {
+          const errorText = await uploadResponse.text();
+          throw new Error(`Files API upload failed: ${uploadResponse.status} ${errorText}`);
+        }
+
+        const fileData = await uploadResponse.json();
+        imageInput = fileData.urls.get;
+
+        console.log('[ConsistentCharacter] Image uploaded successfully');
+        console.log('[ConsistentCharacter] Temporary URL:', imageInput);
+      } finally {
+        // Clean up temporary file
+        try {
+          await FileSystem.deleteAsync(tempFileUri, { idempotent: true });
+          console.log('[ConsistentCharacter] Temporary file cleaned up');
+        } catch (cleanupError) {
+          console.warn('[ConsistentCharacter] Failed to cleanup temp file:', cleanupError);
+        }
+      }
     }
 
     // Build storyboard-specific prompt
