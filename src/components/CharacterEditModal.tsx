@@ -192,6 +192,16 @@ export function CharacterEditModal({
 
   // Helper function to process and analyze image
   const processImage = async (imageUri: string) => {
+    // 🔍 DIAGNOSTIC: Log what processImage received
+    console.log('=== DIAGNOSTIC: processImage Input ===');
+    console.log('[processImage] imageUri type:', typeof imageUri);
+    console.log('[processImage] imageUri length:', imageUri?.length);
+    console.log('[processImage] imageUri first 100 chars:', imageUri?.substring(0, 100));
+    console.log('[processImage] Is data URI?', imageUri?.startsWith('data:'));
+    console.log('[processImage] Is file URI?', imageUri?.startsWith('file://'));
+    console.log('[processImage] Is content URI?', imageUri?.startsWith('content://'));
+    console.log('=== END DIAGNOSTIC ===');
+
     setReferenceImage(imageUri);
 
     // Automatically generate AI description from the reference image
@@ -281,10 +291,22 @@ export function CharacterEditModal({
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
+
+      // 🔍 DIAGNOSTIC: Log what image picker returned
+      console.log('=== DIAGNOSTIC: Image Picker Result ===');
+      console.log('[pickImage] asset.base64 exists?', !!asset.base64);
+      console.log('[pickImage] asset.base64 length:', asset.base64?.length || 0);
+      console.log('[pickImage] asset.uri:', asset.uri);
+      console.log('[pickImage] asset.uri type:', typeof asset.uri);
+      console.log('=== END DIAGNOSTIC ===');
+
       // Store as base64 data URI
       const base64Image = asset.base64
         ? `data:image/jpeg;base64,${asset.base64}`
         : asset.uri;
+
+      console.log('[pickImage] Final base64Image format:', base64Image.substring(0, 100));
+      console.log('[pickImage] Using base64?', !!asset.base64);
 
       await processImage(base64Image);
     }
@@ -414,6 +436,17 @@ export function CharacterEditModal({
         // Use Consistent Character to preserve visual identity from reference image
         console.log('[CharacterEditModal] Using Consistent Character for identity preservation');
         console.log('[CharacterEditModal] Seed:', portraitSeed || 'random');
+
+        // 🔍 DIAGNOSTIC: Log reference image details BEFORE sending to service
+        console.log('=== DIAGNOSTIC: Reference Image Analysis ===');
+        console.log('[CharacterEditModal] referenceImage type:', typeof referenceImage);
+        console.log('[CharacterEditModal] referenceImage length:', referenceImage?.length);
+        console.log('[CharacterEditModal] referenceImage first 100 chars:', referenceImage?.substring(0, 100));
+        console.log('[CharacterEditModal] Is data URI?', referenceImage?.startsWith('data:'));
+        console.log('[CharacterEditModal] Is file URI?', referenceImage?.startsWith('file://'));
+        console.log('[CharacterEditModal] Is content URI?', referenceImage?.startsWith('content://'));
+        console.log('[CharacterEditModal] Is http/https?', referenceImage?.startsWith('http'));
+        console.log('=== END DIAGNOSTIC ===');
 
         const result = await generatePortraitWithInstantID({
           prompt: structuredDescription,
