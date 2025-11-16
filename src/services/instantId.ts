@@ -43,6 +43,46 @@ export async function generatePortraitWithConsistentCharacter(
   console.log('[ConsistentCharacter] Seed:', options.seed || 'random');
 
   try {
+    // Validate refImage is provided
+    if (!options.refImage || options.refImage.trim() === '') {
+      throw new Error('Reference image is required but was not provided');
+    }
+
+    // Ensure image is in correct format for Replicate
+    // Replicate accepts: URLs (http/https) or data URIs (data:image/...;base64,...)
+    let imageInput = options.refImage;
+
+    // Check if it's already a data URI or URL
+    const isDataURI = imageInput.startsWith('data:');
+    const isUrl = imageInput.startsWith('http://') || imageInput.startsWith('https://');
+
+    console.log('[ConsistentCharacter] Original image format:', {
+      isDataURI,
+      isUrl,
+      length: imageInput.length,
+      preview: imageInput.substring(0, 100)
+    });
+
+    // If it's raw base64 without data URI prefix, add it
+    // Common formats from React Native image pickers
+    if (!isDataURI && !isUrl) {
+      console.log('[ConsistentCharacter] Converting raw base64 to data URI format');
+      // Assume PNG if no format specified (most common for portraits)
+      imageInput = `data:image/png;base64,${imageInput}`;
+    }
+
+    // Validate data URI format if it's base64
+    if (imageInput.startsWith('data:')) {
+      if (!imageInput.includes('base64,')) {
+        throw new Error('Invalid data URI format: missing base64 encoding marker');
+      }
+      const base64Part = imageInput.split('base64,')[1];
+      if (!base64Part || base64Part.length === 0) {
+        throw new Error('Invalid data URI format: empty base64 data');
+      }
+      console.log('[ConsistentCharacter] Data URI validated, base64 length:', base64Part.length);
+    }
+
     // Build storyboard-specific prompt
     const storyboardPrompt = buildStoryboardPrompt(options.prompt);
 
@@ -51,7 +91,7 @@ export async function generatePortraitWithConsistentCharacter(
 
     // Prepare input for Consistent Character model
     const input = {
-      image: options.refImage,
+      image: imageInput,
       prompt: storyboardPrompt,
       seed: seed,
       num_outputs: options.numOutputs || 1,
@@ -59,6 +99,7 @@ export async function generatePortraitWithConsistentCharacter(
 
     console.log('[ConsistentCharacter] Calling Replicate with version:', CONSISTENT_CHARACTER_VERSION);
     console.log('[ConsistentCharacter] Prompt:', storyboardPrompt);
+    console.log('[ConsistentCharacter] Image format being sent:', imageInput.startsWith('data:') ? 'data URI' : 'URL');
 
     // Run Consistent Character prediction using /v1/predictions endpoint
     const prediction = await replicate.predictions.create({
@@ -67,9 +108,22 @@ export async function generatePortraitWithConsistentCharacter(
     });
 
     // Wait for the prediction to complete
+    console.log('[ConsistentCharacter] Waiting for prediction:', prediction.id);
     const completedPrediction = await replicate.wait(prediction);
 
+    console.log('[ConsistentCharacter] Prediction completed with status:', completedPrediction.status);
+
+    // Check for errors in the prediction
+    if (completedPrediction.status === 'failed') {
+      const errorMessage = completedPrediction.error || 'Unknown error from Replicate';
+      console.error('[ConsistentCharacter] Prediction failed:', errorMessage);
+      console.error('[ConsistentCharacter] Full prediction object:', JSON.stringify(completedPrediction, null, 2));
+      throw new Error(`Prediction failed: ${errorMessage}`);
+    }
+
     if (!completedPrediction.output || completedPrediction.output.length === 0) {
+      console.error('[ConsistentCharacter] No output received. Status:', completedPrediction.status);
+      console.error('[ConsistentCharacter] Full prediction:', JSON.stringify(completedPrediction, null, 2));
       throw new Error('Consistent Character model returned no output');
     }
 
