@@ -148,10 +148,11 @@ export interface Character {
   portraitDescription?: string; // AI description of the portrait (canonical, optimized for consistency)
   isGeneratingPortrait?: boolean; // Whether portrait is currently being generated
 
-  // Visual Identity Preservation (InstantID)
-  useVisualIdentity?: boolean; // Use InstantID to preserve visual identity from reference image
-  identityStrength?: number; // Strength of identity preservation (0.0-1.0, default 0.8)
-  portraitStyle?: 'sketch' | 'artistic' | 'photorealistic'; // Style for portrait generation
+  // Visual Identity Preservation (Consistent Character)
+  useVisualIdentity?: boolean; // Use Consistent Character to preserve visual identity from reference image
+  portraitSeed?: number; // Seed used for portrait generation (for reproducibility)
+  portraitVersionId?: string; // Model version ID used for generation
+  portraitEngine?: string; // Engine used: "consistent-character" or "stable-diffusion"
 }
 
 export interface Scene {

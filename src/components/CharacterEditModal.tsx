@@ -7,7 +7,7 @@ import Slider from "@react-native-community/slider";
 import { Character, StoryboardStyle } from "../types/storyboard";
 import { getCharacterDescription, parseDescriptionIntoFields } from "../services/characterDescriber";
 import { generateCharacterPortrait } from "../api/stable-diffusion";
-import { generatePortraitWithInstantID, isInstantIDAvailable } from "../services/instantId";
+import { generatePortraitWithInstantID, isInstantIDAvailable, CONSISTENT_CHARACTER_VERSION } from "../services/instantId";
 import { saveCharacterToLibrary, isCharacterInLibrary } from "../services/characterLibrary";
 import CharacterLibraryModal from "./CharacterLibraryModal";
 
@@ -72,8 +72,8 @@ export function CharacterEditModal({
 
   // Visual Identity Preservation state
   const [useVisualIdentity, setUseVisualIdentity] = useState(false);
-  const [identityStrength, setIdentityStrength] = useState(0.8);
-  const [portraitStyle, setPortraitStyle] = useState<'sketch' | 'artistic' | 'photorealistic'>('sketch');
+  const [portraitSeed, setPortraitSeed] = useState<number | undefined>(undefined);
+  const [portraitEngine, setPortraitEngine] = useState<string>('stable-diffusion');
 
   // UI state for collapsible sections
   const [showBasicInfo, setShowBasicInfo] = useState(true);
@@ -126,8 +126,8 @@ export function CharacterEditModal({
       setSize(character.appearance.size || "");
       // Visual Identity fields
       setUseVisualIdentity(character.useVisualIdentity || false);
-      setIdentityStrength(character.identityStrength || 0.8);
-      setPortraitStyle(character.portraitStyle || 'sketch');
+      setPortraitSeed(character.portraitSeed);
+      setPortraitEngine(character.portraitEngine || 'stable-diffusion');
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -406,24 +406,28 @@ export function CharacterEditModal({
       console.log('[CharacterEditModal] Generating character portrait...');
 
       let portrait: string;
+      let seedUsed: number | undefined;
+      let engineUsed: string;
 
-      // DECISION: Use InstantID for visual identity preservation OR standard SD
+      // DECISION: Use Consistent Character for visual identity preservation OR standard SD
       if (useVisualIdentity && referenceImage && isInstantIDAvailable()) {
-        // Use InstantID to preserve visual identity from reference image
-        console.log('[CharacterEditModal] Using InstantID for identity preservation');
-        console.log('[CharacterEditModal] Identity strength:', identityStrength);
-        console.log('[CharacterEditModal] Portrait style:', portraitStyle);
+        // Use Consistent Character to preserve visual identity from reference image
+        console.log('[CharacterEditModal] Using Consistent Character for identity preservation');
+        console.log('[CharacterEditModal] Seed:', portraitSeed || 'random');
 
-        portrait = await generatePortraitWithInstantID({
+        const result = await generatePortraitWithInstantID({
           prompt: structuredDescription,
-          faceImage: referenceImage,
-          identityStrength: identityStrength,
-          style: portraitStyle,
-          width: 1024,
-          height: 1024
+          refImage: referenceImage,
+          seed: portraitSeed,
+          numOutputs: 1
         });
 
-        console.log('[CharacterEditModal] InstantID portrait generated successfully');
+        portrait = result.imageUrl;
+        seedUsed = result.seedUsed;
+        engineUsed = 'consistent-character';
+
+        console.log('[CharacterEditModal] Consistent Character portrait generated successfully');
+        console.log('[CharacterEditModal] Seed used:', seedUsed);
       } else {
         // Use standard Stable Diffusion text-to-image
         console.log('[CharacterEditModal] Using standard Stable Diffusion');
@@ -439,8 +443,13 @@ export function CharacterEditModal({
         }
 
         portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
+        engineUsed = 'stable-diffusion';
         console.log('[CharacterEditModal] Standard portrait generated successfully');
       }
+
+      // Update state with results
+      setPortraitSeed(seedUsed);
+      setPortraitEngine(engineUsed);
 
       setPortraitImage(portrait);
 
@@ -603,8 +612,9 @@ export function CharacterEditModal({
 
       // Visual Identity Preservation
       useVisualIdentity: useVisualIdentity,
-      identityStrength: identityStrength,
-      portraitStyle: portraitStyle
+      portraitSeed: portraitSeed,
+      portraitVersionId: CONSISTENT_CHARACTER_VERSION,
+      portraitEngine: portraitEngine
     };
 
     onSave(updatedCharacter);
@@ -675,8 +685,9 @@ export function CharacterEditModal({
 
       // Visual Identity Preservation
       useVisualIdentity: useVisualIdentity,
-      identityStrength: identityStrength,
-      portraitStyle: portraitStyle
+      portraitSeed: portraitSeed,
+      portraitVersionId: CONSISTENT_CHARACTER_VERSION,
+      portraitEngine: portraitEngine
     };
 
     try {
@@ -747,8 +758,8 @@ export function CharacterEditModal({
 
     // Visual Identity fields
     setUseVisualIdentity(loadedCharacter.useVisualIdentity || false);
-    setIdentityStrength(loadedCharacter.identityStrength || 0.8);
-    setPortraitStyle(loadedCharacter.portraitStyle || 'sketch');
+    setPortraitSeed(loadedCharacter.portraitSeed);
+    setPortraitEngine(loadedCharacter.portraitEngine || 'stable-diffusion');
 
     Alert.alert(
       "Character Loaded",
@@ -1266,8 +1277,7 @@ export function CharacterEditModal({
                 {/* Visual Identity Preservation Controls */}
                 {isInstantIDAvailable() && (
                   <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
-                    {/* Checkbox */}
-                    <View className="flex-row items-center mb-3">
+                    <View className="flex-row items-center">
                       <Switch
                         value={useVisualIdentity}
                         onValueChange={setUseVisualIdentity}
@@ -1279,67 +1289,15 @@ export function CharacterEditModal({
                           Preserve Visual Identity
                         </Text>
                         <Text className="text-xs text-purple-700 mt-0.5">
-                          Generate portrait while maintaining the character's visual appearance
+                          Use Consistent Character model to maintain visual appearance across different poses
                         </Text>
                       </View>
                     </View>
-
-                    {/* Controls (shown when enabled) */}
-                    {useVisualIdentity && (
-                      <View>
-                        {/* Identity Strength Slider */}
-                        <View className="mb-3">
-                          <View className="flex-row justify-between items-center mb-1">
-                            <Text className="text-xs font-semibold text-purple-800">
-                              Identity Strength
-                            </Text>
-                            <Text className="text-xs text-purple-700 font-medium">
-                              {Math.round(identityStrength * 100)}%
-                            </Text>
-                          </View>
-                          <Slider
-                            value={identityStrength}
-                            onValueChange={setIdentityStrength}
-                            minimumValue={0.3}
-                            maximumValue={1.0}
-                            step={0.05}
-                            minimumTrackTintColor="#9333ea"
-                            maximumTrackTintColor="#e9d5ff"
-                            thumbTintColor="#9333ea"
-                          />
-                          <View className="flex-row justify-between">
-                            <Text className="text-xs text-purple-600">Flexible</Text>
-                            <Text className="text-xs text-purple-600">Very Faithful</Text>
-                          </View>
-                        </View>
-
-                        {/* Style Selector */}
-                        <View>
-                          <Text className="text-xs font-semibold text-purple-800 mb-2">
-                            Portrait Style
-                          </Text>
-                          <View className="flex-row gap-2">
-                            {(['sketch', 'artistic', 'photorealistic'] as const).map((style) => (
-                              <Pressable
-                                key={style}
-                                onPress={() => setPortraitStyle(style)}
-                                className={`px-3 py-2 rounded-lg border ${
-                                  portraitStyle === style
-                                    ? 'bg-purple-600 border-purple-600'
-                                    : 'bg-white border-purple-300'
-                                }`}
-                              >
-                                <Text
-                                  className={`text-xs font-medium capitalize ${
-                                    portraitStyle === style ? 'text-white' : 'text-purple-700'
-                                  }`}
-                                >
-                                  {style}
-                                </Text>
-                              </Pressable>
-                            ))}
-                          </View>
-                        </View>
+                    {useVisualIdentity && portraitSeed && (
+                      <View className="mt-2 pt-2 border-t border-purple-200">
+                        <Text className="text-xs text-purple-600">
+                          Seed: {portraitSeed} • Engine: {portraitEngine}
+                        </Text>
                       </View>
                     )}
                   </View>
