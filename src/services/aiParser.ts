@@ -4,18 +4,30 @@
  */
 
 import OpenAI from 'openai';
+import Constants from 'expo-constants';
 import { Character, Scene } from '../types/storyboard';
 
 // Initialize OpenAI client
-// In Expo/React Native, environment variables must be prefixed with EXPO_PUBLIC_
-const getOpenAIKey = () => {
-  const key = process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+// IMPORTANT: In production, use a backend proxy to keep the key secure
+const getOpenAIKey = (): string => {
+  // Access API key from Expo config (loaded from .env via app.config.js)
+  const extra = Constants.expoConfig?.extra as Record<string, any> | undefined;
+  const key = extra?.EXPO_PUBLIC_OPENAI_API_KEY || process.env.EXPO_PUBLIC_OPENAI_API_KEY;
+
   console.log('[AIParser] OpenAI API Key check:', {
     exists: !!key,
     prefix: key?.substring(0, 10),
-    length: key?.length
+    length: key?.length,
+    source: 'Constants.expoConfig.extra'
   });
-  return key || 'your-api-key-here';
+
+  if (!key) {
+    throw new Error(
+      'EXPO_PUBLIC_OPENAI_API_KEY is not configured. Please check your .env file and restart the Expo server.'
+    );
+  }
+
+  return key;
 };
 
 const openai = new OpenAI({
