@@ -13,7 +13,7 @@ import * as FileSystem from 'expo-file-system';
 
 // Model versions
 export const CONSISTENT_CHARACTER_VERSION = "9c77a3c2f884193fcee4d89645f02a0b9def9434f9e03cb98460456b831c8772";
-export const IP_ADAPTER_VERSION = "chigozienri/ip_adapter-sdxl";
+export const IP_ADAPTER_VERSION = "chigozienri/ip_adapter-sdxl:904dc004af1dba5c9b13fc9e41635aeb2f9a177896a396ab3393f3f6493dbdd4";
 
 // Initialize Replicate client
 const getReplicateKey = () => {
