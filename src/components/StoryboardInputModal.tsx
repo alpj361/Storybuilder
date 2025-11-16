@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
-import { ProjectType, ArchitecturalProjectKind, Character } from "../types/storyboard";
+import { ProjectType, ArchitecturalProjectKind, Character, GenerationQuality } from "../types/storyboard";
 import { cn } from "../utils/cn";
 import { CharacterEditModal } from "./CharacterEditModal";
 import CharacterTag from "./CharacterTag";
@@ -34,6 +34,7 @@ export default function StoryboardInputModal({
   const createArchitecturalProjectFromInput = useStoryboardStore(state => state.createArchitecturalProjectFromInput);
   const appendPanelsFromInput = useStoryboardStore(state => state.appendPanelsFromInput);
   const appendArchitecturalPanelsFromInput = useStoryboardStore(state => state.appendArchitecturalPanelsFromInput);
+  const setGenerationOptions = useStoryboardStore(state => state.setGenerationOptions);
   const error = useStoryboardStore(state => state.error);
   const currentProject = useCurrentProject();
 
@@ -53,6 +54,7 @@ export default function StoryboardInputModal({
 
   const [panelCount, setPanelCount] = useState<string>(`${defaultCreateCount}`);
   const [appendCount, setAppendCount] = useState<string>("1");
+  const [generationQuality, setGenerationQuality] = useState<GenerationQuality>(GenerationQuality.STANDARD);
 
   const canAppend = useMemo(() => {
     const projectMatches = isArchitectural
@@ -136,6 +138,9 @@ export default function StoryboardInputModal({
       Alert.alert("Input Required", isArchitectural ? "Please describe the architectural detail" : "Please describe your storyboard idea");
       return;
     }
+
+    // Set generation quality before generating panels
+    setGenerationOptions({ generationQuality });
 
     setIsGenerating(true);
     try {
@@ -542,6 +547,78 @@ export default function StoryboardInputModal({
               </Text>
             </View>
           </View>
+
+          {/* Generation Quality Selector */}
+          {!isArchitectural && (
+            <View className="mb-6">
+              <Text className="text-sm font-medium text-gray-700 mb-3">
+                Calidad de Generación
+              </Text>
+              <View className="flex-row space-x-3">
+                {/* Gama Baja */}
+                <Pressable
+                  onPress={() => setGenerationQuality(GenerationQuality.STANDARD)}
+                  className={cn(
+                    "flex-1 p-4 rounded-lg border-2",
+                    generationQuality === GenerationQuality.STANDARD
+                      ? "border-blue-500 bg-blue-50"
+                      : "border-gray-300 bg-white"
+                  )}
+                >
+                  <View className="flex-row items-center mb-2">
+                    <Ionicons
+                      name={generationQuality === GenerationQuality.STANDARD ? "radio-button-on" : "radio-button-off"}
+                      size={20}
+                      color={generationQuality === GenerationQuality.STANDARD ? "#3b82f6" : "#9ca3af"}
+                    />
+                    <Text className={cn(
+                      "ml-2 font-semibold",
+                      generationQuality === GenerationQuality.STANDARD ? "text-blue-700" : "text-gray-700"
+                    )}>
+                      Gama Baja
+                    </Text>
+                  </View>
+                  <Text className={cn(
+                    "text-xs",
+                    generationQuality === GenerationQuality.STANDARD ? "text-blue-600" : "text-gray-500"
+                  )}>
+                    Rápida y económica (Stable Diffusion)
+                  </Text>
+                </Pressable>
+
+                {/* Gama Alta */}
+                <Pressable
+                  onPress={() => setGenerationQuality(GenerationQuality.HIGH)}
+                  className={cn(
+                    "flex-1 p-4 rounded-lg border-2",
+                    generationQuality === GenerationQuality.HIGH
+                      ? "border-purple-500 bg-purple-50"
+                      : "border-gray-300 bg-white"
+                  )}
+                >
+                  <View className="flex-row items-center mb-2">
+                    <Ionicons
+                      name={generationQuality === GenerationQuality.HIGH ? "radio-button-on" : "radio-button-off"}
+                      size={20}
+                      color={generationQuality === GenerationQuality.HIGH ? "#9333ea" : "#9ca3af"}
+                    />
+                    <Text className={cn(
+                      "ml-2 font-semibold",
+                      generationQuality === GenerationQuality.HIGH ? "text-purple-700" : "text-gray-700"
+                    )}>
+                      Gama Alta
+                    </Text>
+                  </View>
+                  <Text className={cn(
+                    "text-xs",
+                    generationQuality === GenerationQuality.HIGH ? "text-purple-600" : "text-gray-500"
+                  )}>
+                    Mayor calidad y detalle (Seeddream 4)
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
         </ScrollView>
 
         {/* Generate Button */}
