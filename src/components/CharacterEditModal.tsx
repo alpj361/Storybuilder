@@ -190,6 +190,14 @@ export function CharacterEditModal({
     }
   }, [character, visible]);
 
+  // Auto-disable visual identity for non-human characters
+  useEffect(() => {
+    if (characterType !== 'human' && useVisualIdentity) {
+      console.log('[CharacterEditModal] Character type changed to non-human, disabling visual identity');
+      setUseVisualIdentity(false);
+    }
+  }, [characterType]);
+
   // Helper function to process and analyze image
   const processImage = async (imageUri: string) => {
     setReferenceImage(imageUri);
@@ -1278,8 +1286,8 @@ export function CharacterEditModal({
                   </View>
                 )}
 
-                {/* Visual Identity Preservation Controls */}
-                {isInstantIDAvailable() && (
+                {/* Visual Identity Preservation Controls - Only for HUMAN characters */}
+                {isInstantIDAvailable() && characterType === 'human' && (
                   <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
                     <View className="flex-row items-center">
                       <Switch
@@ -1293,7 +1301,10 @@ export function CharacterEditModal({
                           Preserve Visual Identity
                         </Text>
                         <Text className="text-xs text-purple-700 mt-0.5">
-                          Use Consistent Character model to maintain visual appearance across different poses
+                          Use Consistent Character model to maintain facial features and appearance
+                        </Text>
+                        <Text className="text-xs text-purple-600 mt-1 italic">
+                          Requires human face in reference image
                         </Text>
                       </View>
                     </View>
@@ -1304,6 +1315,18 @@ export function CharacterEditModal({
                         </Text>
                       </View>
                     )}
+                  </View>
+                )}
+
+                {/* Info for non-human characters */}
+                {characterType !== 'human' && referenceImage && (
+                  <View className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-3">
+                    <View className="flex-row items-start">
+                      <Ionicons name="information-circle" size={18} color="#2563eb" />
+                      <Text className="flex-1 ml-2 text-xs text-blue-800">
+                        Visual identity preservation is only available for human characters. For {characterType}s, the system will use detailed text descriptions from your reference image.
+                      </Text>
+                    </View>
                   </View>
                 )}
 
