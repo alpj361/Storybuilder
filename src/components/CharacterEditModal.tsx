@@ -7,6 +7,7 @@ import Slider from "@react-native-community/slider";
 import { Character, StoryboardStyle } from "../types/storyboard";
 import { getCharacterDescription, parseDescriptionIntoFields } from "../services/characterDescriber";
 import { generateCharacterPortrait } from "../api/stable-diffusion";
+import { generatePortraitWithInstantID, isInstantIDAvailable } from "../services/instantId";
 import { saveCharacterToLibrary, isCharacterInLibrary } from "../services/characterLibrary";
 import CharacterLibraryModal from "./CharacterLibraryModal";
 
@@ -69,6 +70,11 @@ export function CharacterEditModal({
   const [coloration, setColoration] = useState("");
   const [size, setSize] = useState("");
 
+  // Visual Identity Preservation state
+  const [useVisualIdentity, setUseVisualIdentity] = useState(false);
+  const [identityStrength, setIdentityStrength] = useState(0.8);
+  const [portraitStyle, setPortraitStyle] = useState<'sketch' | 'artistic' | 'photorealistic'>('sketch');
+
   // UI state for collapsible sections
   const [showBasicInfo, setShowBasicInfo] = useState(true);
   const [showFaceDetails, setShowFaceDetails] = useState(false);
@@ -118,6 +124,10 @@ export function CharacterEditModal({
       setFeatures(character.appearance.features?.join(", ") || "");
       setColoration(character.appearance.coloration || "");
       setSize(character.appearance.size || "");
+      // Visual Identity fields
+      setUseVisualIdentity(character.useVisualIdentity || false);
+      setIdentityStrength(character.identityStrength || 0.8);
+      setPortraitStyle(character.portraitStyle || 'sketch');
     } else if (mode === "create") {
       // Reset form for new character
       setName("");
@@ -157,6 +167,10 @@ export function CharacterEditModal({
       setFeatures("");
       setColoration("");
       setSize("");
+      // Reset visual identity fields
+      setUseVisualIdentity(false);
+      setIdentityStrength(0.8);
+      setPortraitStyle('sketch');
     }
   }, [character, mode, visible]);
 
@@ -391,15 +405,50 @@ export function CharacterEditModal({
     try {
       console.log('[CharacterEditModal] Generating character portrait...');
 
-      // Generate portrait using the structured description
-      const portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
+      let portrait: string;
+
+      // DECISION: Use InstantID for visual identity preservation OR standard SD
+      if (useVisualIdentity && referenceImage && isInstantIDAvailable()) {
+        // Use InstantID to preserve visual identity from reference image
+        console.log('[CharacterEditModal] Using InstantID for identity preservation');
+        console.log('[CharacterEditModal] Identity strength:', identityStrength);
+        console.log('[CharacterEditModal] Portrait style:', portraitStyle);
+
+        portrait = await generatePortraitWithInstantID({
+          prompt: structuredDescription,
+          faceImage: referenceImage,
+          identityStrength: identityStrength,
+          style: portraitStyle,
+          width: 1024,
+          height: 1024
+        });
+
+        console.log('[CharacterEditModal] InstantID portrait generated successfully');
+      } else {
+        // Use standard Stable Diffusion text-to-image
+        console.log('[CharacterEditModal] Using standard Stable Diffusion');
+
+        if (useVisualIdentity && !referenceImage) {
+          Alert.alert(
+            'No Reference Image',
+            'Visual identity preservation requires a reference image. Please upload one first.',
+            [{ text: 'OK' }]
+          );
+          setIsGeneratingPortrait(false);
+          return;
+        }
+
+        portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
+        console.log('[CharacterEditModal] Standard portrait generated successfully');
+      }
 
       setPortraitImage(portrait);
-      console.log('[CharacterEditModal] Portrait generated successfully');
 
       Alert.alert(
         'Portrait Generated!',
-        'Character portrait created successfully. You can now re-analyze this portrait to refine the character details.',
+        useVisualIdentity
+          ? 'Character portrait created with visual identity preserved! You can regenerate with different settings.'
+          : 'Character portrait created successfully. You can now re-analyze this portrait to refine the character details.',
         [{ text: 'OK' }]
       );
     } catch (error) {
@@ -550,7 +599,12 @@ export function CharacterEditModal({
       aiGeneratedDescription: aiGeneratedDescription || undefined,
       portraitImage: portraitImage || undefined,
       portraitDescription: portraitDescription || undefined,
-      isGeneratingPortrait: false
+      isGeneratingPortrait: false,
+
+      // Visual Identity Preservation
+      useVisualIdentity: useVisualIdentity,
+      identityStrength: identityStrength,
+      portraitStyle: portraitStyle
     };
 
     onSave(updatedCharacter);
@@ -617,7 +671,12 @@ export function CharacterEditModal({
       aiGeneratedDescription: aiGeneratedDescription || undefined,
       portraitImage: portraitImage || undefined,
       portraitDescription: portraitDescription || undefined,
-      isGeneratingPortrait: false
+      isGeneratingPortrait: false,
+
+      // Visual Identity Preservation
+      useVisualIdentity: useVisualIdentity,
+      identityStrength: identityStrength,
+      portraitStyle: portraitStyle
     };
 
     try {
@@ -685,6 +744,11 @@ export function CharacterEditModal({
     setAiGeneratedDescription(loadedCharacter.aiGeneratedDescription || "");
     setPortraitImage(loadedCharacter.portraitImage);
     setPortraitDescription(loadedCharacter.portraitDescription || "");
+
+    // Visual Identity fields
+    setUseVisualIdentity(loadedCharacter.useVisualIdentity || false);
+    setIdentityStrength(loadedCharacter.identityStrength || 0.8);
+    setPortraitStyle(loadedCharacter.portraitStyle || 'sketch');
 
     Alert.alert(
       "Character Loaded",
@@ -1196,6 +1260,88 @@ export function CharacterEditModal({
                         AI will analyze this image and create a detailed visual description. This description is used in Panel 1's prompt to draw the character in storyboard style.
                       </Text>
                     </View>
+                  </View>
+                )}
+
+                {/* Visual Identity Preservation Controls */}
+                {isInstantIDAvailable() && (
+                  <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
+                    {/* Checkbox */}
+                    <View className="flex-row items-center mb-3">
+                      <Switch
+                        value={useVisualIdentity}
+                        onValueChange={setUseVisualIdentity}
+                        trackColor={{ false: "#cbd5e0", true: "#a855f7" }}
+                        thumbColor={useVisualIdentity ? "#9333ea" : "#f4f4f5"}
+                      />
+                      <View className="flex-1 ml-2">
+                        <Text className="text-sm font-semibold text-purple-900">
+                          Preserve Visual Identity
+                        </Text>
+                        <Text className="text-xs text-purple-700 mt-0.5">
+                          Generate portrait while maintaining the character's visual appearance
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Controls (shown when enabled) */}
+                    {useVisualIdentity && (
+                      <View>
+                        {/* Identity Strength Slider */}
+                        <View className="mb-3">
+                          <View className="flex-row justify-between items-center mb-1">
+                            <Text className="text-xs font-semibold text-purple-800">
+                              Identity Strength
+                            </Text>
+                            <Text className="text-xs text-purple-700 font-medium">
+                              {Math.round(identityStrength * 100)}%
+                            </Text>
+                          </View>
+                          <Slider
+                            value={identityStrength}
+                            onValueChange={setIdentityStrength}
+                            minimumValue={0.3}
+                            maximumValue={1.0}
+                            step={0.05}
+                            minimumTrackTintColor="#9333ea"
+                            maximumTrackTintColor="#e9d5ff"
+                            thumbTintColor="#9333ea"
+                          />
+                          <View className="flex-row justify-between">
+                            <Text className="text-xs text-purple-600">Flexible</Text>
+                            <Text className="text-xs text-purple-600">Very Faithful</Text>
+                          </View>
+                        </View>
+
+                        {/* Style Selector */}
+                        <View>
+                          <Text className="text-xs font-semibold text-purple-800 mb-2">
+                            Portrait Style
+                          </Text>
+                          <View className="flex-row gap-2">
+                            {(['sketch', 'artistic', 'photorealistic'] as const).map((style) => (
+                              <Pressable
+                                key={style}
+                                onPress={() => setPortraitStyle(style)}
+                                className={`px-3 py-2 rounded-lg border ${
+                                  portraitStyle === style
+                                    ? 'bg-purple-600 border-purple-600'
+                                    : 'bg-white border-purple-300'
+                                }`}
+                              >
+                                <Text
+                                  className={`text-xs font-medium capitalize ${
+                                    portraitStyle === style ? 'text-white' : 'text-purple-700'
+                                  }`}
+                                >
+                                  {style}
+                                </Text>
+                              </Pressable>
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )}
 
