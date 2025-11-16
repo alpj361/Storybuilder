@@ -41,6 +41,7 @@ export function CharacterEditModal({
   const [hair, setHair] = useState("");
   const [clothing, setClothing] = useState("");
   const [distinctiveFeatures, setDistinctiveFeatures] = useState("");
+  const [basedOn, setBasedOn] = useState(""); // Real/fictional character reference
   const [role, setRole] = useState<Character["role"]>("supporting");
   const [referenceImage, setReferenceImage] = useState<string | undefined>();
   const [useReferenceInPrompt, setUseReferenceInPrompt] = useState(false);
@@ -102,6 +103,7 @@ export function CharacterEditModal({
       setHair(character.appearance.hair || "");
       setClothing(character.appearance.clothing || "");
       setDistinctiveFeatures(character.appearance.distinctiveFeatures?.join(", ") || "");
+      setBasedOn(character.appearance.basedOn || "");
       setRole(character.role);
       setReferenceImage(character.referenceImage);
       setUseReferenceInPrompt(character.useReferenceInPrompt || false);
@@ -145,6 +147,7 @@ export function CharacterEditModal({
       setHair("");
       setClothing("");
       setDistinctiveFeatures("");
+      setBasedOn("");
       setRole("supporting");
       setReferenceImage(undefined);
       setUseReferenceInPrompt(false);
@@ -606,6 +609,7 @@ export function CharacterEditModal({
           .split(",")
           .map(f => f.trim())
           .filter(f => f.length > 0),
+        basedOn: basedOn.trim() || undefined,
 
         // Human-specific fields
         hair: hair.trim() || undefined,
@@ -680,6 +684,7 @@ export function CharacterEditModal({
           .split(",")
           .map(f => f.trim())
           .filter(f => f.length > 0),
+        basedOn: basedOn.trim() || undefined,
 
         // Human-specific fields
         hair: hair.trim() || undefined,
@@ -758,6 +763,7 @@ export function CharacterEditModal({
     setBuild(loadedCharacter.appearance.build || "");
     setClothing(loadedCharacter.appearance.clothing || "");
     setDistinctiveFeatures(loadedCharacter.appearance.distinctiveFeatures?.join(", ") || "");
+    setBasedOn(loadedCharacter.appearance.basedOn || "");
 
     // Human-specific fields
     setHair(loadedCharacter.appearance.hair || "");
@@ -1006,6 +1012,19 @@ export function CharacterEditModal({
                       className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
                       textAlignVertical="top"
                     />
+                  </View>
+
+                  <View>
+                    <Text className="text-xs font-semibold text-gray-600 mb-1">Based On</Text>
+                    <TextInput
+                      value={basedOn}
+                      onChangeText={setBasedOn}
+                      placeholder="e.g., Toothless from How to Train Your Dragon"
+                      className="border border-gray-300 rounded-lg px-3 py-2 text-sm bg-white"
+                    />
+                    <Text className="text-xs text-gray-500 mt-1">
+                      Optional: Reference to a real or fictional character
+                    </Text>
                   </View>
                 </View>
               )}
