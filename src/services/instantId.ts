@@ -75,15 +75,21 @@ export async function generatePortraitWithInstantID(
     console.log('[InstantID] Calling Replicate with model:', selectedModel);
     console.log('[InstantID] Prompt:', storyboardPrompt);
 
-    // Run InstantID prediction
-    const output = await replicate.run(selectedModel as any, { input }) as string[];
+    // Run InstantID prediction using /v1/predictions endpoint (for community models)
+    const prediction = await replicate.predictions.create({
+      version: selectedModel,
+      input: input
+    });
 
-    if (!output || output.length === 0) {
+    // Wait for the prediction to complete
+    const completedPrediction = await replicate.wait(prediction);
+
+    if (!completedPrediction.output || completedPrediction.output.length === 0) {
       throw new Error('InstantID returned no output');
     }
 
     // Get the first output image (URL)
-    const imageUrl = output[0];
+    const imageUrl = completedPrediction.output[0];
     console.log('[InstantID] Portrait generated, URL:', imageUrl);
 
     // Convert URL to base64 for consistent handling
