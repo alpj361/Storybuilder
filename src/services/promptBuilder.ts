@@ -25,6 +25,11 @@ function buildCharacterSection(character: Character): string {
   // Build character description from fills
   const parts: string[] = [];
 
+  // Start with "Based on" reference if provided
+  if (appearance.basedOn) {
+    parts.push(`Based on: ${appearance.basedOn}`);
+  }
+
   // Start with character type and species
   if (appearance.characterType) {
     const typeStr = `${appearance.characterType}`;
