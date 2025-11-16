@@ -430,7 +430,8 @@ export function CharacterEditModal({
             prompt: structuredDescription,
             refImage: referenceImage,
             seed: portraitSeed,
-            numOutputs: 1
+            numOutputs: 1,
+            context: 'portrait' // Character portrait, not scene panel
           });
 
           portrait = result.imageUrl;
@@ -452,7 +453,8 @@ export function CharacterEditModal({
             refImage: referenceImage,
             seed: portraitSeed,
             numOutputs: 1,
-            scale: 0.6 // Default influence level
+            scale: 0.75, // Increased for better feature preservation
+            context: 'portrait' // Character portrait, not scene panel
           });
 
           portrait = result.imageUrl;

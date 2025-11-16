@@ -785,10 +785,17 @@ export const useStoryboardStore = create<StoryboardState>()(
         try {
           console.log("[storyboardStore] Sending prompt to API:", panel.prompt.generatedPrompt);
 
-          // Generate image using text-to-image (no img2img)
-          // Character visual descriptions are already in the prompt from generateAllPanelPrompts
-          const imageUrl = await generateDraftStoryboardImage(
-            panel.prompt.generatedPrompt
+          // Get characters for this panel to check for visual identity preservation
+          const panelCharacterIds = panel.prompt.characters || [];
+          const panelCharacters = state.currentProject.characters.filter(c =>
+            panelCharacterIds.includes(c.id)
+          );
+
+          // Generate image using visual identity if available, otherwise standard text-to-image
+          const { generateStoryboardPanelWithVisualIdentity } = await import('../api/stable-diffusion');
+          const imageUrl = await generateStoryboardPanelWithVisualIdentity(
+            panel.prompt.generatedPrompt,
+            panelCharacters
           );
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
@@ -827,13 +834,22 @@ export const useStoryboardStore = create<StoryboardState>()(
         set({ isGenerating: true });
 
         try {
+          // Import the visual identity function
+          const { generateStoryboardPanelWithVisualIdentity } = await import('../api/stable-diffusion');
+
           // Generate images for all panels in parallel
           const imagePromises = state.currentProject.panels.map(async (panel) => {
             try {
-              // Generate image using text-to-image (no img2img)
-              // Character visual descriptions are already in the prompt
-              const imageUrl = await generateDraftStoryboardImage(
-                panel.prompt.generatedPrompt
+              // Get characters for this panel to check for visual identity preservation
+              const panelCharacterIds = panel.prompt.characters || [];
+              const panelCharacters = state.currentProject.characters.filter(c =>
+                panelCharacterIds.includes(c.id)
+              );
+
+              // Generate image using visual identity if available, otherwise standard text-to-image
+              const imageUrl = await generateStoryboardPanelWithVisualIdentity(
+                panel.prompt.generatedPrompt,
+                panelCharacters
               );
               return { panelId: panel.id, imageUrl };
             } catch (error) {
