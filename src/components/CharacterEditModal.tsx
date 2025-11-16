@@ -7,7 +7,13 @@ import Slider from "@react-native-community/slider";
 import { Character, StoryboardStyle } from "../types/storyboard";
 import { getCharacterDescription, parseDescriptionIntoFields } from "../services/characterDescriber";
 import { generateCharacterPortrait } from "../api/stable-diffusion";
-import { generatePortraitWithInstantID, isInstantIDAvailable, CONSISTENT_CHARACTER_VERSION } from "../services/instantId";
+import {
+  generatePortraitWithInstantID,
+  generatePortraitWithIPAdapter,
+  isInstantIDAvailable,
+  CONSISTENT_CHARACTER_VERSION,
+  IP_ADAPTER_VERSION
+} from "../services/instantId";
 import { saveCharacterToLibrary, isCharacterInLibrary } from "../services/characterLibrary";
 import CharacterLibraryModal from "./CharacterLibraryModal";
 
@@ -412,26 +418,50 @@ export function CharacterEditModal({
       let seedUsed: number | undefined;
       let engineUsed: string;
 
-      // DECISION: Use Consistent Character for visual identity preservation OR standard SD
+      // DECISION: Choose visual identity preservation model based on character type
       if (useVisualIdentity && referenceImage && isInstantIDAvailable()) {
-        // Use Consistent Character to preserve visual identity from reference image
-        console.log('[CharacterEditModal] Using Consistent Character for identity preservation');
-        console.log('[CharacterEditModal] Seed:', portraitSeed || 'random');
-        console.log('[CharacterEditModal] Reference image length:', referenceImage?.length);
+        // For HUMAN characters: Use Consistent Character (InstantID-based)
+        if (characterType === 'human') {
+          console.log('[CharacterEditModal] Using Consistent Character for human identity preservation');
+          console.log('[CharacterEditModal] Seed:', portraitSeed || 'random');
+          console.log('[CharacterEditModal] Reference image length:', referenceImage?.length);
 
-        const result = await generatePortraitWithInstantID({
-          prompt: structuredDescription,
-          refImage: referenceImage,
-          seed: portraitSeed,
-          numOutputs: 1
-        });
+          const result = await generatePortraitWithInstantID({
+            prompt: structuredDescription,
+            refImage: referenceImage,
+            seed: portraitSeed,
+            numOutputs: 1
+          });
 
-        portrait = result.imageUrl;
-        seedUsed = result.seedUsed;
-        engineUsed = 'consistent-character';
+          portrait = result.imageUrl;
+          seedUsed = result.seedUsed;
+          engineUsed = 'consistent-character';
 
-        console.log('[CharacterEditModal] Consistent Character portrait generated successfully');
-        console.log('[CharacterEditModal] Seed used:', seedUsed);
+          console.log('[CharacterEditModal] Consistent Character portrait generated successfully');
+          console.log('[CharacterEditModal] Seed used:', seedUsed);
+        }
+        // For NON-HUMAN characters: Use IP-Adapter
+        else {
+          console.log('[CharacterEditModal] Using IP-Adapter for non-human identity preservation');
+          console.log('[CharacterEditModal] Character type:', characterType);
+          console.log('[CharacterEditModal] Seed:', portraitSeed || 'random');
+          console.log('[CharacterEditModal] Reference image length:', referenceImage?.length);
+
+          const result = await generatePortraitWithIPAdapter({
+            prompt: structuredDescription,
+            refImage: referenceImage,
+            seed: portraitSeed,
+            numOutputs: 1,
+            scale: 0.6 // Default influence level
+          });
+
+          portrait = result.imageUrl;
+          seedUsed = result.seedUsed;
+          engineUsed = 'ip-adapter';
+
+          console.log('[CharacterEditModal] IP-Adapter portrait generated successfully');
+          console.log('[CharacterEditModal] Seed used:', seedUsed);
+        }
       } else {
         // Use standard Stable Diffusion text-to-image
         console.log('[CharacterEditModal] Using standard Stable Diffusion');
@@ -1278,7 +1308,7 @@ export function CharacterEditModal({
                   </View>
                 )}
 
-                {/* Visual Identity Preservation Controls */}
+                {/* Visual Identity Preservation Controls - Available for ALL character types */}
                 {isInstantIDAvailable() && (
                   <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
                     <View className="flex-row items-center">
@@ -1292,9 +1322,25 @@ export function CharacterEditModal({
                         <Text className="text-sm font-semibold text-purple-900">
                           Preserve Visual Identity
                         </Text>
-                        <Text className="text-xs text-purple-700 mt-0.5">
-                          Use Consistent Character model to maintain visual appearance across different poses
-                        </Text>
+                        {characterType === 'human' ? (
+                          <>
+                            <Text className="text-xs text-purple-700 mt-0.5">
+                              Use Consistent Character model to maintain facial features and appearance
+                            </Text>
+                            <Text className="text-xs text-purple-600 mt-1 italic">
+                              Requires human face in reference image
+                            </Text>
+                          </>
+                        ) : (
+                          <>
+                            <Text className="text-xs text-purple-700 mt-0.5">
+                              Use IP-Adapter to maintain visual style and appearance from reference
+                            </Text>
+                            <Text className="text-xs text-purple-600 mt-1 italic">
+                              Works with creatures, robots, animals, and other non-human subjects
+                            </Text>
+                          </>
+                        )}
                       </View>
                     </View>
                     {useVisualIdentity && portraitSeed && (
