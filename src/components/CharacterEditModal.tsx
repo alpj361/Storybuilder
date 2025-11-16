@@ -599,7 +599,12 @@ export function CharacterEditModal({
       aiGeneratedDescription: aiGeneratedDescription || undefined,
       portraitImage: portraitImage || undefined,
       portraitDescription: portraitDescription || undefined,
-      isGeneratingPortrait: false
+      isGeneratingPortrait: false,
+
+      // Visual Identity Preservation
+      useVisualIdentity: useVisualIdentity,
+      identityStrength: identityStrength,
+      portraitStyle: portraitStyle
     };
 
     onSave(updatedCharacter);
@@ -666,7 +671,12 @@ export function CharacterEditModal({
       aiGeneratedDescription: aiGeneratedDescription || undefined,
       portraitImage: portraitImage || undefined,
       portraitDescription: portraitDescription || undefined,
-      isGeneratingPortrait: false
+      isGeneratingPortrait: false,
+
+      // Visual Identity Preservation
+      useVisualIdentity: useVisualIdentity,
+      identityStrength: identityStrength,
+      portraitStyle: portraitStyle
     };
 
     try {
@@ -734,6 +744,11 @@ export function CharacterEditModal({
     setAiGeneratedDescription(loadedCharacter.aiGeneratedDescription || "");
     setPortraitImage(loadedCharacter.portraitImage);
     setPortraitDescription(loadedCharacter.portraitDescription || "");
+
+    // Visual Identity fields
+    setUseVisualIdentity(loadedCharacter.useVisualIdentity || false);
+    setIdentityStrength(loadedCharacter.identityStrength || 0.8);
+    setPortraitStyle(loadedCharacter.portraitStyle || 'sketch');
 
     Alert.alert(
       "Character Loaded",
@@ -1245,6 +1260,88 @@ export function CharacterEditModal({
                         AI will analyze this image and create a detailed visual description. This description is used in Panel 1's prompt to draw the character in storyboard style.
                       </Text>
                     </View>
+                  </View>
+                )}
+
+                {/* Visual Identity Preservation Controls */}
+                {isInstantIDAvailable() && (
+                  <View className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-3">
+                    {/* Checkbox */}
+                    <View className="flex-row items-center mb-3">
+                      <Switch
+                        value={useVisualIdentity}
+                        onValueChange={setUseVisualIdentity}
+                        trackColor={{ false: "#cbd5e0", true: "#a855f7" }}
+                        thumbColor={useVisualIdentity ? "#9333ea" : "#f4f4f5"}
+                      />
+                      <View className="flex-1 ml-2">
+                        <Text className="text-sm font-semibold text-purple-900">
+                          Preserve Visual Identity
+                        </Text>
+                        <Text className="text-xs text-purple-700 mt-0.5">
+                          Generate portrait while maintaining the character's visual appearance
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Controls (shown when enabled) */}
+                    {useVisualIdentity && (
+                      <View>
+                        {/* Identity Strength Slider */}
+                        <View className="mb-3">
+                          <View className="flex-row justify-between items-center mb-1">
+                            <Text className="text-xs font-semibold text-purple-800">
+                              Identity Strength
+                            </Text>
+                            <Text className="text-xs text-purple-700 font-medium">
+                              {Math.round(identityStrength * 100)}%
+                            </Text>
+                          </View>
+                          <Slider
+                            value={identityStrength}
+                            onValueChange={setIdentityStrength}
+                            minimumValue={0.3}
+                            maximumValue={1.0}
+                            step={0.05}
+                            minimumTrackTintColor="#9333ea"
+                            maximumTrackTintColor="#e9d5ff"
+                            thumbTintColor="#9333ea"
+                          />
+                          <View className="flex-row justify-between">
+                            <Text className="text-xs text-purple-600">Flexible</Text>
+                            <Text className="text-xs text-purple-600">Very Faithful</Text>
+                          </View>
+                        </View>
+
+                        {/* Style Selector */}
+                        <View>
+                          <Text className="text-xs font-semibold text-purple-800 mb-2">
+                            Portrait Style
+                          </Text>
+                          <View className="flex-row gap-2">
+                            {(['sketch', 'artistic', 'photorealistic'] as const).map((style) => (
+                              <Pressable
+                                key={style}
+                                onPress={() => setPortraitStyle(style)}
+                                className={`px-3 py-2 rounded-lg border ${
+                                  portraitStyle === style
+                                    ? 'bg-purple-600 border-purple-600'
+                                    : 'bg-white border-purple-300'
+                                }`}
+                              >
+                                <Text
+                                  className={`text-xs font-medium capitalize ${
+                                    portraitStyle === style ? 'text-white' : 'text-purple-700'
+                                  }`}
+                                >
+                                  {style}
+                                </Text>
+                              </Pressable>
+                            ))}
+                          </View>
+                        </View>
+                      </View>
+                    )}
                   </View>
                 )}
 
