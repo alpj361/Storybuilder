@@ -119,6 +119,7 @@ export interface Character {
     build?: string;
     clothing?: string;
     distinctiveFeatures?: string[];
+    basedOn?: string; // Real or fictional character this design is based on
 
     // HUMAN-SPECIFIC FIELDS (only for characterType === 'human')
     hair?: string;
