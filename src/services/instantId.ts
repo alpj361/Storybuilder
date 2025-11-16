@@ -48,39 +48,57 @@ export async function generatePortraitWithConsistentCharacter(
       throw new Error('Reference image is required but was not provided');
     }
 
-    // Ensure image is in correct format for Replicate
-    // Replicate accepts: URLs (http/https) or data URIs (data:image/...;base64,...)
     let imageInput = options.refImage;
 
-    // Check if it's already a data URI or URL
-    const isDataURI = imageInput.startsWith('data:');
+    // Check if it's already a public URL
     const isUrl = imageInput.startsWith('http://') || imageInput.startsWith('https://');
 
     console.log('[ConsistentCharacter] Original image format:', {
-      isDataURI,
       isUrl,
       length: imageInput.length,
       preview: imageInput.substring(0, 100)
     });
 
-    // If it's raw base64 without data URI prefix, add it
-    // Common formats from React Native image pickers
-    if (!isDataURI && !isUrl) {
-      console.log('[ConsistentCharacter] Converting raw base64 to data URI format');
-      // Assume PNG if no format specified (most common for portraits)
-      imageInput = `data:image/png;base64,${imageInput}`;
-    }
+    // If it's a data URI or local file, upload it to Replicate Files API first
+    if (!isUrl) {
+      console.log('[ConsistentCharacter] Uploading image to Replicate Files API...');
 
-    // Validate data URI format if it's base64
-    if (imageInput.startsWith('data:')) {
-      if (!imageInput.includes('base64,')) {
-        throw new Error('Invalid data URI format: missing base64 encoding marker');
+      // Convert data URI to blob/buffer for upload
+      let imageBlob: Blob;
+
+      if (imageInput.startsWith('data:')) {
+        // It's a data URI - convert to blob
+        const base64Data = imageInput.split('base64,')[1];
+        if (!base64Data) {
+          throw new Error('Invalid data URI: no base64 data found');
+        }
+
+        // Decode base64 to binary
+        const binaryString = atob(base64Data);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        // Get MIME type from data URI
+        const mimeMatch = imageInput.match(/data:([^;]+);/);
+        const mimeType = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+
+        imageBlob = new Blob([bytes], { type: mimeType });
+        console.log('[ConsistentCharacter] Converted data URI to blob:', {
+          mimeType,
+          size: imageBlob.size
+        });
+      } else {
+        throw new Error('Unsupported image format. Please use data URI or public URL.');
       }
-      const base64Part = imageInput.split('base64,')[1];
-      if (!base64Part || base64Part.length === 0) {
-        throw new Error('Invalid data URI format: empty base64 data');
-      }
-      console.log('[ConsistentCharacter] Data URI validated, base64 length:', base64Part.length);
+
+      // Upload to Replicate Files API
+      const file = await replicate.files.create(imageBlob);
+      imageInput = file.urls.get;
+
+      console.log('[ConsistentCharacter] Image uploaded to Replicate Files API');
+      console.log('[ConsistentCharacter] Temporary URL:', imageInput);
     }
 
     // Build storyboard-specific prompt
@@ -99,7 +117,7 @@ export async function generatePortraitWithConsistentCharacter(
 
     console.log('[ConsistentCharacter] Calling Replicate with version:', CONSISTENT_CHARACTER_VERSION);
     console.log('[ConsistentCharacter] Prompt:', storyboardPrompt);
-    console.log('[ConsistentCharacter] Image format being sent:', imageInput.startsWith('data:') ? 'data URI' : 'URL');
+    console.log('[ConsistentCharacter] Image URL:', imageInput);
 
     // Run Consistent Character prediction using /v1/predictions endpoint
     const prediction = await replicate.predictions.create({
