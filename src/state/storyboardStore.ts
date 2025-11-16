@@ -7,6 +7,7 @@ import {
   StoryboardPrompt,
   StoryboardStyle,
   GenerationOptions,
+  GenerationQuality,
   ProjectType,
   ArchitecturalMetadata,
   ArchitecturalProjectKind,
@@ -65,7 +66,8 @@ const defaultGenerationOptions: GenerationOptions = {
   quality: "medium",
   size: "1024x1024",
   enhancePrompt: true,
-  maintainCharacterConsistency: true
+  maintainCharacterConsistency: true,
+  generationQuality: GenerationQuality.STANDARD // Default: Gama baja (Stable Diffusion)
 };
 
 export const useStoryboardStore = create<StoryboardState>()(

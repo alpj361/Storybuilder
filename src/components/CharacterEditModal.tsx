@@ -418,7 +418,10 @@ export function CharacterEditModal({
       let seedUsed: number | undefined;
       let engineUsed: string;
 
-      // DECISION: Choose visual identity preservation model based on character type
+      // PORTRAIT GENERATION: Now using ONLY Stable Diffusion for all character types
+      // Consistent Character and IP-Adapter are kept inactive for future use
+
+      /* DISABLED: Visual Identity Preservation (Phase 3 - to be re-enabled later)
       if (useVisualIdentity && referenceImage && isInstantIDAvailable()) {
         // For HUMAN characters: Use Consistent Character (InstantID-based)
         if (characterType === 'human') {
@@ -465,23 +468,17 @@ export function CharacterEditModal({
           console.log('[CharacterEditModal] Seed used:', seedUsed);
         }
       } else {
-        // Use standard Stable Diffusion text-to-image
-        console.log('[CharacterEditModal] Using standard Stable Diffusion');
+      */
 
-        if (useVisualIdentity && !referenceImage) {
-          Alert.alert(
-            'No Reference Image',
-            'Visual identity preservation requires a reference image. Please upload one first.',
-            [{ text: 'OK' }]
-          );
-          setIsGeneratingPortrait(false);
-          return;
-        }
+      // Use Stable Diffusion for ALL character portraits
+      console.log('[CharacterEditModal] Using Stable Diffusion for character portrait');
+      console.log('[CharacterEditModal] Character type:', characterType);
 
-        portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
-        engineUsed = 'stable-diffusion';
-        console.log('[CharacterEditModal] Standard portrait generated successfully');
-      }
+      portrait = await generateCharacterPortrait(structuredDescription, 'rough_sketch');
+      engineUsed = 'stable-diffusion';
+      console.log('[CharacterEditModal] Stable Diffusion portrait generated successfully');
+
+      // } // End of disabled visual identity block
 
       // Update state with results
       setPortraitSeed(seedUsed);
@@ -648,7 +645,8 @@ export function CharacterEditModal({
 
       // Visual Identity Preservation
       useVisualIdentity: useVisualIdentity,
-      portraitSeed: portraitSeed,
+      // Generate unique seed if doesn't exist (seed serves as Character ID)
+      portraitSeed: portraitSeed || Math.floor(Math.random() * 1e9),
       portraitVersionId: CONSISTENT_CHARACTER_VERSION,
       portraitEngine: portraitEngine
     };
@@ -721,7 +719,8 @@ export function CharacterEditModal({
 
       // Visual Identity Preservation
       useVisualIdentity: useVisualIdentity,
-      portraitSeed: portraitSeed,
+      // Generate unique seed if doesn't exist (seed serves as Character ID)
+      portraitSeed: portraitSeed || Math.floor(Math.random() * 1e9),
       portraitVersionId: CONSISTENT_CHARACTER_VERSION,
       portraitEngine: portraitEngine
     };
