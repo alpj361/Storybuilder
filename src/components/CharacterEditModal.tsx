@@ -281,6 +281,21 @@ export function CharacterEditModal({
 
     if (!result.canceled && result.assets[0]) {
       const asset = result.assets[0];
+
+      // 🔍 DIAGNOSTIC: Show what image picker returned
+      const diagnosticInfo = `
+📊 IMAGE PICKER DIAGNOSTIC:
+
+Has base64? ${!!asset.base64}
+Base64 length: ${asset.base64?.length || 0}
+URI: ${asset.uri}
+URI type: ${typeof asset.uri}
+
+Will use: ${asset.base64 ? 'BASE64 (data URI)' : 'URI (file/content)'}
+      `.trim();
+
+      Alert.alert('🔍 Diagnostic: Image Picker', diagnosticInfo, [{ text: 'Continue' }]);
+
       // Store as base64 data URI
       const base64Image = asset.base64
         ? `data:image/jpeg;base64,${asset.base64}`
@@ -414,6 +429,31 @@ export function CharacterEditModal({
         // Use Consistent Character to preserve visual identity from reference image
         console.log('[CharacterEditModal] Using Consistent Character for identity preservation');
         console.log('[CharacterEditModal] Seed:', portraitSeed || 'random');
+
+        // 🔍 DIAGNOSTIC: Show reference image details BEFORE sending to service
+        const refImageDiagnostic = `
+📊 REFERENCE IMAGE DIAGNOSTIC:
+
+Type: ${typeof referenceImage}
+Length: ${referenceImage?.length}
+Preview: ${referenceImage?.substring(0, 80)}...
+
+Format detected:
+✓ Data URI? ${referenceImage?.startsWith('data:')}
+✓ File URI? ${referenceImage?.startsWith('file://')}
+✓ Content URI? ${referenceImage?.startsWith('content://')}
+✓ HTTP/HTTPS? ${referenceImage?.startsWith('http')}
+
+⚠️ PROBLEM: If it's file:// or content://, Replicate CAN'T access it!
+Only data: or https: work.
+        `.trim();
+
+        // Show diagnostic and wait for user to acknowledge
+        await new Promise<void>((resolve) => {
+          Alert.alert('🔍 Diagnostic: Before Sending to API', refImageDiagnostic, [
+            { text: 'Continue', onPress: () => resolve() }
+          ]);
+        });
 
         const result = await generatePortraitWithInstantID({
           prompt: structuredDescription,
