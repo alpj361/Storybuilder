@@ -169,8 +169,8 @@ export function CharacterEditModal({
       setSize("");
       // Reset visual identity fields
       setUseVisualIdentity(false);
-      setIdentityStrength(0.8);
-      setPortraitStyle('sketch');
+      setPortraitSeed(undefined);
+      setPortraitEngine('stable-diffusion');
     }
   }, [character, mode, visible]);
 
