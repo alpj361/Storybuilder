@@ -46,6 +46,12 @@ export enum ArchitecturalDetailLevel {
 
 export type UnitSystem = "metric" | "imperial";
 
+// Generation quality tiers for storyboard panels
+export enum GenerationQuality {
+  STANDARD = "standard", // Gama baja - Stable Diffusion SDXL
+  HIGH = "high"          // Gama alta - Seeddream 4
+}
+
 export interface ArchitecturalMetadata {
   unitSystem: UnitSystem;
   primaryView: ArchitecturalViewType;
@@ -246,6 +252,7 @@ export interface GenerationOptions {
   size: "1024x1024" | "1536x1024" | "1024x1536";
   enhancePrompt: boolean;
   maintainCharacterConsistency: boolean;
+  generationQuality: GenerationQuality; // Gama baja (Stable Diffusion) o Gama alta (Seeddream 4)
 }
 
 export interface PromptGenerationResult {
