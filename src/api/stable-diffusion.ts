@@ -330,6 +330,78 @@ export async function generateCharacterPortrait(
 }
 
 /**
+ * Generate a storyboard panel with optional visual identity preservation
+ * @param scenePrompt - The scene description prompt for the panel
+ * @param characters - Array of characters with potential visual identity data
+ * @returns Base64 encoded image data
+ */
+export async function generateStoryboardPanelWithVisualIdentity(
+  scenePrompt: string,
+  characters?: Array<{
+    id: string;
+    name: string;
+    appearance: {
+      characterType?: 'human' | 'creature' | 'robot' | 'animal' | 'alien' | 'hybrid' | 'other';
+    };
+    referenceImage?: string;
+    useVisualIdentity?: boolean;
+    portraitSeed?: number;
+    portraitEngine?: string;
+  }>
+): Promise<string> {
+  console.log("[generateStoryboardPanelWithVisualIdentity] Generating panel with scene:", scenePrompt);
+  console.log("[generateStoryboardPanelWithVisualIdentity] Characters provided:", characters?.length || 0);
+
+  // Check if any character has visual identity enabled
+  const characterWithVisualIdentity = characters?.find(c =>
+    c.useVisualIdentity && c.referenceImage && c.portraitSeed
+  );
+
+  if (characterWithVisualIdentity) {
+    console.log("[generateStoryboardPanelWithVisualIdentity] Using visual identity for character:", characterWithVisualIdentity.name);
+    console.log("[generateStoryboardPanelWithVisualIdentity] Character type:", characterWithVisualIdentity.appearance.characterType);
+    console.log("[generateStoryboardPanelWithVisualIdentity] Engine:", characterWithVisualIdentity.portraitEngine);
+
+    // Import the visual identity service functions
+    const {
+      generatePortraitWithIPAdapter,
+      generatePortraitWithConsistentCharacter
+    } = await import('../services/instantId');
+
+    try {
+      // Choose the appropriate model based on character type
+      const isHuman = characterWithVisualIdentity.appearance.characterType === 'human';
+
+      const result = isHuman
+        ? await generatePortraitWithConsistentCharacter({
+            prompt: scenePrompt,
+            refImage: characterWithVisualIdentity.referenceImage!,
+            seed: characterWithVisualIdentity.portraitSeed,
+            numOutputs: 1,
+            context: 'scene' // Important: this is a scene, not a portrait!
+          })
+        : await generatePortraitWithIPAdapter({
+            prompt: scenePrompt,
+            refImage: characterWithVisualIdentity.referenceImage!,
+            seed: characterWithVisualIdentity.portraitSeed,
+            numOutputs: 1,
+            context: 'scene' // Important: this is a scene, not a portrait!
+          });
+
+      console.log("[generateStoryboardPanelWithVisualIdentity] Panel generated with visual identity");
+      return result.imageUrl;
+    } catch (error) {
+      console.error("[generateStoryboardPanelWithVisualIdentity] Visual identity generation failed, falling back to standard:", error);
+      // Fall back to standard generation if visual identity fails
+    }
+  }
+
+  // No visual identity or fallback: use standard text-to-image
+  console.log("[generateStoryboardPanelWithVisualIdentity] Using standard text-to-image generation");
+  return await generateDraftStoryboardImage(scenePrompt);
+}
+
+/**
  * Convert base64 image to data URI for display in React Native
  * @param base64Data Base64 encoded image data
  * @returns Data URI for the image (compatible with React Native Image component)

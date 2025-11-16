@@ -33,6 +33,7 @@ export interface ConsistentCharacterOptions {
   refImage: string; // Base64 or URL - reference image of the character
   seed?: number; // Optional seed for reproducibility
   numOutputs?: number; // Number of variations to generate (default 1)
+  context?: 'portrait' | 'scene'; // Generation context (default: portrait)
 }
 
 export interface IPAdapterOptions {
@@ -40,8 +41,9 @@ export interface IPAdapterOptions {
   refImage: string; // Base64 or URL - reference image of the character
   seed?: number; // Optional seed for reproducibility
   numOutputs?: number; // Number of variations to generate (1-4, default 1)
-  scale?: number; // Influence of reference image (0-1, default 0.6)
+  scale?: number; // Influence of reference image (0-1, default 0.75)
   negativePrompt?: string; // Elements to avoid in generation
+  context?: 'portrait' | 'scene'; // Generation context (default: portrait)
 }
 
 /**
@@ -66,8 +68,9 @@ export async function generatePortraitWithConsistentCharacter(
     // Upload image to Replicate Files API (or use URL as-is)
     const imageInput = await uploadImageToReplicateFiles(options.refImage, 'ConsistentCharacter');
 
-    // Build storyboard-specific prompt
-    const storyboardPrompt = buildStoryboardPrompt(options.prompt);
+    // Build storyboard-specific prompt based on context
+    const context = options.context || 'portrait';
+    const storyboardPrompt = buildStoryboardPrompt(options.prompt, context);
 
     // Generate or use provided seed
     const seed = options.seed ?? Math.floor(Math.random() * 1e9);
@@ -160,19 +163,26 @@ export async function generatePortraitWithIPAdapter(
     // Upload image to Replicate Files API (or use URL as-is)
     const imageInput = await uploadImageToReplicateFiles(options.refImage, 'IPAdapter');
 
-    // Build storyboard-specific prompt
-    const storyboardPrompt = buildStoryboardPrompt(options.prompt);
+    // Build storyboard-specific prompt based on context
+    const context = options.context || 'portrait';
+    const storyboardPrompt = buildStoryboardPrompt(options.prompt, context);
 
     // Generate or use provided seed
     const seed = options.seed ?? Math.floor(Math.random() * 1e9);
+
+    // Build comprehensive negative prompt to prevent misinterpretation
+    const defaultNegativePrompt = 'blurry, low quality, distorted, deformed, ugly, bad anatomy, bad proportions, malformed, mutated, disfigured';
+    const sceneNegativePrompt = 'airplane, aircraft, spaceship, vehicle, mechanical device, robot, machine, jet, plane, ufo';
+    const baseNegative = options.negativePrompt || defaultNegativePrompt;
+    const finalNegativePrompt = context === 'scene' ? `${baseNegative}, ${sceneNegativePrompt}` : baseNegative;
 
     // Prepare input for IP-Adapter model
     // Schema: https://replicate.com/chigozienri/ip_adapter-sdxl
     const input = {
       image: imageInput,                          // Reference image (URI)
       prompt: storyboardPrompt,                   // Description of what to generate
-      negative_prompt: options.negativePrompt || 'blurry, low quality, distorted, deformed', // Elements to avoid
-      scale: options.scale ?? 0.6,                // Influence of reference image (0-1)
+      negative_prompt: finalNegativePrompt,       // Elements to avoid
+      scale: options.scale ?? 0.75,               // Influence of reference image (0-1, increased for better preservation)
       num_outputs: options.numOutputs || 1,       // Number of images (1-4)
       num_inference_steps: 30,                    // Denoising steps
       seed: seed                                   // For reproducibility
@@ -218,12 +228,20 @@ export async function generatePortraitWithIPAdapter(
 }
 
 /**
- * Build a storyboard-optimized prompt for Consistent Character
+ * Build a storyboard-optimized prompt based on context
+ * @param characterDescription - Description of character or scene
+ * @param context - 'portrait' for reference sheet, 'scene' for storyboard panel
  */
-function buildStoryboardPrompt(characterDescription: string): string {
+function buildStoryboardPrompt(characterDescription: string, context: 'portrait' | 'scene' = 'portrait'): string {
   const storyboardStyle = 'rough pencil sketch, loose gestural lines, black and white, draft quality, hand-drawn appearance, storyboard style';
 
-  return `${storyboardStyle}, ${characterDescription}, character portrait, front view, neutral background, character reference sheet`;
+  if (context === 'portrait') {
+    // For character portraits: static reference sheet
+    return `${storyboardStyle}, ${characterDescription}, character portrait, front view, neutral background, character reference sheet`;
+  } else {
+    // For scene panels: dynamic action in context
+    return `${storyboardStyle}, ${characterDescription}, dynamic composition, storyboard panel`;
+  }
 }
 
 /**
