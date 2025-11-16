@@ -143,16 +143,23 @@ export async function generatePortraitWithConsistentCharacter(
     const seed = options.seed ?? Math.floor(Math.random() * 1e9);
 
     // Prepare input for Consistent Character model
+    // Schema: https://replicate.com/sdxl-based/consistent-character
     const input = {
-      image: imageInput,
-      prompt: storyboardPrompt,
-      seed: seed,
-      num_outputs: options.numOutputs || 1,
+      subject: imageInput,                      // Image of the person (URI)
+      prompt: storyboardPrompt,                 // Description of what to generate
+      seed: seed,                               // For reproducibility
+      number_of_outputs: options.numOutputs || 1, // How many images to generate
+      output_format: 'png',                     // Format: webp/jpg/png
+      output_quality: 90,                       // Quality: 0-100
+      randomise_poses: false,                   // Keep consistent pose
+      number_of_images_per_pose: 1,            // Images per pose
+      disable_safety_checker: false             // Keep safety checker enabled
     };
 
     console.log('[ConsistentCharacter] Calling Replicate with version:', CONSISTENT_CHARACTER_VERSION);
     console.log('[ConsistentCharacter] Prompt:', storyboardPrompt);
-    console.log('[ConsistentCharacter] Image URL:', imageInput);
+    console.log('[ConsistentCharacter] Subject URL:', imageInput);
+    console.log('[ConsistentCharacter] Input params:', JSON.stringify(input, null, 2));
 
     // Run Consistent Character prediction using /v1/predictions endpoint
     const prediction = await replicate.predictions.create({
