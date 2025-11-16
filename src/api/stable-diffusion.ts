@@ -331,8 +331,9 @@ export async function generateCharacterPortrait(
 
 /**
  * Generate a storyboard panel with optional visual identity preservation
- * @param scenePrompt - The scene description prompt for the panel
+ * @param scenePrompt - The scene description prompt for the panel (can be structured 6-section GPT prompt)
  * @param characters - Array of characters with potential visual identity data
+ * @param generationQuality - Quality tier: 'standard' (Stable Diffusion) or 'high' (Seeddream 4)
  * @returns Base64 encoded image data
  */
 export async function generateStoryboardPanelWithVisualIdentity(
@@ -347,11 +348,14 @@ export async function generateStoryboardPanelWithVisualIdentity(
     useVisualIdentity?: boolean;
     portraitSeed?: number;
     portraitEngine?: string;
-  }>
+  }>,
+  generationQuality?: 'standard' | 'high'
 ): Promise<string> {
-  console.log("[generateStoryboardPanelWithVisualIdentity] Generating panel with scene:", scenePrompt);
-  console.log("[generateStoryboardPanelWithVisualIdentity] Characters provided:", characters?.length || 0);
+  console.log("[generateStoryboardPanelWithVisualIdentity] Generating panel");
+  console.log("[generateStoryboardPanelWithVisualIdentity] Quality tier:", generationQuality || 'standard');
+  console.log("[generateStoryboardPanelWithVisualIdentity] Prompt length:", scenePrompt.length);
 
+  /* DISABLED: Visual Identity Preservation (Phase 4 - to be re-enabled later)
   // Check if any character has visual identity enabled
   const characterWithVisualIdentity = characters?.find(c =>
     c.useVisualIdentity && c.referenceImage && c.portraitSeed
@@ -395,10 +399,21 @@ export async function generateStoryboardPanelWithVisualIdentity(
       // Fall back to standard generation if visual identity fails
     }
   }
+  */
 
-  // No visual identity or fallback: use standard text-to-image
-  console.log("[generateStoryboardPanelWithVisualIdentity] Using standard text-to-image generation");
-  return await generateDraftStoryboardImage(scenePrompt);
+  // CURRENT: Use quality-based generation (Stable Diffusion or Seeddream 4)
+  // scenePrompt should be a GPT-generated 6-section structured prompt
+
+  if (generationQuality === 'high') {
+    // Use Seeddream 4 for high quality generation
+    console.log("[generateStoryboardPanelWithVisualIdentity] Using Seeddream 4 (Gama Alta)");
+    const { generateWithSeedream } = await import('./seedream');
+    return await generateWithSeedream(scenePrompt, { aspectRatio: '4:3' });
+  } else {
+    // Use Stable Diffusion SDXL for standard quality (default)
+    console.log("[generateStoryboardPanelWithVisualIdentity] Using Stable Diffusion SDXL (Gama Baja)");
+    return await generateDraftStoryboardImage(scenePrompt);
+  }
 }
 
 /**
