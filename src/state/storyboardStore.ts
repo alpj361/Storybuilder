@@ -797,7 +797,8 @@ export const useStoryboardStore = create<StoryboardState>()(
           const { generateStoryboardPanelWithVisualIdentity } = await import('../api/stable-diffusion');
           const imageUrl = await generateStoryboardPanelWithVisualIdentity(
             panel.prompt.generatedPrompt,
-            panelCharacters
+            panelCharacters,
+            state.generationOptions.generationQuality // Pass quality tier (standard/high)
           );
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
@@ -851,7 +852,8 @@ export const useStoryboardStore = create<StoryboardState>()(
               // Generate image using visual identity if available, otherwise standard text-to-image
               const imageUrl = await generateStoryboardPanelWithVisualIdentity(
                 panel.prompt.generatedPrompt,
-                panelCharacters
+                panelCharacters,
+                state.generationOptions.generationQuality // Pass quality tier (standard/high)
               );
               return { panelId: panel.id, imageUrl };
             } catch (error) {

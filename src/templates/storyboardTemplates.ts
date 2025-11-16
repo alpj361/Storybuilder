@@ -7,6 +7,7 @@ import {
   Scene
 } from "../types/storyboard";
 import { getCharacterDescription } from "../services/characterDescriber";
+import { generateStructuredPrompt } from "../services/promptBuilder";
 
 /**
  * Base style templates for different storyboard drawing styles
@@ -122,7 +123,7 @@ export const PANEL_TYPE_TEMPLATES = {
 };
 
 /**
- * Generate a complete AI-ready prompt for a storyboard panel
+ * Generate a complete AI-ready prompt for a storyboard panel using GPT
  * @param prompt - The panel prompt configuration
  * @param characters - All characters in the project
  * @param scene - The scene for this panel
@@ -134,140 +135,39 @@ export async function generateStoryboardPrompt(
   scene: Scene,
   previousPanelsSummary?: string
 ): Promise<string> {
-  console.log("[generateStoryboardPrompt] Input:", {
-    panelNumber: prompt.panelNumber,
-    style: prompt.style,
-    composition: prompt.composition,
-    action: prompt.action,
-    sceneDescription: prompt.sceneDescription,
-    characters: characters.map(c => ({ id: c.id, name: c.name, description: c.description })),
-    scene: { location: scene.location, timeOfDay: scene.timeOfDay },
-    hasPreviousContext: !!previousPanelsSummary
-  });
+  console.log("[generateStoryboardPrompt] Generating GPT-based structured prompt for panel", prompt.panelNumber);
 
-  const styleTemplate = STYLE_TEMPLATES[prompt.style];
-  const compositionTemplate = COMPOSITION_TEMPLATES[prompt.composition];
-  const isFirstPanel = prompt.panelNumber === 1;
-
-  // Get character descriptions for this panel
+  // Get characters for this panel
   const panelCharacters = characters.filter(char =>
     prompt.characters.includes(char.id)
   );
 
-  // Build character description string
-  let characterDescriptions = '';
+  // Build previous panels context if panel 2+
+  const previousPanels = previousPanelsSummary
+    ? [{
+        panelNumber: prompt.panelNumber - 1,
+        action: previousPanelsSummary,
+        characterDesc: panelCharacters.map(c => c.name).join(', ')
+      }]
+    : undefined;
 
-  if (isFirstPanel) {
-    // Panel 1: Use the best available character description
-    // Priority order:
-    // 1. portraitDescription (canonical, optimized for storyboard style)
-    // 2. aiGeneratedDescription (from reference photo)
-    // 3. manual appearance fields
-    // 4. character name only
-    const characterDescPromises = panelCharacters.map(async char => {
-      const appearance = char.appearance;
+  // Use GPT to generate structured 6-section prompt
+  const structuredPrompt = await generateStructuredPrompt({
+    panelNumber: prompt.panelNumber,
+    characters: panelCharacters,
+    action: prompt.action || prompt.sceneDescription,
+    sceneDescription: prompt.sceneDescription,
+    location: scene.location,
+    cameraAngle: prompt.cameraAngle,
+    composition: prompt.composition,
+    lighting: prompt.lighting,
+    mood: prompt.mood,
+    previousPanels
+  });
 
-      // HIGHEST PRIORITY: Portrait description (canonical, optimized for consistency)
-      if (char.portraitDescription) {
-        console.log(`[generateStoryboardPrompt] Using portrait description for ${char.name}:`, char.portraitDescription);
-        return char.portraitDescription;
-      }
+  console.log("[generateStoryboardPrompt] GPT generated structured prompt, length:", structuredPrompt.length);
 
-      // SECOND PRIORITY: AI-generated description from reference photo
-      if (char.aiGeneratedDescription) {
-        console.log(`[generateStoryboardPrompt] Using saved AI description for ${char.name}:`, char.aiGeneratedDescription);
-        return char.aiGeneratedDescription;
-      }
-
-      // THIRD PRIORITY: Reference image analysis (backwards compatibility)
-      if (char.referenceImage && char.useReferenceInPrompt && !char.aiGeneratedDescription) {
-        try {
-          const aiDescription = await getCharacterDescription(char.referenceImage);
-          console.log(`[generateStoryboardPrompt] Generated AI description for ${char.name}:`, aiDescription);
-          return aiDescription;
-        } catch (error) {
-          console.warn(`[generateStoryboardPrompt] Failed to get AI description for ${char.name}:`, error);
-          // Fall back to manual features if AI fails
-        }
-      }
-
-      // FOURTH PRIORITY: Manual appearance features
-      const features = [
-        appearance.age && `${appearance.age}`,
-        appearance.gender && `${appearance.gender}`,
-        appearance.build && `${appearance.build} build`,
-        appearance.hair && `${appearance.hair} hair`,
-        appearance.clothing && `wearing ${appearance.clothing}`,
-        appearance.distinctiveFeatures?.join(", ")
-      ].filter(Boolean).join(", ");
-
-      // FALLBACK: Character name only
-      return features || char.name;
-    });
-
-    const characterDescArray = await Promise.all(characterDescPromises);
-    characterDescriptions = characterDescArray.join(" and ");
-  } else {
-    // Panels 2+: Reference the same characters from panel 1 for consistency
-    characterDescriptions = panelCharacters.map(char => {
-      const appearance = char.appearance;
-      const basicDesc = [
-        appearance.age && `${appearance.age}`,
-        appearance.gender && `${appearance.gender}`
-      ].filter(Boolean).join(" ");
-
-      // Reference previous panel for visual consistency
-      return basicDesc
-        ? `same ${basicDesc} ${char.name.toLowerCase()} from previous panels`
-        : `same ${char.name.toLowerCase()} from previous panels`;
-    }).join(" and ");
-  }
-
-  console.log("[generateStoryboardPrompt] Character descriptions:", characterDescriptions);
-
-  // Build scene description - avoid duplicate text
-  // Extract just the location name if scene.location contains the full user input
-  const locationName = scene.location.length > 50
-    ? scene.location.split(/[,.-]/)[0].trim() // Take first part if too long
-    : scene.location;
-
-  const sceneDescription = [
-    locationName,
-    scene.timeOfDay !== "unknown" && `during ${scene.timeOfDay}`,
-    scene.weather && `${scene.weather} weather`
-  ].filter(Boolean).join(", ");
-
-  console.log("[generateStoryboardPrompt] Scene description:", sceneDescription);
-
-  // Use prompt.action directly as it now contains the user's actual idea
-  const mainAction = prompt.action || prompt.sceneDescription;
-
-  console.log("[generateStoryboardPrompt] Main action:", mainAction);
-
-  // Add story progression context for panels 2+
-  const storyContext = !isFirstPanel && previousPanelsSummary
-    ? `Continuing from: ${previousPanelsSummary}. Now: `
-    : '';
-
-  // Construct the complete prompt with user's actual idea as the focus
-  const promptParts = [
-    styleTemplate.prefix,
-    compositionTemplate.description,
-    storyContext, // Story progression context
-    mainAction, // User's actual story idea
-    characterDescriptions && `with ${characterDescriptions}`,
-    sceneDescription && `in ${sceneDescription}`,
-    prompt.cameraAngle && `${prompt.cameraAngle}`,
-    prompt.lighting && `${prompt.lighting}`,
-    prompt.mood && `${prompt.mood} mood`,
-    !isFirstPanel && "maintain visual consistency with previous panels", // Character consistency reminder
-    compositionTemplate.framing,
-    styleTemplate.suffix
-  ].filter(Boolean).join(", ").replace(/,\s*,/g, ','); // Remove double commas
-
-  console.log("[generateStoryboardPrompt] Final prompt:", promptParts);
-
-  return promptParts;
+  return structuredPrompt;
 }
 
 /**
