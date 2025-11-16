@@ -7,6 +7,7 @@ import {
   StoryboardPrompt,
   StoryboardStyle,
   GenerationOptions,
+  GenerationQuality,
   ProjectType,
   ArchitecturalMetadata,
   ArchitecturalProjectKind,
@@ -65,7 +66,8 @@ const defaultGenerationOptions: GenerationOptions = {
   quality: "medium",
   size: "1024x1024",
   enhancePrompt: true,
-  maintainCharacterConsistency: true
+  maintainCharacterConsistency: true,
+  generationQuality: GenerationQuality.STANDARD // Default: Gama baja (Stable Diffusion)
 };
 
 export const useStoryboardStore = create<StoryboardState>()(
@@ -795,7 +797,8 @@ export const useStoryboardStore = create<StoryboardState>()(
           const { generateStoryboardPanelWithVisualIdentity } = await import('../api/stable-diffusion');
           const imageUrl = await generateStoryboardPanelWithVisualIdentity(
             panel.prompt.generatedPrompt,
-            panelCharacters
+            panelCharacters,
+            state.generationOptions.generationQuality // Pass quality tier (standard/high)
           );
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
@@ -849,7 +852,8 @@ export const useStoryboardStore = create<StoryboardState>()(
               // Generate image using visual identity if available, otherwise standard text-to-image
               const imageUrl = await generateStoryboardPanelWithVisualIdentity(
                 panel.prompt.generatedPrompt,
-                panelCharacters
+                panelCharacters,
+                state.generationOptions.generationQuality // Pass quality tier (standard/high)
               );
               return { panelId: panel.id, imageUrl };
             } catch (error) {
