@@ -25,12 +25,31 @@ export default function CharacterTag({ character, size = "small", onPress }: Cha
   };
 
   const sizeClasses = size === "small"
-    ? "px-2 py-1 text-xs"
-    : "px-3 py-1 text-sm";
+    ? "px-3 py-1.5 text-xs"
+    : "px-4 py-2 text-sm";
+
+  const borderClasses = size === "small"
+    ? "border"
+    : "border-2";
+
+  const getBorderColor = (role: Character["role"]) => {
+    switch (role) {
+      case "protagonist":
+        return "border-blue-300";
+      case "antagonist":
+        return "border-red-300";
+      case "supporting":
+        return "border-green-300";
+      case "background":
+        return "border-gray-300";
+      default:
+        return "border-gray-300";
+    }
+  };
 
   const content = (
-    <View className={`${getRoleColor(character.role)} ${sizeClasses} rounded-full`}>
-      <Text className={`font-medium ${getRoleColor(character.role).split(" ")[1]}`}>
+    <View className={`${getRoleColor(character.role)} ${sizeClasses} ${borderClasses} ${getBorderColor(character.role)} rounded-full`}>
+      <Text className={`font-semibold ${getRoleColor(character.role).split(" ")[1]}`}>
         {character.name}
       </Text>
     </View>
@@ -39,7 +58,7 @@ export default function CharacterTag({ character, size = "small", onPress }: Cha
   // If onPress handler provided, wrap in Pressable
   if (onPress) {
     return (
-      <Pressable onPress={onPress} className="active:opacity-70">
+      <Pressable onPress={onPress} className="active:opacity-70" style={{ minHeight: size === "small" ? 28 : 36 }}>
         {content}
       </Pressable>
     );
