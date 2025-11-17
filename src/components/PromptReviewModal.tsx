@@ -10,7 +10,7 @@ interface PromptReviewModalProps {
   panels: StoryboardPanel[];
   characters: Character[];
   onPanelsUpdate: (panels: StoryboardPanel[]) => void;
-  onGenerateImages: () => void;
+  onContinueToStoryboard: () => void;
   isGenerating?: boolean;
 }
 
@@ -20,7 +20,7 @@ export default function PromptReviewModal({
   panels,
   characters,
   onPanelsUpdate,
-  onGenerateImages,
+  onContinueToStoryboard,
   isGenerating = false
 }: PromptReviewModalProps) {
   const [editingPanel, setEditingPanel] = useState<StoryboardPanel | null>(null);
@@ -126,7 +126,7 @@ export default function PromptReviewModal({
               <Ionicons name="information-circle" size={20} color="#3b82f6" />
               <View className="flex-1 ml-2">
                 <Text className="text-sm text-blue-900 leading-5">
-                  <Text className="font-semibold">Review your prompts:</Text> You can edit any prompt to refine it, or delete panels you don't need. When you're ready, click "Generate Images" to create the storyboard.
+                  <Text className="font-semibold">Review your prompts:</Text> You can edit any prompt to refine it, or delete panels you don't need. When you're ready, continue to the storyboard to generate images individually.
                 </Text>
               </View>
             </View>
@@ -141,7 +141,7 @@ export default function PromptReviewModal({
               <View key={panel.id} className="bg-white border border-gray-200 rounded-lg p-4 mb-3">
                 {/* Panel Header */}
                 <View className="flex-row justify-between items-start mb-3">
-                  <View className="flex-1">
+                  <View className="flex-1 mr-2">
                     <Text className="text-lg font-bold text-gray-900 mb-1">
                       Panel {panel.panelNumber}
                     </Text>
@@ -157,22 +157,25 @@ export default function PromptReviewModal({
                       </View>
                     )}
                   </View>
-                  <View className="flex-row items-center gap-2">
+                  <View className="flex-row items-center gap-2 ml-2">
                     <Pressable
                       onPress={() => handleEditPanel(panel)}
                       disabled={isGenerating}
-                      className="bg-blue-100 p-2 rounded-lg"
+                      className="bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg"
                     >
-                      <Ionicons name="pencil" size={16} color="#3b82f6" />
+                      <View className="flex-row items-center">
+                        <Ionicons name="pencil" size={14} color="#3b82f6" />
+                        <Text className="text-blue-600 text-xs font-medium ml-1">Edit</Text>
+                      </View>
                     </Pressable>
                     <Pressable
                       onPress={() => handleDeletePanel(panel.id)}
                       disabled={isGenerating || panels.length === 1}
-                      className={`${panels.length === 1 ? 'bg-gray-100' : 'bg-red-100'} p-2 rounded-lg`}
+                      className={`${panels.length === 1 ? 'bg-gray-100 border border-gray-300' : 'bg-red-50 border border-red-200'} p-2 rounded-lg`}
                     >
                       <Ionicons
                         name="trash"
-                        size={16}
+                        size={14}
                         color={panels.length === 1 ? '#9ca3af' : '#ef4444'}
                       />
                     </Pressable>
@@ -227,27 +230,18 @@ export default function PromptReviewModal({
         {panels.length > 0 && (
           <View className="border-t border-gray-200 p-4 bg-white">
             <Pressable
-              onPress={onGenerateImages}
+              onPress={onContinueToStoryboard}
               disabled={isGenerating}
               className={`py-4 px-6 rounded-lg items-center ${
                 isGenerating ? 'bg-gray-300' : 'bg-blue-600'
               }`}
             >
-              {isGenerating ? (
-                <View className="flex-row items-center">
-                  <Ionicons name="hourglass" size={20} color="white" />
-                  <Text className="text-white font-semibold text-base ml-2">
-                    Generating Images...
-                  </Text>
-                </View>
-              ) : (
-                <View className="flex-row items-center">
-                  <Ionicons name="images" size={20} color="white" />
-                  <Text className="text-white font-semibold text-base ml-2">
-                    Generate {panels.length} Image{panels.length !== 1 ? 's' : ''}
-                  </Text>
-                </View>
-              )}
+              <View className="flex-row items-center">
+                <Ionicons name="arrow-forward" size={20} color="white" />
+                <Text className="text-white font-semibold text-base ml-2">
+                  Continue to Storyboard
+                </Text>
+              </View>
             </Pressable>
           </View>
         )}
