@@ -51,19 +51,19 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   
   if (!panel) {
     return (
-      <View className="flex-1 bg-white border border-gray-300 rounded-lg m-1 p-4 min-h-[200px]">
+      <View className="bg-white border border-gray-300 rounded-xl p-4 min-h-[220px] shadow-sm">
         {/* Panel Header */}
-        <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-row justify-between items-center mb-4">
           <Text className="text-sm font-semibold text-gray-600">Panel {panelNumber}</Text>
         </View>
 
         {/* Drawing Area */}
-        <View className="h-32 bg-gray-50 rounded border-2 border-dashed border-gray-300 justify-center items-center mb-3">
-          <Ionicons name="images-outline" size={40} color="#9CA3AF" />
-          <Text className="text-gray-500 text-xs font-medium mt-2">
+        <View className="h-36 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 justify-center items-center">
+          <Ionicons name="images-outline" size={48} color="#9CA3AF" />
+          <Text className="text-gray-500 text-sm font-medium mt-3">
             {isArchitectural ? "No detail yet" : "No panel yet"}
           </Text>
-          <Text className="text-gray-400 text-xs mt-1">
+          <Text className="text-gray-400 text-xs mt-1.5">
             {isArchitectural ? "Create a detail set to start" : "Create a storyboard to start"}
           </Text>
         </View>
