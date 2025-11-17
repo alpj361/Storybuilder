@@ -165,7 +165,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       
       {/* Tags */}
       {isArchitectural ? (
-        <View className="flex-row flex-wrap mb-3">
+        <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
           {panelView && <Chip label={panelView.replace(/_/g, " ")} />}
           {panelDetail && <Chip label={panelDetail.replace(/_/g, " ")} tone="gray" />}
           {panelScale && <Chip label={`Scale ${panelScale}`} tone="gray" />}
@@ -179,7 +179,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
         </View>
       ) : (
         panelCharacters.length > 0 && (
-          <View className="flex-row flex-wrap gap-1 mb-3">
+          <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
             {panelCharacters.map(character => (
               <CharacterTag
                 key={character.id}
