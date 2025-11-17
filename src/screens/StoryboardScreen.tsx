@@ -23,11 +23,11 @@ const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone
   <View
     className={
       tone === "blue"
-        ? "px-3 py-1.5 bg-blue-100 rounded-full border border-blue-200"
-        : "px-3 py-1.5 bg-gray-100 rounded-full border border-gray-200"
+        ? "px-3 py-2 bg-blue-100 rounded-full border border-blue-200"
+        : "px-3 py-2 bg-gray-100 rounded-full border border-gray-200"
     }
   >
-    <Text className={tone === "blue" ? "text-blue-700 text-xs font-medium" : "text-gray-700 text-xs font-medium"}>{label}</Text>
+    <Text className={tone === "blue" ? "text-blue-700 text-sm font-medium" : "text-gray-700 text-sm font-medium"}>{label}</Text>
   </View>
 );
 
@@ -60,10 +60,10 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
         {/* Drawing Area */}
         <View className="h-36 bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 justify-center items-center">
           <Ionicons name="images-outline" size={48} color="#9CA3AF" />
-          <Text className="text-gray-500 text-sm font-medium mt-3">
+          <Text className="text-gray-500 text-base font-medium mt-3">
             {isArchitectural ? "No detail yet" : "No panel yet"}
           </Text>
-          <Text className="text-gray-400 text-xs mt-1.5">
+          <Text className="text-gray-400 text-sm mt-1.5">
             {isArchitectural ? "Create a detail set to start" : "Create a storyboard to start"}
           </Text>
         </View>
@@ -107,34 +107,16 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       <View className="flex-row justify-between items-center mb-4">
         <Text className="text-base font-bold text-gray-700">Panel {panelNumber}</Text>
         {panel.isGenerating && (
-          <View className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-full">
-            <Ionicons name="hourglass" size={14} color="#3B82F6" />
-            <Text className="text-blue-600 text-xs font-semibold ml-1.5">Generating...</Text>
+          <View className="flex-row items-center bg-blue-500 px-4 py-2 rounded-full shadow-sm">
+            <Ionicons name="hourglass" size={16} color="#FFFFFF" />
+            <Text className="text-white text-sm font-bold ml-2">Generating...</Text>
           </View>
         )}
       </View>
 
       {/* Action Buttons - Improved sizing and spacing */}
-      <View className="flex-row mb-4" style={{ gap: 8 }}>
-        <Pressable
-          onPress={() => setShowIdeaEditModal(true)}
-          disabled={panel.isGenerating}
-          className={`flex-1 px-4 py-3 rounded-lg flex-row items-center justify-center ${
-            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-blue-50 border-2 border-blue-400'
-          }`}
-          style={{ minHeight: 44 }}
-        >
-          <Ionicons
-            name="pencil"
-            size={16}
-            color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"}
-          />
-          <Text className={`text-sm font-bold ml-2 ${
-            panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
-          }`}>
-            Edit
-          </Text>
-        </Pressable>
+      <View className="mb-4" style={{ gap: 10 }}>
+        {/* Primary Action: Generate/Regenerate */}
         <Pressable
           onPress={() => {
             if (panel.generatedImageUrl) {
@@ -145,20 +127,44 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             }
           }}
           disabled={panel.isGenerating}
-          className={`flex-1 px-4 py-3 rounded-lg flex-row items-center justify-center ${
-            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-purple-50 border-2 border-purple-400'
+          className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
+            panel.isGenerating ? 'bg-gray-200 border border-gray-300' : 'bg-gradient-to-r from-purple-600 to-purple-500 shadow-md'
+          }`}
+          style={{
+            minHeight: 48,
+            backgroundColor: panel.isGenerating ? undefined : '#9333ea'
+          }}
+        >
+          <Ionicons
+            name={panel.generatedImageUrl ? "refresh" : "sparkles"}
+            size={18}
+            color={panel.isGenerating ? "#9CA3AF" : "#FFFFFF"}
+          />
+          <Text className={`text-base font-bold ml-2 ${
+            panel.isGenerating ? 'text-gray-500' : 'text-white'
+          }`}>
+            {panel.generatedImageUrl ? "Regenerate Image" : "Generate Image"}
+          </Text>
+        </Pressable>
+
+        {/* Secondary Action: Edit Idea */}
+        <Pressable
+          onPress={() => setShowIdeaEditModal(true)}
+          disabled={panel.isGenerating}
+          className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
+            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-blue-300'
           }`}
           style={{ minHeight: 44 }}
         >
           <Ionicons
-            name={panel.generatedImageUrl ? "refresh" : "sparkles"}
-            size={16}
-            color={panel.isGenerating ? "#9CA3AF" : "#9333ea"}
+            name="create-outline"
+            size={18}
+            color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"}
           />
-          <Text className={`text-sm font-bold ml-2 ${
-            panel.isGenerating ? 'text-gray-400' : 'text-purple-600'
+          <Text className={`text-sm font-semibold ml-2 ${
+            panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
           }`}>
-            {panel.generatedImageUrl ? "Regen" : "Generate"}
+            Edit Panel Idea
           </Text>
         </Pressable>
       </View>
@@ -195,9 +201,12 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       {/* Drawing Area */}
       <View className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden relative">
         {panel.isGenerating ? (
-          <View className="h-36 flex-col items-center justify-center">
-            <Ionicons name="hourglass" size={36} color="#3B82F6" />
-            <Text className="text-blue-500 text-sm font-medium mt-3">Generating image...</Text>
+          <View className="h-36 flex-col items-center justify-center bg-blue-50">
+            <View className="bg-blue-500 rounded-full p-4 mb-3">
+              <Ionicons name="sparkles" size={32} color="#FFFFFF" />
+            </View>
+            <Text className="text-blue-700 text-base font-bold">Generating image...</Text>
+            <Text className="text-blue-600 text-sm mt-1">This may take a moment</Text>
           </View>
         ) : showQualitySelector ? (
           <View className="p-4">
@@ -221,13 +230,13 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
                       size={18}
                       color={selectedQuality === GenerationQuality.STANDARD ? '#3b82f6' : '#9ca3af'}
                     />
-                    <Text className={`text-sm font-bold ml-1.5 ${
+                    <Text className={`text-base font-bold ml-1.5 ${
                       selectedQuality === GenerationQuality.STANDARD ? 'text-blue-700' : 'text-gray-600'
                     }`}>
                       Standard
                     </Text>
                   </View>
-                  <Text className={`text-xs ${
+                  <Text className={`text-sm ${
                     selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
                   }`}>
                     Stable Diffusion
@@ -250,13 +259,13 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
                       size={18}
                       color={selectedQuality === GenerationQuality.HIGH ? '#9333ea' : '#9ca3af'}
                     />
-                    <Text className={`text-sm font-bold ml-1.5 ${
+                    <Text className={`text-base font-bold ml-1.5 ${
                       selectedQuality === GenerationQuality.HIGH ? 'text-purple-700' : 'text-gray-600'
                     }`}>
                       High
                     </Text>
                   </View>
-                  <Text className={`text-xs ${
+                  <Text className={`text-sm ${
                     selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
                   }`}>
                     Seeddream 4
@@ -545,15 +554,21 @@ export default function StoryboardScreen({
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-5 py-4">
         <View className="flex-row justify-between items-center">
-          <Pressable onPress={() => setShowProjectSelector(true)} className="flex-1 mr-3">
-            <Text className="text-2xl font-bold text-gray-900 mb-1">{title}</Text>
-            <View className="flex-row items-center">
-              <Text className="text-sm text-gray-600 font-medium">
-                {activeProject?.title || "No Project"}
-              </Text>
-              <Ionicons name="chevron-down" size={18} color="#6B7280" style={{ marginLeft: 6 }} />
-            </View>
-          </Pressable>
+          <View className="flex-1 mr-3">
+            <Text className="text-2xl font-bold text-gray-900 mb-2">{title}</Text>
+            <Pressable
+              onPress={() => setShowProjectSelector(true)}
+              className="bg-blue-50 border-2 border-blue-200 rounded-lg px-3 py-2 active:bg-blue-100"
+              style={{ minHeight: 44 }}
+            >
+              <View className="flex-row items-center justify-between">
+                <Text className="text-sm text-blue-900 font-bold flex-1">
+                  {activeProject?.title || "No Project Selected"}
+                </Text>
+                <Ionicons name="chevron-down" size={20} color="#1E40AF" />
+              </View>
+            </Pressable>
+          </View>
           <View className="flex-row items-center" style={{ gap: 12 }}>
             {activeProject && (
               <Pressable 
@@ -615,7 +630,7 @@ export default function StoryboardScreen({
                 );
               })}
             </View>
-            <Text className="text-xs text-gray-600 mt-3 leading-5">
+            <Text className="text-sm text-gray-600 mt-3 leading-5">
               {architecturalKind === "detalles" && "Generate technical connection or material details with reinforcement and annotations."}
               {architecturalKind === "planos" && "Produce plan sets with floor plans, sections, elevations, and legends."}
               {architecturalKind === "prototipos" && "Create conceptual prototypes with massing, program, and diagrammatic overlays."}
@@ -654,7 +669,7 @@ export default function StoryboardScreen({
                 </View>
                 {architecturalMetadata?.components?.length ? (
                   <View className="mb-2">
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Components</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Components</Text>
                     <View className="flex-row flex-wrap">
                       {architecturalMetadata.components.map(component => (
                         <Chip key={component} label={component} tone="gray" />
@@ -664,7 +679,7 @@ export default function StoryboardScreen({
                 ) : null}
                 {architecturalMetadata?.programItems?.length ? (
                   <View className="mb-2">
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Program</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Program</Text>
                     <View className="flex-row flex-wrap">
                       {architecturalMetadata.programItems.map(item => (
                         <Chip key={item} label={item} tone="gray" />
@@ -674,24 +689,24 @@ export default function StoryboardScreen({
                 ) : null}
                 {(architecturalMetadata?.buildingType || architecturalMetadata?.floors || architecturalMetadata?.footprint || architecturalMetadata?.orientation) && (
                   <View className="mb-2">
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Prototype Info</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Prototype Info</Text>
                     {architecturalMetadata?.buildingType && (
-                      <Text className="text-xs text-gray-500 mb-0.5">• Building Type: {architecturalMetadata.buildingType}</Text>
+                      <Text className="text-sm text-gray-600 mb-0.5">• Building Type: {architecturalMetadata.buildingType}</Text>
                     )}
                     {architecturalMetadata?.floors && (
-                      <Text className="text-xs text-gray-500 mb-0.5">• Floors: {architecturalMetadata.floors}</Text>
+                      <Text className="text-sm text-gray-600 mb-0.5">• Floors: {architecturalMetadata.floors}</Text>
                     )}
                     {architecturalMetadata?.footprint && (
-                      <Text className="text-xs text-gray-500 mb-0.5">• Footprint: {architecturalMetadata.footprint}</Text>
+                      <Text className="text-sm text-gray-600 mb-0.5">• Footprint: {architecturalMetadata.footprint}</Text>
                     )}
                     {architecturalMetadata?.orientation && (
-                      <Text className="text-xs text-gray-500 mb-0.5">• Orientation: {architecturalMetadata.orientation}</Text>
+                      <Text className="text-sm text-gray-600 mb-0.5">• Orientation: {architecturalMetadata.orientation}</Text>
                     )}
                   </View>
                 )}
                 {architecturalMetadata?.diagramLayers?.length ? (
                   <View className="mb-2">
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Diagram Layers</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Diagram Layers</Text>
                     <View className="flex-row flex-wrap">
                       {architecturalMetadata.diagramLayers.map(layer => (
                         <Chip key={layer} label={layer} tone="gray" />
@@ -701,7 +716,7 @@ export default function StoryboardScreen({
                 ) : null}
                 {architecturalMetadata?.materials?.length ? (
                   <View className="mb-2">
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Materials</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Materials</Text>
                     <View className="flex-row flex-wrap">
                       {architecturalMetadata.materials.map(material => (
                         <Chip key={material} label={material} tone="gray" />
@@ -711,17 +726,17 @@ export default function StoryboardScreen({
                 ) : null}
                 {architecturalMetadata?.dimensions?.length ? (
                   <View>
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Key Dimensions</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Key Dimensions</Text>
                     {architecturalMetadata.dimensions.map(dimension => (
-                      <Text key={dimension} className="text-xs text-gray-500 mb-0.5">• {dimension}</Text>
+                      <Text key={dimension} className="text-sm text-gray-600 mb-0.5">• {dimension}</Text>
                     ))}
                   </View>
                 ) : null}
                 {architecturalMetadata?.conceptNotes?.length ? (
                   <View className="mt-2">
-                    <Text className="text-xs font-semibold text-gray-600 mb-1">Concept Notes</Text>
+                    <Text className="text-sm font-semibold text-gray-700 mb-1">Concept Notes</Text>
                     {architecturalMetadata.conceptNotes.map(note => (
-                      <Text key={note} className="text-xs text-gray-500 mb-0.5">• {note}</Text>
+                      <Text key={note} className="text-sm text-gray-600 mb-0.5">• {note}</Text>
                     ))}
                   </View>
                 ) : null}
