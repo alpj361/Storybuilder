@@ -1,13 +1,10 @@
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { NavigationContainer } from "@react-navigation/native";
-import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { Ionicons } from "@expo/vector-icons";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 import StoryboardScreen from "./src/screens/StoryboardScreen";
-import ArchitecturalScreen from "./src/screens/ArchitecturalScreen";
+// import ArchitecturalScreen from "./src/screens/ArchitecturalScreen"; // Comentado para uso futuro
 
 // Keep the splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
@@ -33,7 +30,8 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 */
 
-const Tab = createBottomTabNavigator();
+// Tab Navigator comentado - solo usando Storyboard por ahora
+// const Tab = createBottomTabNavigator();
 
 export default function App() {
   useEffect(() => {
@@ -44,29 +42,35 @@ export default function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <Tab.Navigator
-            screenOptions={({ route }) => ({
-              headerShown: false,
-              tabBarActiveTintColor: "#3B82F6",
-              tabBarInactiveTintColor: "#9CA3AF",
-              tabBarIcon: ({ color, size }) => {
-                let iconName: string;
-                if (route.name === "Storyboard") {
-                  iconName = "images-outline";
-                } else {
-                  iconName = "construct-outline";
-                }
-                return <Ionicons name={iconName as any} size={size} color={color} />;
-              }
-            })}
-          >
-            <Tab.Screen name="Storyboard" component={StoryboardScreen} />
-            <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} />
-          </Tab.Navigator>
-          <StatusBar style="auto" />
-        </NavigationContainer>
+        <StoryboardScreen />
+        <StatusBar style="auto" />
       </SafeAreaProvider>
     </GestureHandlerRootView>
   );
 }
+
+/*
+  Código de Tab Navigator guardado para uso futuro con Arquitectura:
+
+  <NavigationContainer>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: "#3B82F6",
+        tabBarInactiveTintColor: "#9CA3AF",
+        tabBarIcon: ({ color, size }) => {
+          let iconName: string;
+          if (route.name === "Storyboard") {
+            iconName = "images-outline";
+          } else {
+            iconName = "construct-outline";
+          }
+          return <Ionicons name={iconName as any} size={size} color={color} />;
+        }
+      })}
+    >
+      <Tab.Screen name="Storyboard" component={StoryboardScreen} />
+      <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} />
+    </Tab.Navigator>
+  </NavigationContainer>
+*/
