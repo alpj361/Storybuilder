@@ -58,8 +58,8 @@ interface StoryboardState {
   setCurrentProject: (project: StoryboardProject | null) => void;
   regeneratePanel: (panelId: string) => Promise<void>;
   regenerateAllPanels: () => Promise<void>;
-  generatePanelImage: (panelId: string) => Promise<void>;
-  generateAllPanelImages: () => Promise<void>;
+  generatePanelImage: (panelId: string, quality?: GenerationQuality) => Promise<void>;
+  generateAllPanelImages: (quality?: GenerationQuality) => Promise<void>;
   saveProject: () => Promise<void>;
   loadProject: (projectId: string) => void;
   setError: (error: string | null) => void;
@@ -1072,14 +1072,18 @@ export const useStoryboardStore = create<StoryboardState>()(
       },
 
       // Generate image for a specific panel
-      generatePanelImage: async (panelId: string) => {
+      generatePanelImage: async (panelId: string, quality?: GenerationQuality) => {
         const state = get();
         if (!state.currentProject) return;
 
         const panel = state.currentProject.panels.find(p => p.id === panelId);
         if (!panel) return;
 
+        // Use provided quality or fall back to stored generation options
+        const qualityTier = quality || state.generationOptions.generationQuality;
+
         console.log("[storyboardStore] generatePanelImage called for panel:", panelId);
+        console.log("[storyboardStore] Quality tier:", qualityTier);
         console.log("[storyboardStore] Panel prompt data:", {
           generatedPrompt: panel.prompt.generatedPrompt,
           action: panel.prompt.action,
@@ -1105,7 +1109,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           const imageUrl = await generateStoryboardPanelWithVisualIdentity(
             panel.prompt.generatedPrompt,
             panelCharacters,
-            state.generationOptions.generationQuality // Pass quality tier (standard/high)
+            qualityTier // Pass quality tier (standard/high)
           );
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
@@ -1137,9 +1141,14 @@ export const useStoryboardStore = create<StoryboardState>()(
       },
 
       // Generate images for all panels
-      generateAllPanelImages: async () => {
+      generateAllPanelImages: async (quality?: GenerationQuality) => {
         const state = get();
         if (!state.currentProject) return;
+
+        // Use provided quality or fall back to stored generation options
+        const qualityTier = quality || state.generationOptions.generationQuality;
+
+        console.log("[storyboardStore] generateAllPanelImages called with quality:", qualityTier);
 
         set({ isGenerating: true });
 
@@ -1160,7 +1169,7 @@ export const useStoryboardStore = create<StoryboardState>()(
               const imageUrl = await generateStoryboardPanelWithVisualIdentity(
                 panel.prompt.generatedPrompt,
                 panelCharacters,
-                state.generationOptions.generationQuality // Pass quality tier (standard/high)
+                qualityTier // Pass quality tier (standard/high)
               );
               return { panelId: panel.id, imageUrl };
             } catch (error) {
