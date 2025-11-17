@@ -287,7 +287,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             </View>
           </View>
         ) : panel.generatedImageUrl ? (
-          <View className="h-28">
+          <View className="h-36">
             <Image
               source={{ uri: panel.generatedImageUrl }}
               className="w-full h-full"
@@ -295,24 +295,16 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             />
             <Pressable
               onPress={() => setIsImageExpanded(true)}
-              className="absolute right-2 top-2 bg-black/50 rounded-full p-1"
+              className="absolute right-3 top-3 bg-black/70 rounded-full p-2"
+              style={{ minHeight: 36, minWidth: 36 }}
             >
-              <Ionicons name="expand" size={16} color="#FFFFFF" />
+              <Ionicons name="expand" size={18} color="#FFFFFF" />
             </Pressable>
           </View>
         ) : (
-          <View className="h-28 flex-col items-center justify-center px-3">
-            <Ionicons name="image-outline" size={28} color="#9CA3AF" />
-            <Text className="text-gray-500 text-xs font-medium mt-2">Ready to generate</Text>
-            <Pressable
-              onPress={handleGenerateImage}
-              className="mt-2 px-4 py-2 bg-purple-600 rounded-lg"
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="sparkles" size={14} color="#FFFFFF" />
-                <Text className="text-white text-xs font-semibold ml-1">Generate Image</Text>
-              </View>
-            </Pressable>
+          <View className="h-36 flex-col items-center justify-center px-4">
+            <Ionicons name="image-outline" size={36} color="#9CA3AF" />
+            <Text className="text-gray-500 text-sm font-medium mt-3">Ready to generate</Text>
           </View>
         )}
       </View>
