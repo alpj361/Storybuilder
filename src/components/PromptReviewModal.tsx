@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, Modal, Pressable, ScrollView, Alert, TextInput } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { StoryboardPanel, Character } from "../types/storyboard";
+import { StoryboardPanel, Character, GenerationQuality } from "../types/storyboard";
 import PromptEditModal from "./PromptEditModal";
 
 interface PromptReviewModalProps {
@@ -11,6 +11,7 @@ interface PromptReviewModalProps {
   characters: Character[];
   onPanelsUpdate: (panels: StoryboardPanel[]) => void;
   onContinueToStoryboard: () => void;
+  onGenerateAllImages?: (quality: GenerationQuality) => void;
   isGenerating?: boolean;
 }
 
@@ -21,10 +22,13 @@ export default function PromptReviewModal({
   characters,
   onPanelsUpdate,
   onContinueToStoryboard,
+  onGenerateAllImages,
   isGenerating = false
 }: PromptReviewModalProps) {
   const [editingPanel, setEditingPanel] = useState<StoryboardPanel | null>(null);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showBatchGenerate, setShowBatchGenerate] = useState(false);
+  const [selectedQuality, setSelectedQuality] = useState<GenerationQuality>(GenerationQuality.STANDARD);
 
   const handleDeletePanel = (panelId: string) => {
     Alert.alert(
@@ -126,7 +130,7 @@ export default function PromptReviewModal({
               <Ionicons name="information-circle" size={20} color="#3b82f6" />
               <View className="flex-1 ml-2">
                 <Text className="text-sm text-blue-900 leading-5">
-                  <Text className="font-semibold">Review your prompts:</Text> You can edit any prompt to refine it, or delete panels you don't need. When you're ready, continue to the storyboard to generate images individually.
+                  <Text className="font-semibold">Review your prompts:</Text> Edit any prompt to refine it, or delete panels you don't need. Continue to the storyboard to generate images individually, or optionally generate all images at once below.
                 </Text>
               </View>
             </View>
@@ -157,26 +161,34 @@ export default function PromptReviewModal({
                       </View>
                     )}
                   </View>
-                  <View className="flex-row items-center gap-2 ml-2">
+                  <View className="flex-row items-center gap-2">
                     <Pressable
                       onPress={() => handleEditPanel(panel)}
                       disabled={isGenerating}
-                      className="bg-blue-50 border border-blue-200 px-3 py-2 rounded-lg"
+                      className={`px-3 py-1.5 rounded-lg flex-row items-center ${
+                        isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-blue-50 border border-blue-300'
+                      }`}
                     >
-                      <View className="flex-row items-center">
-                        <Ionicons name="pencil" size={14} color="#3b82f6" />
-                        <Text className="text-blue-600 text-xs font-medium ml-1">Edit</Text>
-                      </View>
+                      <Ionicons name="pencil" size={12} color={isGenerating ? '#9ca3af' : '#3b82f6'} />
+                      <Text className={`text-xs font-semibold ml-1 ${
+                        isGenerating ? 'text-gray-400' : 'text-blue-600'
+                      }`}>
+                        Edit
+                      </Text>
                     </Pressable>
                     <Pressable
                       onPress={() => handleDeletePanel(panel.id)}
                       disabled={isGenerating || panels.length === 1}
-                      className={`${panels.length === 1 ? 'bg-gray-100 border border-gray-300' : 'bg-red-50 border border-red-200'} p-2 rounded-lg`}
+                      className={`p-1.5 rounded-lg ${
+                        panels.length === 1 || isGenerating
+                          ? 'bg-gray-100 border border-gray-200'
+                          : 'bg-red-50 border border-red-300'
+                      }`}
                     >
                       <Ionicons
                         name="trash"
-                        size={14}
-                        color={panels.length === 1 ? '#9ca3af' : '#ef4444'}
+                        size={12}
+                        color={panels.length === 1 || isGenerating ? '#9ca3af' : '#ef4444'}
                       />
                     </Pressable>
                   </View>
@@ -229,20 +241,139 @@ export default function PromptReviewModal({
         {/* Action Buttons */}
         {panels.length > 0 && (
           <View className="border-t border-gray-200 p-4 bg-white">
-            <Pressable
-              onPress={onContinueToStoryboard}
-              disabled={isGenerating}
-              className={`py-4 px-6 rounded-lg items-center ${
-                isGenerating ? 'bg-gray-300' : 'bg-blue-600'
-              }`}
-            >
-              <View className="flex-row items-center">
-                <Ionicons name="arrow-forward" size={20} color="white" />
-                <Text className="text-white font-semibold text-base ml-2">
-                  Continue to Storyboard
-                </Text>
+            {!showBatchGenerate ? (
+              <>
+                <Pressable
+                  onPress={onContinueToStoryboard}
+                  disabled={isGenerating}
+                  className={`py-4 px-6 rounded-lg items-center mb-3 ${
+                    isGenerating ? 'bg-gray-300' : 'bg-blue-600'
+                  }`}
+                >
+                  <View className="flex-row items-center">
+                    <Ionicons name="arrow-forward" size={20} color="white" />
+                    <Text className="text-white font-semibold text-base ml-2">
+                      Continue to Storyboard
+                    </Text>
+                  </View>
+                </Pressable>
+
+                {onGenerateAllImages && (
+                  <Pressable
+                    onPress={() => setShowBatchGenerate(true)}
+                    disabled={isGenerating}
+                    className={`py-3 px-6 rounded-lg items-center border ${
+                      isGenerating ? 'bg-gray-100 border-gray-300' : 'bg-white border-blue-600'
+                    }`}
+                  >
+                    <View className="flex-row items-center">
+                      <Ionicons name="images" size={18} color={isGenerating ? '#9ca3af' : '#3b82f6'} />
+                      <Text className={`font-semibold text-sm ml-2 ${
+                        isGenerating ? 'text-gray-400' : 'text-blue-600'
+                      }`}>
+                        Generate All Images Now
+                      </Text>
+                    </View>
+                  </Pressable>
+                )}
+              </>
+            ) : (
+              <View>
+                <View className="mb-4">
+                  <Text className="text-sm font-semibold text-gray-700 mb-3">Select Quality Tier:</Text>
+                  <View className="flex-row gap-3">
+                    <Pressable
+                      onPress={() => setSelectedQuality(GenerationQuality.STANDARD)}
+                      className={`flex-1 p-4 rounded-lg border-2 ${
+                        selectedQuality === GenerationQuality.STANDARD
+                          ? 'bg-blue-50 border-blue-500'
+                          : 'bg-white border-gray-300'
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center mb-1">
+                        <Ionicons
+                          name={selectedQuality === GenerationQuality.STANDARD ? 'radio-button-on' : 'radio-button-off'}
+                          size={18}
+                          color={selectedQuality === GenerationQuality.STANDARD ? '#3b82f6' : '#9ca3af'}
+                        />
+                        <Text className={`text-sm font-bold ml-2 ${
+                          selectedQuality === GenerationQuality.STANDARD ? 'text-blue-700' : 'text-gray-600'
+                        }`}>
+                          Gama Baja
+                        </Text>
+                      </View>
+                      <Text className={`text-xs text-center ${
+                        selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
+                      }`}>
+                        Stable Diffusion SDXL
+                      </Text>
+                      <Text className={`text-xs text-center mt-1 ${
+                        selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
+                      }`}>
+                        Faster generation
+                      </Text>
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => setSelectedQuality(GenerationQuality.HIGH)}
+                      className={`flex-1 p-4 rounded-lg border-2 ${
+                        selectedQuality === GenerationQuality.HIGH
+                          ? 'bg-purple-50 border-purple-500'
+                          : 'bg-white border-gray-300'
+                      }`}
+                    >
+                      <View className="flex-row items-center justify-center mb-1">
+                        <Ionicons
+                          name={selectedQuality === GenerationQuality.HIGH ? 'radio-button-on' : 'radio-button-off'}
+                          size={18}
+                          color={selectedQuality === GenerationQuality.HIGH ? '#9333ea' : '#9ca3af'}
+                        />
+                        <Text className={`text-sm font-bold ml-2 ${
+                          selectedQuality === GenerationQuality.HIGH ? 'text-purple-700' : 'text-gray-600'
+                        }`}>
+                          Gama Alta
+                        </Text>
+                      </View>
+                      <Text className={`text-xs text-center ${
+                        selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
+                      }`}>
+                        Seeddream 4
+                      </Text>
+                      <Text className={`text-xs text-center mt-1 ${
+                        selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
+                      }`}>
+                        Higher quality
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View className="flex-row gap-3">
+                  <Pressable
+                    onPress={() => setShowBatchGenerate(false)}
+                    disabled={isGenerating}
+                    className="flex-1 py-3 px-4 rounded-lg bg-gray-200"
+                  >
+                    <Text className="text-gray-700 font-semibold text-center">Cancel</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      onGenerateAllImages?.(selectedQuality);
+                      setShowBatchGenerate(false);
+                    }}
+                    disabled={isGenerating}
+                    className={`flex-1 py-3 px-4 rounded-lg ${
+                      isGenerating ? 'bg-gray-300' : 'bg-blue-600'
+                    }`}
+                  >
+                    <View className="flex-row items-center justify-center">
+                      <Ionicons name="images" size={18} color="white" />
+                      <Text className="text-white font-semibold ml-2">Generate All</Text>
+                    </View>
+                  </Pressable>
+                </View>
               </View>
-            </Pressable>
+            )}
           </View>
         )}
       </View>
