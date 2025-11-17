@@ -728,7 +728,7 @@ export default function StoryboardScreen({
               </View>
             ) : (
               activeProject.characters.length > 0 && (
-                <View className="flex-row flex-wrap gap-1">
+                <View className="flex-row flex-wrap" style={{ gap: 8 }}>
                   {activeProject.characters.map(character => (
                     <CharacterTag
                       key={character.id}
