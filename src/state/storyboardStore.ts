@@ -1077,7 +1077,10 @@ export const useStoryboardStore = create<StoryboardState>()(
         const state = get();
         if (!state.currentProject) return;
 
-        const panel = state.currentProject.panels.find(p => p.id === panelId);
+        // Capture currentProject to avoid null checks in async callbacks
+        const currentProject = state.currentProject;
+
+        const panel = currentProject.panels.find(p => p.id === panelId);
         if (!panel) return;
 
         // Use provided quality or fall back to stored generation options
@@ -1101,7 +1104,7 @@ export const useStoryboardStore = create<StoryboardState>()(
 
           // Get characters for this panel to check for visual identity preservation
           const panelCharacterIds = panel.prompt.characters || [];
-          const panelCharacters = state.currentProject.characters.filter(c =>
+          const panelCharacters = currentProject.characters.filter(c =>
             panelCharacterIds.includes(c.id)
           );
 
@@ -1146,6 +1149,9 @@ export const useStoryboardStore = create<StoryboardState>()(
         const state = get();
         if (!state.currentProject) return;
 
+        // Capture currentProject to avoid null checks in async callbacks
+        const currentProject = state.currentProject;
+
         // Use provided quality or fall back to stored generation options
         const qualityTier = quality || state.generationOptions.generationQuality;
 
@@ -1158,11 +1164,11 @@ export const useStoryboardStore = create<StoryboardState>()(
           const { generateStoryboardPanelWithVisualIdentity } = await import('../api/stable-diffusion');
 
           // Generate images for all panels in parallel
-          const imagePromises = state.currentProject.panels.map(async (panel) => {
+          const imagePromises = currentProject.panels.map(async (panel) => {
             try {
               // Get characters for this panel to check for visual identity preservation
               const panelCharacterIds = panel.prompt.characters || [];
-              const panelCharacters = state.currentProject.characters.filter(c =>
+              const panelCharacters = currentProject.characters.filter(c =>
                 panelCharacterIds.includes(c.id)
               );
 
@@ -1182,7 +1188,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           const results = await Promise.all(imagePromises);
 
           // Update panels with generated images
-          const updatedPanels = state.currentProject.panels.map(panel => {
+          const updatedPanels = currentProject.panels.map(panel => {
             const result = results.find(r => r.panelId === panel.id);
             return {
               ...panel,
@@ -1193,7 +1199,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           });
 
           const updatedProject = {
-            ...state.currentProject,
+            ...currentProject,
             panels: updatedPanels,
             updatedAt: new Date()
           };
