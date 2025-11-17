@@ -47,6 +47,7 @@ interface StoryboardState {
   appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
   updatePanelPrompt: (panelId: string, newPromptText: string) => void;
+  regeneratePanelPromptFromIdea: (panelId: string, newIdea: string) => Promise<void>;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
   deleteProject: (projectId: string) => void;
@@ -722,6 +723,58 @@ export const useStoryboardStore = create<StoryboardState>()(
             )
           };
         });
+      },
+
+      // Regenerate a panel's prompt from a new idea/scene description
+      regeneratePanelPromptFromIdea: async (panelId: string, newIdea: string) => {
+        const state = get();
+        if (!state.currentProject) {
+          set({ error: "No current project" });
+          return;
+        }
+
+        const panel = state.currentProject.panels.find(p => p.id === panelId);
+        if (!panel) {
+          set({ error: "Panel not found" });
+          return;
+        }
+
+        set({ isGenerating: true, error: null });
+
+        try {
+          console.log("[storyboardStore] Regenerating prompt for panel", panel.panelNumber, "with new idea:", newIdea);
+
+          // Update panel with new scene description
+          const updatedPrompt = {
+            ...panel.prompt,
+            sceneDescription: newIdea,
+            action: newIdea
+          };
+
+          // Generate new structured prompt using GPT
+          const enhancedPrompts = await generateAllPanelPrompts(
+            [updatedPrompt],
+            state.currentProject.characters,
+            state.currentProject.scenes
+          );
+
+          const newPrompt = enhancedPrompts[0];
+
+          // Update panel with new prompt
+          get().updatePanel(panelId, {
+            prompt: newPrompt,
+            isEdited: true
+          });
+
+          console.log("[storyboardStore] Panel prompt regenerated successfully");
+          set({ isGenerating: false });
+        } catch (error) {
+          console.error("[storyboardStore] Error regenerating panel prompt:", error);
+          set({
+            error: error instanceof Error ? error.message : "Failed to regenerate prompt",
+            isGenerating: false
+          });
+        }
       },
 
       // Update project metadata
