@@ -23,11 +23,11 @@ const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone
   <View
     className={
       tone === "blue"
-        ? "px-2 py-1 bg-blue-100 rounded-full mr-1 mb-1"
-        : "px-2 py-1 bg-gray-100 rounded-full mr-1 mb-1"
+        ? "px-3 py-1.5 bg-blue-100 rounded-full border border-blue-200"
+        : "px-3 py-1.5 bg-gray-100 rounded-full border border-gray-200"
     }
   >
-    <Text className={tone === "blue" ? "text-blue-700 text-xs" : "text-gray-600 text-xs"}>{label}</Text>
+    <Text className={tone === "blue" ? "text-blue-700 text-xs font-medium" : "text-gray-700 text-xs font-medium"}>{label}</Text>
   </View>
 );
 
