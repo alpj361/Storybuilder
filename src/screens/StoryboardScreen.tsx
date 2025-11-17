@@ -17,6 +17,9 @@ import { CharacterDetailsModal } from "../components/CharacterDetailsModal";
 import { CharacterEditModal } from "../components/CharacterEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
+import ExportOptionsModal from "../components/ExportOptionsModal";
+import pdfExportService from "../services/pdfExportService";
+import { ExportOptions } from "../types/export";
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -410,6 +413,7 @@ export default function StoryboardScreen({
   const isArchitectural = mode === "architectural";
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -547,6 +551,32 @@ export default function StoryboardScreen({
     setShowInputModal(true);
   };
 
+  const handleExportPDF = async (options: ExportOptions) => {
+    if (!activeProject) return;
+
+    try {
+      console.log('[StoryboardScreen] Starting PDF export...');
+      const result = await pdfExportService.generateComicPDF(activeProject, options);
+      console.log('[StoryboardScreen] PDF generated:', result.filename);
+
+      // Share the PDF
+      await pdfExportService.sharePDF(result.uri);
+
+      Alert.alert(
+        "Export Successful",
+        `PDF exported with ${result.pageCount} page${result.pageCount !== 1 ? 's' : ''}`,
+        [{ text: "OK" }]
+      );
+    } catch (error) {
+      console.error('[StoryboardScreen] Export failed:', error);
+      Alert.alert(
+        "Export Failed",
+        "Failed to export PDF. Please try again.",
+        [{ text: "OK" }]
+      );
+    }
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
@@ -569,8 +599,8 @@ export default function StoryboardScreen({
           </View>
           <View className="flex-row items-center" style={{ gap: 12 }}>
             {activeProject && (
-              <Pressable 
-                onPress={handleGenerateAllImages} 
+              <Pressable
+                onPress={handleGenerateAllImages}
                 disabled={isGenerating}
                 className="p-2 rounded-full active:bg-gray-100"
                 style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
@@ -582,7 +612,16 @@ export default function StoryboardScreen({
                 />
               </Pressable>
             )}
-            <Pressable 
+            {activeProject && activeProject.panels.some(p => p.generatedImageUrl) && (
+              <Pressable
+                onPress={() => setShowExportModal(true)}
+                className="p-2 rounded-full active:bg-gray-100"
+                style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="download-outline" size={26} color="#3B82F6" />
+              </Pressable>
+            )}
+            <Pressable
               onPress={handleNewProject}
               className="p-2 rounded-full active:bg-gray-100"
               style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
@@ -836,6 +875,16 @@ export default function StoryboardScreen({
         onSelectProject={handleSelectProject}
         onCreateNew={handleCreateNewFromSelector}
       />
+
+      {/* Export PDF Modal */}
+      {activeProject && (
+        <ExportOptionsModal
+          visible={showExportModal}
+          onClose={() => setShowExportModal(false)}
+          project={activeProject}
+          onExport={handleExportPDF}
+        />
+      )}
     </SafeAreaView>
   );
 }
