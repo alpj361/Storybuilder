@@ -648,6 +648,11 @@ export default function StoryboardInputModal({
           characters={reviewProject.characters}
           onPanelsUpdate={updatePendingProjectPanels}
           onContinueToStoryboard={handleContinueToStoryboard}
+          onGenerateAllImages={async (quality) => {
+            // Generate all images with the selected quality and then navigate to storyboard
+            await generateImagesForPendingProject(quality);
+            handleContinueToStoryboard();
+          }}
           isGenerating={isGenerating}
         />
       )}

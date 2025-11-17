@@ -41,7 +41,7 @@ interface StoryboardState {
   createProjectWithPromptReview: (input: string, customCharacters?: Character[]) => Promise<StoryboardProject | null>;
   setPendingProject: (project: StoryboardProject | null) => void;
   updatePendingProjectPanels: (panels: StoryboardPanel[]) => void;
-  generateImagesForPendingProject: () => Promise<void>;
+  generateImagesForPendingProject: (quality?: GenerationQuality) => Promise<void>;
   createArchitecturalProjectFromInput: (input: string, options?: { kind?: ArchitecturalProjectKind }) => Promise<void>;
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
@@ -430,7 +430,7 @@ export const useStoryboardStore = create<StoryboardState>()(
       },
 
       // Generate images for pending project and save it
-      generateImagesForPendingProject: async () => {
+      generateImagesForPendingProject: async (quality?: GenerationQuality) => {
         const state = get();
         if (!state.pendingProject) {
           set({ error: "No pending project to generate images for" });
@@ -442,6 +442,7 @@ export const useStoryboardStore = create<StoryboardState>()(
         try {
           const project = state.pendingProject;
           console.log("[storyboardStore] Generating images for pending project:", project.id);
+          console.log("[storyboardStore] Quality tier:", quality || 'default');
 
           // Set project as current and add to projects (without images yet)
           set(state => ({
@@ -450,8 +451,8 @@ export const useStoryboardStore = create<StoryboardState>()(
             pendingProject: null
           }));
 
-          // Generate images for all panels
-          await get().generateAllPanelImages();
+          // Generate images for all panels with specified quality
+          await get().generateAllPanelImages(quality);
 
           set({ isGenerating: false });
         } catch (error) {
