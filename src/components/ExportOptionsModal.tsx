@@ -21,12 +21,11 @@ export default function ExportOptionsModal({
         includeMetadata
       };
       await onExport(options);
-      onClose();
+      // Modal will be closed by parent component
     } catch (error) {
       console.error('[ExportOptionsModal] Export failed:', error);
-      // Error will be handled by parent component
-    } finally {
       setIsExporting(false);
+      // Error will be handled by parent component
     }
   };
 
@@ -46,8 +45,16 @@ export default function ExportOptionsModal({
       transparent
       onRequestClose={handleClose}
     >
-      <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%' }}>
+      <Pressable
+        className="flex-1 bg-black/50 justify-end"
+        onPress={handleClose}
+        disabled={isExporting}
+      >
+        <Pressable
+          className="bg-white rounded-t-3xl"
+          style={{ maxHeight: '85%', minHeight: '50%' }}
+          onPress={(e) => e.stopPropagation()}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
             <View className="flex-1">
@@ -66,7 +73,11 @@ export default function ExportOptionsModal({
             </Pressable>
           </View>
 
-          <ScrollView className="flex-1 px-6 py-4">
+          <ScrollView
+            className="px-6 py-4"
+            style={{ flexGrow: 1, flexShrink: 1 }}
+            contentContainerStyle={{ paddingBottom: 8 }}
+          >
             {/* Layout Selection */}
             <View className="mb-6">
               <Text className="text-base font-bold text-gray-900 mb-3">Page Layout</Text>
@@ -305,8 +316,8 @@ export default function ExportOptionsModal({
               </Pressable>
             </View>
           </View>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
