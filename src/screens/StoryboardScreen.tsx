@@ -16,6 +16,7 @@ import CharacterTag from "../components/CharacterTag";
 import { CharacterDetailsModal } from "../components/CharacterDetailsModal";
 import { CharacterEditModal } from "../components/CharacterEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
+import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -39,8 +40,11 @@ interface StoryboardPanelProps {
 const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
+  const updatePanelPrompt = useStoryboardStore(state => state.updatePanelPrompt);
+  const regeneratePanelPromptFromIdea = useStoryboardStore(state => state.regeneratePanelPromptFromIdea);
   const isArchitectural = mode === "architectural";
   const [isImageExpanded, setIsImageExpanded] = useState(false);
+  const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
   
   if (!panel) {
     return (
@@ -96,18 +100,28 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       {/* Panel Header */}
       <View className="flex-row justify-between items-center mb-3">
         <Text className="text-sm font-semibold text-gray-600">Panel {panelNumber}</Text>
-        <View className="flex-row items-center space-x-2">
+        <View className="flex-row items-center gap-2">
           {panel.isGenerating && (
             <Ionicons name="hourglass" size={14} color="#3B82F6" />
           )}
-          <Pressable onPress={handleGenerateImage} disabled={panel.isGenerating}>
-            <Ionicons 
-              name={panel.generatedImageUrl ? "refresh" : "camera"} 
-              size={16} 
-              color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"} 
+          <Pressable
+            onPress={() => setShowIdeaEditModal(true)}
+            disabled={panel.isGenerating}
+            className="p-1"
+          >
+            <Ionicons
+              name="pencil-outline"
+              size={16}
+              color={panel.isGenerating ? "#9CA3AF" : "#6B7280"}
             />
           </Pressable>
-          <Ionicons name="ellipsis-horizontal" size={16} color="#6B7280" />
+          <Pressable onPress={handleGenerateImage} disabled={panel.isGenerating} className="p-1">
+            <Ionicons
+              name={panel.generatedImageUrl ? "refresh" : "camera"}
+              size={16}
+              color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"}
+            />
+          </Pressable>
         </View>
       </View>
       
@@ -202,15 +216,47 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       {/* Prompt Preview */}
       {scene && (
         <View className="mt-3">
-          <PromptPreview 
+          <PromptPreview
             prompt={panel.prompt}
             characters={panelCharacters}
             scene={scene}
             mode={mode}
             metadata={architecturalMetadata}
+            onPromptSave={(newPrompt) => {
+              updatePanelPrompt(panel.id, newPrompt);
+              Alert.alert(
+                "Prompt Updated",
+                "The panel prompt has been updated. Click 'Generate Image' to regenerate with the new prompt.",
+                [{ text: "OK" }]
+              );
+            }}
           />
         </View>
       )}
+
+      {/* Panel Idea Edit Modal */}
+      <PanelIdeaEditModal
+        visible={showIdeaEditModal}
+        onClose={() => setShowIdeaEditModal(false)}
+        panelNumber={panel.panelNumber}
+        currentIdea={panel.prompt.sceneDescription}
+        onSave={async (newIdea) => {
+          try {
+            await regeneratePanelPromptFromIdea(panel.id, newIdea);
+            Alert.alert(
+              "Prompt Regenerated",
+              "The panel prompt has been regenerated from your new idea. You can review and edit it, then click 'Generate Image' to create a new image.",
+              [{ text: "OK" }]
+            );
+          } catch (error) {
+            Alert.alert(
+              "Error",
+              "Failed to regenerate prompt. Please try again.",
+              [{ text: "OK" }]
+            );
+          }
+        }}
+      />
     </View>
   );
 };
