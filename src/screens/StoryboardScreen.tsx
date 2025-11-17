@@ -312,9 +312,13 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       {/* Fullscreen image modal */}
       {panel.generatedImageUrl && (
         <Modal visible={isImageExpanded} animationType="fade" transparent onRequestClose={() => setIsImageExpanded(false)}>
-          <View className="flex-1 bg-black/90">
-            <Pressable onPress={() => setIsImageExpanded(false)} className="absolute top-10 right-5 z-10 p-2 bg-black/60 rounded-full">
-              <Ionicons name="close" size={24} color="#FFFFFF" />
+          <View className="flex-1 bg-black/95">
+            <Pressable 
+              onPress={() => setIsImageExpanded(false)} 
+              className="absolute top-12 right-6 z-10 bg-black/80 rounded-full p-3"
+              style={{ minHeight: 48, minWidth: 48 }}
+            >
+              <Ionicons name="close" size={26} color="#FFFFFF" />
             </Pressable>
             <ScrollView
               className="flex-1"
@@ -335,7 +339,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       
       {/* Prompt Preview */}
       {scene && (
-        <View className="mt-3">
+        <View className="mt-4">
           <PromptPreview
             prompt={panel.prompt}
             characters={panelCharacters}
