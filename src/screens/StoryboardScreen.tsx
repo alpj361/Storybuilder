@@ -593,7 +593,7 @@ export default function StoryboardScreen({
         {isArchitectural && (
           <View className="mb-5 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
             <Text className="text-sm font-bold text-gray-700 mb-3">Architectural Mode</Text>
-            <View className="flex-row bg-gray-100 rounded-lg overflow-hidden">
+            <View className="flex-row bg-gray-100 rounded-xl overflow-hidden" style={{ gap: 2 }}>
               {([
                 { key: "detalles", label: "Detalles" },
                 { key: "planos", label: "Planos" },
@@ -603,18 +603,19 @@ export default function StoryboardScreen({
                 return (
                   <Pressable
                     key={option.key}
-                    className={`flex-1 py-2 items-center ${isSelected ? "bg-blue-500" : ""}`}
+                    className={`flex-1 py-3 items-center ${isSelected ? "bg-blue-500 rounded-lg" : ""}`}
                     onPress={() => handleArchitecturalKindChange(option.key)}
                     disabled={onArchitecturalKindChange == null}
+                    style={{ minHeight: 44 }}
                   >
-                    <Text className={`text-sm font-medium ${isSelected ? "text-white" : "text-gray-700"}`}>
+                    <Text className={`text-sm font-bold ${isSelected ? "text-white" : "text-gray-700"}`}>
                       {option.label}
                     </Text>
                   </Pressable>
                 );
               })}
             </View>
-            <Text className="text-xs text-gray-500 mt-2">
+            <Text className="text-xs text-gray-600 mt-3 leading-5">
               {architecturalKind === "detalles" && "Generate technical connection or material details with reinforcement and annotations."}
               {architecturalKind === "planos" && "Produce plan sets with floor plans, sections, elevations, and legends."}
               {architecturalKind === "prototipos" && "Create conceptual prototypes with massing, program, and diagrammatic overlays."}
