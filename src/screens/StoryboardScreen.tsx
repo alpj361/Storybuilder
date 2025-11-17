@@ -102,36 +102,37 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   };
 
   return (
-    <View className="flex-1 bg-white border border-gray-300 rounded-lg m-1 p-4 min-h-[200px]">
+    <View className="bg-white border border-gray-300 rounded-xl p-4 min-h-[220px] shadow-sm">
       {/* Panel Header */}
-      <View className="flex-row justify-between items-center mb-2">
-        <Text className="text-sm font-semibold text-gray-600">Panel {panelNumber}</Text>
+      <View className="flex-row justify-between items-center mb-4">
+        <Text className="text-base font-bold text-gray-700">Panel {panelNumber}</Text>
         {panel.isGenerating && (
-          <View className="flex-row items-center bg-blue-50 px-2 py-1 rounded">
-            <Ionicons name="hourglass" size={12} color="#3B82F6" />
-            <Text className="text-blue-600 text-xs font-medium ml-1">Generating...</Text>
+          <View className="flex-row items-center bg-blue-50 px-3 py-1.5 rounded-full">
+            <Ionicons name="hourglass" size={14} color="#3B82F6" />
+            <Text className="text-blue-600 text-xs font-semibold ml-1.5">Generating...</Text>
           </View>
         )}
       </View>
 
-      {/* Action Buttons - More visible */}
-      <View className="flex-row gap-2 mb-3">
+      {/* Action Buttons - Improved sizing and spacing */}
+      <View className="flex-row mb-4" style={{ gap: 8 }}>
         <Pressable
           onPress={() => setShowIdeaEditModal(true)}
           disabled={panel.isGenerating}
-          className={`flex-1 px-3 py-2 rounded-lg flex-row items-center justify-center ${
-            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-blue-50 border border-blue-300'
+          className={`flex-1 px-4 py-3 rounded-lg flex-row items-center justify-center ${
+            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-blue-50 border-2 border-blue-400'
           }`}
+          style={{ minHeight: 44 }}
         >
           <Ionicons
             name="pencil"
-            size={14}
+            size={16}
             color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"}
           />
-          <Text className={`text-xs font-semibold ml-1 ${
+          <Text className={`text-sm font-bold ml-2 ${
             panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
           }`}>
-            Edit Idea
+            Edit
           </Text>
         </Pressable>
         <Pressable
@@ -144,19 +145,20 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             }
           }}
           disabled={panel.isGenerating}
-          className={`flex-1 px-3 py-2 rounded-lg flex-row items-center justify-center ${
-            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-purple-50 border border-purple-300'
+          className={`flex-1 px-4 py-3 rounded-lg flex-row items-center justify-center ${
+            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-purple-50 border-2 border-purple-400'
           }`}
+          style={{ minHeight: 44 }}
         >
           <Ionicons
-            name={panel.generatedImageUrl ? "refresh" : "image"}
-            size={14}
+            name={panel.generatedImageUrl ? "refresh" : "sparkles"}
+            size={16}
             color={panel.isGenerating ? "#9CA3AF" : "#9333ea"}
           />
-          <Text className={`text-xs font-semibold ml-1 ${
+          <Text className={`text-sm font-bold ml-2 ${
             panel.isGenerating ? 'text-gray-400' : 'text-purple-600'
           }`}>
-            {panel.generatedImageUrl ? "Regenerate" : "Generate"}
+            {panel.generatedImageUrl ? "Regen" : "Generate"}
           </Text>
         </Pressable>
       </View>
