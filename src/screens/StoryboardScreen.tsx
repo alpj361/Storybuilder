@@ -743,10 +743,13 @@ export default function StoryboardScreen({
         )}
 
         {/* Panels Grid (dynamic) */}
-        <View className="flex-1">
-          <View className="flex-row flex-wrap -mx-1">
+        <View className="flex-1 mb-5">
+          <View className="flex-row flex-wrap" style={{ gap: 12 }}>
             {displayPanels.map((panel: StoryboardPanelType | undefined, idx: number) => (
-              <View key={panel ? panel.id : `placeholder-${idx}`} className="w-1/2 px-1 mb-2">
+              <View 
+                key={panel ? panel.id : `placeholder-${idx}`} 
+                style={{ width: 'calc(50% - 6px)' }}
+              >
                 <StoryboardPanel
                   panel={panel}
                   panelNumber={idx + 1}
@@ -761,15 +764,16 @@ export default function StoryboardScreen({
         {/* Generate/Add More Panels Button */}
         <Pressable 
           onPress={handleNewProject}
-          className="mt-6 p-4 bg-white rounded-lg border border-dashed border-gray-300"
+          className="mb-6 p-5 bg-white rounded-xl border-2 border-dashed border-gray-300 shadow-sm active:bg-gray-50"
+          style={{ minHeight: 60 }}
         >
           <View className="flex-row justify-center items-center">
             <Ionicons 
               name={activeProject ? "refresh" : "add"} 
-              size={20} 
+              size={24} 
               color="#3B82F6" 
             />
-            <Text className="ml-2 text-blue-500 font-medium">
+            <Text className="ml-3 text-blue-600 font-bold text-base">
               {buttonLabel}
             </Text>
           </View>
