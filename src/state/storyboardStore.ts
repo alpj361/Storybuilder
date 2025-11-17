@@ -24,19 +24,24 @@ import { v4 as uuidv4 } from "uuid";
 interface StoryboardState {
   // Current project state
   currentProject: StoryboardProject | null;
+  pendingProject: StoryboardProject | null; // Project awaiting prompt review
   projects: StoryboardProject[];
-  
+
   // UI state
   isGenerating: boolean;
   isLoading: boolean;
   error: string | null;
-  
+
   // User preferences
   defaultStyle: StoryboardStyle;
   generationOptions: GenerationOptions;
-  
+
   // Actions
   createProjectFromInput: (input: string, customCharacters?: Character[]) => Promise<void>;
+  createProjectWithPromptReview: (input: string, customCharacters?: Character[]) => Promise<StoryboardProject | null>;
+  setPendingProject: (project: StoryboardProject | null) => void;
+  updatePendingProjectPanels: (panels: StoryboardPanel[]) => void;
+  generateImagesForPendingProject: () => Promise<void>;
   createArchitecturalProjectFromInput: (input: string, options?: { kind?: ArchitecturalProjectKind }) => Promise<void>;
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
@@ -76,6 +81,7 @@ export const useStoryboardStore = create<StoryboardState>()(
     (set, get) => ({
       // Initial state
       currentProject: null,
+      pendingProject: null,
       projects: [],
       isGenerating: false,
       isLoading: false,
@@ -238,6 +244,219 @@ export const useStoryboardStore = create<StoryboardState>()(
           console.error("[storyboardStore] Project creation error:", error);
           set({
             error: error instanceof Error ? error.message : "Unknown error occurred",
+            isGenerating: false
+          });
+        }
+      },
+
+      // Create a new project with prompt review (two-stage generation)
+      createProjectWithPromptReview: async (input: string, customCharacters?: Character[]): Promise<StoryboardProject | null> => {
+        set({ isGenerating: true, error: null });
+
+        try {
+          console.log("[storyboardStore] Creating project with prompt review:", input);
+          console.log("[storyboardStore] Custom characters provided:", customCharacters?.length || 0);
+
+          // Extract panel count from input for AI parser
+          const panelCountMatch = input.toLowerCase().match(/\((?:panels?|frames?):\s*(\d{1,2})\)|(\d{1,2})\s*(?:panels?|frames?)/);
+          const panelCount = panelCountMatch ? parseInt(panelCountMatch[1] || panelCountMatch[2], 10) : 4;
+
+          let result;
+          let useAI = true;
+
+          // Try AI parsing first with GPT-4
+          try {
+            console.log("[storyboardStore] Attempting AI parsing with GPT-4, panel count:", panelCount);
+            const aiResult = await parseUserInputWithAI(input, panelCount);
+            const converted = convertAIResultToAppFormat(aiResult);
+
+            console.log("[storyboardStore] AI parsing successful:", {
+              characters: converted.characters.length,
+              scenes: converted.scenes.length,
+              storyBeats: converted.storyBeats.length
+            });
+
+            // Use custom characters if provided, otherwise use AI-detected characters
+            const finalCharacters = customCharacters && customCharacters.length > 0
+              ? customCharacters
+              : converted.characters;
+
+            console.log("[storyboardStore] Using characters:", {
+              custom: customCharacters?.length || 0,
+              aiDetected: converted.characters.length,
+              final: finalCharacters.length
+            });
+
+            // Build panels from AI-generated story beats
+            const panels = aiResult.storyBeats.map((beat, index) => ({
+              id: uuidv4(),
+              panelNumber: index + 1,
+              prompt: {
+                id: uuidv4(),
+                panelNumber: index + 1,
+                panelType: index === 0 ? "establishing" as any : "action" as any,
+                action: beat,
+                sceneDescription: beat,
+                characters: finalCharacters.map(c => c.id),
+                sceneId: converted.scenes[0]?.id || uuidv4(),
+                style: get().defaultStyle,
+                composition: "medium_shot" as any,
+                mood: aiResult.mood,
+                lighting: converted.scenes[0]?.lighting || "natural lighting",
+                generatedPrompt: ""
+              },
+              isGenerating: false,
+              isEdited: false
+            }));
+
+            result = {
+              success: true,
+              project: {
+                id: uuidv4(),
+                title: input.slice(0, 50),
+                description: input,
+                userInput: input,
+                panels,
+                characters: finalCharacters,
+                scenes: converted.scenes,
+                style: get().defaultStyle,
+                metadata: {
+                  genre: aiResult.genre,
+                  targetAudience: aiResult.targetAudience as any,
+                  aspectRatio: "4:3" as const
+                },
+                createdAt: new Date(),
+                updatedAt: new Date(),
+                isComplete: true,
+                projectType: ProjectType.STORYBOARD
+              }
+            };
+          } catch (aiError) {
+            console.warn("[storyboardStore] AI parsing failed, falling back to regex parser:", aiError);
+            useAI = false;
+            result = await parseUserInput(input);
+
+            // If using regex parser and custom characters provided, override the parsed characters
+            if (result.success && customCharacters && customCharacters.length > 0) {
+              result.project.characters = customCharacters;
+              // Update panel character references
+              result.project.panels = result.project.panels.map(panel => ({
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  characters: customCharacters.map(c => c.id)
+                }
+              }));
+            }
+          }
+
+          if (result.success) {
+            // Apply audience-specific template first, then generate prompts
+            const audience = result.project.metadata.targetAudience as keyof typeof AUDIENCE_TEMPLATES;
+            const audienceStyle = AUDIENCE_TEMPLATES[audience]?.style_preference ?? get().defaultStyle;
+
+            const audiencePreparedPanels = result.project.panels.map(panel => ({
+              ...panel,
+              prompt: applyAudienceTemplate({
+                ...panel.prompt,
+                style: audienceStyle
+              }, audience)
+            }));
+
+            // Generate final prompts with template system
+            const enhancedPrompts = await generateAllPanelPrompts(
+              audiencePreparedPanels.map(p => p.prompt),
+              result.project.characters,
+              result.project.scenes
+            );
+
+            const finalPanels = audiencePreparedPanels.map((panel, index) => ({
+              ...panel,
+              prompt: enhancedPrompts[index]
+            }));
+
+            const pendingProject: StoryboardProject = {
+              ...result.project,
+              panels: finalPanels,
+              style: audienceStyle,
+              projectType: ProjectType.STORYBOARD
+            };
+
+            console.log("[storyboardStore] Pending project created successfully using", useAI ? "AI" : "regex", "parser");
+            console.log("[storyboardStore] Pending project:", {
+              panels: pendingProject.panels.length,
+              characters: pendingProject.characters.length,
+              scenes: pendingProject.scenes.length
+            });
+
+            set({ pendingProject, isGenerating: false });
+            return pendingProject;
+          } else {
+            set({
+              error: result.errors?.join(", ") || "Failed to generate storyboard",
+              isGenerating: false
+            });
+            return null;
+          }
+        } catch (error) {
+          console.error("[storyboardStore] Project creation error:", error);
+          set({
+            error: error instanceof Error ? error.message : "Unknown error occurred",
+            isGenerating: false
+          });
+          return null;
+        }
+      },
+
+      // Set pending project
+      setPendingProject: (project: StoryboardProject | null) => {
+        set({ pendingProject: project });
+      },
+
+      // Update pending project panels (for edit/delete in review modal)
+      updatePendingProjectPanels: (panels: StoryboardPanel[]) => {
+        set(state => {
+          if (!state.pendingProject) return state;
+
+          return {
+            pendingProject: {
+              ...state.pendingProject,
+              panels,
+              updatedAt: new Date()
+            }
+          };
+        });
+      },
+
+      // Generate images for pending project and save it
+      generateImagesForPendingProject: async () => {
+        const state = get();
+        if (!state.pendingProject) {
+          set({ error: "No pending project to generate images for" });
+          return;
+        }
+
+        set({ isGenerating: true, error: null });
+
+        try {
+          const project = state.pendingProject;
+          console.log("[storyboardStore] Generating images for pending project:", project.id);
+
+          // Set project as current and add to projects (without images yet)
+          set(state => ({
+            currentProject: project,
+            projects: [...state.projects, project],
+            pendingProject: null
+          }));
+
+          // Generate images for all panels
+          await get().generateAllPanelImages();
+
+          set({ isGenerating: false });
+        } catch (error) {
+          console.error("[storyboardStore] Error generating images for pending project:", error);
+          set({
+            error: error instanceof Error ? error.message : "Failed to generate images",
             isGenerating: false
           });
         }
