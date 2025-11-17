@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert, Modal } from "react-native";
+import { View, Text, ScrollView, Pressable, Image, Alert, Modal, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
@@ -439,6 +439,7 @@ export default function StoryboardScreen({
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [isExportingPDF, setIsExportingPDF] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -585,21 +586,33 @@ export default function StoryboardScreen({
   const handleExportPDF = async (options: ExportOptions) => {
     if (!activeProject) return;
 
+    setIsExportingPDF(true);
+
     try {
       console.log('[StoryboardScreen] Starting PDF export...');
+
+      // Generate PDF
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // Share the PDF
+      // Share the PDF (opens native dialog, doesn't block)
       await pdfExportService.sharePDF(result.uri);
 
-      Alert.alert(
-        "Export Successful",
-        `PDF exported with ${result.pageCount} page${result.pageCount !== 1 ? 's' : ''}`,
-        [{ text: "OK" }]
-      );
+      // Hide loading immediately after share dialog opens
+      setIsExportingPDF(false);
+
+      // Show success message
+      setTimeout(() => {
+        Alert.alert(
+          "PDF Ready",
+          `Your ${result.pageCount}-page PDF is ready to share or save.`,
+          [{ text: "OK" }]
+        );
+      }, 500);
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
+      setIsExportingPDF(false);
+
       Alert.alert(
         "Export Failed",
         "Failed to export PDF. Please try again.",
@@ -917,6 +930,19 @@ export default function StoryboardScreen({
           onExport={handleExportPDF}
         />
       )}
+
+      {/* PDF Export Loading Modal */}
+      <Modal visible={isExportingPDF} transparent animationType="fade">
+        <View className="flex-1 bg-black/60 items-center justify-center">
+          <View className="bg-white rounded-2xl p-6 items-center" style={{ minWidth: 200 }}>
+            <ActivityIndicator size="large" color="#3B82F6" />
+            <Text className="text-base font-bold text-gray-900 mt-4">Exporting PDF...</Text>
+            <Text className="text-sm text-gray-600 mt-2 text-center">
+              This may take a moment
+            </Text>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

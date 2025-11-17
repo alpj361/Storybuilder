@@ -1,7 +1,9 @@
 import React, { useState } from "react";
-import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator } from "react-native";
+import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator, Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ExportOptionsModalProps, PDFLayout, ExportOptions } from "../types/export";
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 export default function ExportOptionsModal({
   visible,
@@ -15,19 +17,26 @@ export default function ExportOptionsModal({
 
   const handleExport = async () => {
     setIsExporting(true);
-    try {
-      const options: ExportOptions = {
-        layout: selectedLayout,
-        includeMetadata
-      };
-      await onExport(options);
-      onClose();
-    } catch (error) {
-      console.error('[ExportOptionsModal] Export failed:', error);
-      // Error will be handled by parent component
-    } finally {
-      setIsExporting(false);
-    }
+
+    const options: ExportOptions = {
+      layout: selectedLayout,
+      includeMetadata
+    };
+
+    // Close modal immediately and start export
+    onClose();
+
+    // Give UI time to update before starting heavy operation
+    setTimeout(async () => {
+      try {
+        await onExport(options);
+      } catch (error) {
+        console.error('[ExportOptionsModal] Export failed:', error);
+        // Error will be handled by parent component
+      } finally {
+        setIsExporting(false);
+      }
+    }, 100);
   };
 
   const handleClose = () => {
@@ -47,7 +56,7 @@ export default function ExportOptionsModal({
       onRequestClose={handleClose}
     >
       <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-white rounded-t-3xl" style={{ maxHeight: '85%' }}>
+        <View className="bg-white rounded-t-3xl" style={{ maxHeight: SCREEN_HEIGHT * 0.9 }}>
           {/* Header */}
           <View className="flex-row items-center justify-between px-6 py-4 border-b border-gray-200">
             <View className="flex-1">

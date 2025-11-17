@@ -65,7 +65,8 @@ class PDFExportService {
   private async prepareImages(panels: StoryboardPanel[]): Promise<Map<string, string>> {
     const imageDataMap = new Map<string, string>();
 
-    for (const panel of panels) {
+    for (let i = 0; i < panels.length; i++) {
+      const panel = panels[i];
       if (!panel.generatedImageUrl) continue;
 
       try {
@@ -82,6 +83,11 @@ class PDFExportService {
 
         const dataUri = `data:image/jpeg;base64,${base64}`;
         imageDataMap.set(panel.id, dataUri);
+
+        // Yield to event loop every 2 images to prevent blocking
+        if (i % 2 === 0) {
+          await new Promise(resolve => setTimeout(resolve, 0));
+        }
       } catch (error) {
         console.warn(`[PDFExportService] Failed to load image for panel ${panel.panelNumber}:`, error);
         // Use placeholder if image fails to load
@@ -513,18 +519,30 @@ class PDFExportService {
    */
   async sharePDF(uri: string): Promise<void> {
     try {
+      console.log('[PDFExportService] Checking if sharing is available...');
       const canShare = await Sharing.isAvailableAsync();
 
       if (!canShare) {
         throw new Error('Sharing is not available on this device');
       }
 
-      await Sharing.shareAsync(uri, {
+      console.log('[PDFExportService] Opening share dialog...');
+
+      // Share the PDF - this will open native sharing dialog
+      // We don't await this to prevent freezing when user interacts with dialog
+      Sharing.shareAsync(uri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Share Storyboard PDF'
+        dialogTitle: 'Share Storyboard PDF',
+        UTI: 'public.pdf'
+      }).then(() => {
+        console.log('[PDFExportService] PDF shared successfully');
+      }).catch((err) => {
+        // User might have cancelled, which is fine
+        console.log('[PDFExportService] Share dialog closed:', err);
       });
 
-      console.log('[PDFExportService] PDF shared successfully');
+      // Small delay to ensure dialog is opened before we continue
+      await new Promise(resolve => setTimeout(resolve, 100));
     } catch (error) {
       console.error('[PDFExportService] Error sharing PDF:', error);
       throw error;
