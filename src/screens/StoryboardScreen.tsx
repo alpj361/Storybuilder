@@ -39,6 +39,7 @@ interface StoryboardPanelProps {
 const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
+  const updatePanelPrompt = useStoryboardStore(state => state.updatePanelPrompt);
   const isArchitectural = mode === "architectural";
   const [isImageExpanded, setIsImageExpanded] = useState(false);
   
@@ -202,12 +203,20 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       {/* Prompt Preview */}
       {scene && (
         <View className="mt-3">
-          <PromptPreview 
+          <PromptPreview
             prompt={panel.prompt}
             characters={panelCharacters}
             scene={scene}
             mode={mode}
             metadata={architecturalMetadata}
+            onPromptSave={(newPrompt) => {
+              updatePanelPrompt(panel.id, newPrompt);
+              Alert.alert(
+                "Prompt Updated",
+                "The panel prompt has been updated. Click 'Generate Image' to regenerate with the new prompt.",
+                [{ text: "OK" }]
+              );
+            }}
           />
         </View>
       )}

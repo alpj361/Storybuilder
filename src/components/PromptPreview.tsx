@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { View, Text, Pressable, ScrollView } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ArchitecturalMetadata, StoryboardPrompt } from "../types/storyboard";
+import PromptEditModal from "./PromptEditModal";
 
 const formatLabel = (label: string) =>
   label
@@ -16,10 +17,12 @@ interface PromptPreviewProps {
   metadata?: ArchitecturalMetadata;
   mode?: "storyboard" | "architectural";
   onEdit?: () => void;
+  onPromptSave?: (newPrompt: string) => void;
 }
 
-export default function PromptPreview({ prompt, characters, scene, metadata, mode = "storyboard", onEdit }: PromptPreviewProps) {
+export default function PromptPreview({ prompt, characters, scene, metadata, mode = "storyboard", onEdit, onPromptSave }: PromptPreviewProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const isArchitectural = mode === "architectural";
 
@@ -34,7 +37,16 @@ export default function PromptPreview({ prompt, characters, scene, metadata, mod
         <Text className="text-sm font-semibold text-gray-700">
           Generated Prompt
         </Text>
-        <View className="flex-row items-center space-x-2">
+        <View className="flex-row items-center gap-2">
+          {onPromptSave && (
+            <Pressable
+              onPress={() => setShowEditModal(true)}
+              className="flex-row items-center bg-blue-100 px-2 py-1 rounded"
+            >
+              <Ionicons name="expand" size={14} color="#3b82f6" />
+              <Text className="text-blue-600 text-xs font-medium ml-1">Edit</Text>
+            </Pressable>
+          )}
           {onEdit && (
             <Pressable
               onPress={onEdit}
@@ -47,10 +59,10 @@ export default function PromptPreview({ prompt, characters, scene, metadata, mod
             onPress={() => setIsExpanded(!isExpanded)}
             className="p-1 rounded"
           >
-            <Ionicons 
-              name={isExpanded ? "chevron-up" : "chevron-down"} 
-              size={14} 
-              color="#6B7280" 
+            <Ionicons
+              name={isExpanded ? "chevron-up" : "chevron-down"}
+              size={14}
+              color="#6B7280"
             />
           </Pressable>
         </View>
@@ -257,6 +269,17 @@ export default function PromptPreview({ prompt, characters, scene, metadata, mod
             )}
           </ScrollView>
         </View>
+      )}
+
+      {/* Prompt Edit Modal */}
+      {onPromptSave && (
+        <PromptEditModal
+          visible={showEditModal}
+          onClose={() => setShowEditModal(false)}
+          prompt={prompt.generatedPrompt}
+          onSave={onPromptSave}
+          title="Edit Panel Prompt"
+        />
       )}
     </View>
   );
