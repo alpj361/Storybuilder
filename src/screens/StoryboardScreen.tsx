@@ -589,10 +589,10 @@ export default function StoryboardScreen({
         </View>
       </View>
 
-      <ScrollView className="flex-1 p-4">
+      <ScrollView className="flex-1 px-4 py-5">
         {isArchitectural && (
-          <View className="mb-4 bg-white border border-gray-200 rounded-lg p-3">
-            <Text className="text-xs font-semibold text-gray-600 mb-2">Architectural Mode</Text>
+          <View className="mb-5 bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+            <Text className="text-sm font-bold text-gray-700 mb-3">Architectural Mode</Text>
             <View className="flex-row bg-gray-100 rounded-lg overflow-hidden">
               {([
                 { key: "detalles", label: "Detalles" },
