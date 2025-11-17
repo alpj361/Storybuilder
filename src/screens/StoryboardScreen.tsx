@@ -193,86 +193,94 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       )}
       
       {/* Drawing Area */}
-      <View className="bg-gray-50 rounded border-2 border-dashed border-gray-300 overflow-hidden relative">
+      <View className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden relative">
         {panel.isGenerating ? (
-          <View className="h-28 flex-col items-center justify-center">
-            <Ionicons name="hourglass" size={32} color="#3B82F6" />
-            <Text className="text-blue-500 text-xs mt-2">Generating image...</Text>
+          <View className="h-36 flex-col items-center justify-center">
+            <Ionicons name="hourglass" size={36} color="#3B82F6" />
+            <Text className="text-blue-500 text-sm font-medium mt-3">Generating image...</Text>
           </View>
         ) : showQualitySelector ? (
-          <View className="p-3 min-h-[112px]">
-            <Text className="text-sm font-semibold text-gray-800 mb-2">
-              {panel.generatedImageUrl ? "Regenerate with:" : "Select Quality:"}
+          <View className="p-4">
+            <Text className="text-base font-bold text-gray-900 mb-3">
+              {panel.generatedImageUrl ? "Regenerate Quality" : "Select Quality"}
             </Text>
-            <View className="flex-row gap-2 mb-3">
+            <View className="flex-row mb-4" style={{ gap: 10 }}>
               <Pressable
                 onPress={() => setSelectedQuality(GenerationQuality.STANDARD)}
-                className={`flex-1 p-2.5 rounded-lg border-2 ${
+                className={`flex-1 p-3 rounded-lg border-2 ${
                   selectedQuality === GenerationQuality.STANDARD
                     ? 'bg-blue-50 border-blue-500'
                     : 'bg-white border-gray-300'
                 }`}
+                style={{ minHeight: 60 }}
               >
-                <View className="flex-row items-center justify-center mb-0.5">
-                  <Ionicons
-                    name={selectedQuality === GenerationQuality.STANDARD ? 'radio-button-on' : 'radio-button-off'}
-                    size={16}
-                    color={selectedQuality === GenerationQuality.STANDARD ? '#3b82f6' : '#9ca3af'}
-                  />
-                  <Text className={`text-xs font-bold ml-1 ${
-                    selectedQuality === GenerationQuality.STANDARD ? 'text-blue-700' : 'text-gray-600'
+                <View className="items-center">
+                  <View className="flex-row items-center mb-1">
+                    <Ionicons
+                      name={selectedQuality === GenerationQuality.STANDARD ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={selectedQuality === GenerationQuality.STANDARD ? '#3b82f6' : '#9ca3af'}
+                    />
+                    <Text className={`text-sm font-bold ml-1.5 ${
+                      selectedQuality === GenerationQuality.STANDARD ? 'text-blue-700' : 'text-gray-600'
+                    }`}>
+                      Standard
+                    </Text>
+                  </View>
+                  <Text className={`text-xs ${
+                    selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
                   }`}>
-                    Gama Baja
+                    Stable Diffusion
                   </Text>
                 </View>
-                <Text className={`text-[10px] text-center ${
-                  selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
-                }`}>
-                  Stable Diffusion
-                </Text>
               </Pressable>
               <Pressable
                 onPress={() => setSelectedQuality(GenerationQuality.HIGH)}
-                className={`flex-1 p-2.5 rounded-lg border-2 ${
+                className={`flex-1 p-3 rounded-lg border-2 ${
                   selectedQuality === GenerationQuality.HIGH
                     ? 'bg-purple-50 border-purple-500'
                     : 'bg-white border-gray-300'
                 }`}
+                style={{ minHeight: 60 }}
               >
-                <View className="flex-row items-center justify-center mb-0.5">
-                  <Ionicons
-                    name={selectedQuality === GenerationQuality.HIGH ? 'radio-button-on' : 'radio-button-off'}
-                    size={16}
-                    color={selectedQuality === GenerationQuality.HIGH ? '#9333ea' : '#9ca3af'}
-                  />
-                  <Text className={`text-xs font-bold ml-1 ${
-                    selectedQuality === GenerationQuality.HIGH ? 'text-purple-700' : 'text-gray-600'
+                <View className="items-center">
+                  <View className="flex-row items-center mb-1">
+                    <Ionicons
+                      name={selectedQuality === GenerationQuality.HIGH ? 'radio-button-on' : 'radio-button-off'}
+                      size={18}
+                      color={selectedQuality === GenerationQuality.HIGH ? '#9333ea' : '#9ca3af'}
+                    />
+                    <Text className={`text-sm font-bold ml-1.5 ${
+                      selectedQuality === GenerationQuality.HIGH ? 'text-purple-700' : 'text-gray-600'
+                    }`}>
+                      High
+                    </Text>
+                  </View>
+                  <Text className={`text-xs ${
+                    selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
                   }`}>
-                    Gama Alta
+                    Seeddream 4
                   </Text>
                 </View>
-                <Text className={`text-[10px] text-center ${
-                  selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
-                }`}>
-                  Seeddream 4
-                </Text>
               </Pressable>
             </View>
-            <View className="flex-row gap-2">
+            <View className="flex-row" style={{ gap: 10 }}>
               <Pressable
                 onPress={() => setShowQualitySelector(false)}
-                className="flex-1 px-3 py-2 bg-gray-200 rounded-lg"
+                className="flex-1 px-4 py-3 bg-gray-200 rounded-lg"
+                style={{ minHeight: 44 }}
               >
-                <Text className="text-gray-700 text-xs font-semibold text-center">Cancel</Text>
+                <Text className="text-gray-700 text-sm font-bold text-center">Cancel</Text>
               </Pressable>
               <Pressable
                 onPress={handleGenerateImage}
-                className="flex-1 px-3 py-2 bg-purple-600 rounded-lg"
+                className="flex-1 px-4 py-3 bg-purple-600 rounded-lg"
+                style={{ minHeight: 44 }}
               >
                 <View className="flex-row items-center justify-center">
-                  <Ionicons name="sparkles" size={12} color="#FFFFFF" />
-                  <Text className="text-white text-xs font-semibold ml-1">
-                    {panel.generatedImageUrl ? "Regenerate" : "Generate"}
+                  <Ionicons name="sparkles" size={16} color="#FFFFFF" />
+                  <Text className="text-white text-sm font-bold ml-2">
+                    {panel.generatedImageUrl ? "Regen" : "Generate"}
                   </Text>
                 </View>
               </Pressable>
