@@ -46,6 +46,7 @@ interface StoryboardState {
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
+  deletePanel: (panelId: string) => void;
   updatePanelPrompt: (panelId: string, newPromptText: string) => void;
   regeneratePanelPromptFromIdea: (panelId: string, newIdea: string) => Promise<void>;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
@@ -672,7 +673,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           if (!state.currentProject) return state;
 
           const updatedPanels = state.currentProject.panels.map(panel =>
-            panel.id === panelId 
+            panel.id === panelId
               ? { ...panel, ...updates, isEdited: true }
               : panel
           );
@@ -685,7 +686,42 @@ export const useStoryboardStore = create<StoryboardState>()(
 
           return {
             currentProject: updatedProject,
-            projects: state.projects.map(p => 
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Delete a specific panel
+      deletePanel: (panelId: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          // Filter out the panel to delete
+          const remainingPanels = state.currentProject.panels.filter(
+            panel => panel.id !== panelId
+          );
+
+          // Renumber remaining panels
+          const renumberedPanels = remainingPanels.map((panel, index) => ({
+            ...panel,
+            panelNumber: index + 1,
+            prompt: {
+              ...panel.prompt,
+              panelNumber: index + 1
+            }
+          }));
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: renumberedPanels,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
               p.id === updatedProject.id ? updatedProject : p
             )
           };

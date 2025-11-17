@@ -38,9 +38,10 @@ interface StoryboardPanelProps {
   panelNumber: number;
   mode: "storyboard" | "architectural";
   onCharacterPress?: (character: Character) => void;
+  onDelete?: (panelId: string) => void;
 }
 
-const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress }) => {
+const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onDelete }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   const updatePanelPrompt = useStoryboardStore(state => state.updatePanelPrompt);
@@ -107,7 +108,31 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
     <View className="bg-white border border-gray-300 rounded-xl p-4 min-h-[220px] shadow-sm">
       {/* Panel Header */}
       <View className="flex-row justify-between items-center mb-4">
-        <Text className="text-base font-bold text-gray-700">Panel {panelNumber}</Text>
+        <View className="flex-row items-center flex-1">
+          <Text className="text-base font-bold text-gray-700">Panel {panelNumber}</Text>
+          {onDelete && !panel.isGenerating && (
+            <Pressable
+              onPress={() => {
+                Alert.alert(
+                  "Delete Panel",
+                  `Are you sure you want to delete Panel ${panelNumber}?`,
+                  [
+                    { text: "Cancel", style: "cancel" },
+                    {
+                      text: "Delete",
+                      style: "destructive",
+                      onPress: () => onDelete(panel.id)
+                    }
+                  ]
+                );
+              }}
+              className="ml-3 p-2 rounded-full active:bg-red-50"
+              style={{ minHeight: 32, minWidth: 32 }}
+            >
+              <Ionicons name="trash-outline" size={18} color="#EF4444" />
+            </Pressable>
+          )}
+        </View>
         {panel.isGenerating && (
           <View className="flex-row items-center bg-blue-500 px-4 py-2 rounded-full shadow-sm">
             <Ionicons name="hourglass" size={16} color="#FFFFFF" />
@@ -424,6 +449,7 @@ export default function StoryboardScreen({
   const isGenerating = useStoryboardStore(state => state.isGenerating);
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
   const updateCharacter = useStoryboardStore(state => state.updateCharacter);
+  const deletePanel = useStoryboardStore(state => state.deletePanel);
 
   // Handler for opening character details modal
   const handleCharacterPress = (character: Character) => {
@@ -441,6 +467,11 @@ export default function StoryboardScreen({
   // Handler for saving character edits
   const handleSaveCharacter = (character: Character) => {
     updateCharacter(character.id, character);
+  };
+
+  // Handler for deleting a panel
+  const handleDeletePanel = (panelId: string) => {
+    deletePanel(panelId);
   };
 
   // Calculate which panels a character appears in
@@ -808,6 +839,7 @@ export default function StoryboardScreen({
                   panelNumber={idx + 1}
                   mode={mode}
                   onCharacterPress={handleCharacterPress}
+                  onDelete={panel && !isArchitectural ? handleDeletePanel : undefined}
                 />
               </View>
             ))}
