@@ -543,36 +543,48 @@ export default function StoryboardScreen({
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
-      <View className="bg-white border-b border-gray-200 px-4 py-3">
+      <View className="bg-white border-b border-gray-200 px-5 py-4">
         <View className="flex-row justify-between items-center">
-          <Pressable onPress={() => setShowProjectSelector(true)} className="flex-1">
-            <Text className="text-xl font-bold text-gray-900">{title}</Text>
+          <Pressable onPress={() => setShowProjectSelector(true)} className="flex-1 mr-3">
+            <Text className="text-2xl font-bold text-gray-900 mb-1">{title}</Text>
             <View className="flex-row items-center">
-              <Text className="text-sm text-gray-500">
+              <Text className="text-sm text-gray-600 font-medium">
                 {activeProject?.title || "No Project"}
               </Text>
-              <Ionicons name="chevron-down" size={16} color="#6B7280" style={{ marginLeft: 4 }} />
+              <Ionicons name="chevron-down" size={18} color="#6B7280" style={{ marginLeft: 6 }} />
             </View>
           </Pressable>
-          <View className="flex-row space-x-3">
+          <View className="flex-row items-center" style={{ gap: 12 }}>
             {activeProject && (
-              <Pressable onPress={handleGenerateAllImages} disabled={isGenerating}>
+              <Pressable 
+                onPress={handleGenerateAllImages} 
+                disabled={isGenerating}
+                className="p-2 rounded-full active:bg-gray-100"
+                style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
+              >
                 <Ionicons
                   name="images-outline"
-                  size={24}
+                  size={26}
                   color={isGenerating ? "#9CA3AF" : "#3B82F6"}
                 />
               </Pressable>
             )}
-            <Pressable onPress={handleNewProject}>
-              <Ionicons name="add-circle-outline" size={24} color="#3B82F6" />
+            <Pressable 
+              onPress={handleNewProject}
+              className="p-2 rounded-full active:bg-gray-100"
+              style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
+            >
+              <Ionicons name="add-circle-outline" size={26} color="#3B82F6" />
             </Pressable>
             {activeProject && (
-              <Pressable onPress={handleClearProject}>
-                <Ionicons name="trash-outline" size={24} color="#6B7280" />
+              <Pressable 
+                onPress={handleClearProject}
+                className="p-2 rounded-full active:bg-gray-100"
+                style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
+              >
+                <Ionicons name="trash-outline" size={26} color="#6B7280" />
               </Pressable>
             )}
-            <Ionicons name="settings-outline" size={24} color="#6B7280" />
           </View>
         </View>
       </View>
