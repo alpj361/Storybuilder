@@ -587,19 +587,33 @@ export default function StoryboardScreen({
 
     try {
       console.log('[StoryboardScreen] Starting PDF export...');
+
+      // Generate PDF while modal shows loading state
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // Share the PDF
-      await pdfExportService.sharePDF(result.uri);
+      // Close modal BEFORE opening share dialog to prevent UI freeze
+      setShowExportModal(false);
 
-      Alert.alert(
-        "Export Successful",
-        `PDF exported with ${result.pageCount} page${result.pageCount !== 1 ? 's' : ''}`,
-        [{ text: "OK" }]
-      );
+      // Small delay to ensure modal closes smoothly
+      setTimeout(() => {
+        // Share the PDF - this will open native share dialog
+        // Don't await to prevent UI freeze
+        pdfExportService.sharePDF(result.uri).catch(error => {
+          // Only show error if sharing actually fails (not if user cancels)
+          if (error?.message && !error.message.includes('cancel')) {
+            console.error('[StoryboardScreen] Share failed:', error);
+            Alert.alert(
+              "Share Failed",
+              "Could not share the PDF. Please try again.",
+              [{ text: "OK" }]
+            );
+          }
+        });
+      }, 300);
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
+      setShowExportModal(false);
       Alert.alert(
         "Export Failed",
         "Failed to export PDF. Please try again.",
