@@ -2,10 +2,11 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
-import { ProjectType, ArchitecturalProjectKind, Character, GenerationQuality } from "../types/storyboard";
+import { ProjectType, ArchitecturalProjectKind, Character, GenerationQuality, StoryboardProject } from "../types/storyboard";
 import { cn } from "../utils/cn";
 import { CharacterEditModal } from "./CharacterEditModal";
 import CharacterTag from "./CharacterTag";
+import PromptReviewModal from "./PromptReviewModal";
 
 interface StoryboardInputModalProps {
   visible: boolean;
@@ -30,7 +31,13 @@ export default function StoryboardInputModal({
   const [characters, setCharacters] = useState<Character[]>([]);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [showPromptReview, setShowPromptReview] = useState(false);
+  const [reviewProject, setReviewProject] = useState<StoryboardProject | null>(null);
+
   const createProjectFromInput = useStoryboardStore(state => state.createProjectFromInput);
+  const createProjectWithPromptReview = useStoryboardStore(state => state.createProjectWithPromptReview);
+  const updatePendingProjectPanels = useStoryboardStore(state => state.updatePendingProjectPanels);
+  const generateImagesForPendingProject = useStoryboardStore(state => state.generateImagesForPendingProject);
   const createArchitecturalProjectFromInput = useStoryboardStore(state => state.createArchitecturalProjectFromInput);
   const appendPanelsFromInput = useStoryboardStore(state => state.appendPanelsFromInput);
   const appendArchitecturalPanelsFromInput = useStoryboardStore(state => state.appendArchitecturalPanelsFromInput);
@@ -150,23 +157,50 @@ export default function StoryboardInputModal({
         } else {
           await appendPanelsFromInput(input.trim(), { count: effectiveCount });
         }
+        setInput("");
+        setCharacters([]);
+        onClose();
       } else {
         const inputWithCount = `${input.trim()} (panels: ${effectiveCount})`;
         if (isArchitectural) {
           await createArchitecturalProjectFromInput(inputWithCount, { kind: architecturalKind });
+          setInput("");
+          setCharacters([]);
+          onClose();
         } else {
-          // Pass custom characters if provided
-          await createProjectFromInput(inputWithCount, characters.length > 0 ? characters : undefined);
+          // Use two-stage workflow for storyboards: generate prompts first, then review
+          const project = await createProjectWithPromptReview(inputWithCount, characters.length > 0 ? characters : undefined);
+          if (project) {
+            // Show prompt review modal
+            setReviewProject(project);
+            setShowPromptReview(true);
+            // Don't close input modal yet, will close after review
+          }
         }
       }
-      setInput("");
-      setCharacters([]);
-      onClose();
     } catch (err) {
       console.error("Generation error:", err);
     } finally {
       setIsGenerating(false);
     }
+  };
+
+  const handlePromptReviewClose = () => {
+    setShowPromptReview(false);
+    setReviewProject(null);
+    // Clear input and close modal
+    setInput("");
+    setCharacters([]);
+    onClose();
+  };
+
+  const handleGenerateImages = async () => {
+    await generateImagesForPendingProject();
+    setShowPromptReview(false);
+    setReviewProject(null);
+    setInput("");
+    setCharacters([]);
+    onClose();
   };
 
   const handleClose = () => {
@@ -667,6 +701,19 @@ export default function StoryboardInputModal({
         onSave={handleSaveCharacter}
         mode={editingCharacter ? "edit" : "create"}
       />
+
+      {/* Prompt Review Modal */}
+      {reviewProject && (
+        <PromptReviewModal
+          visible={showPromptReview}
+          onClose={handlePromptReviewClose}
+          panels={reviewProject.panels}
+          characters={reviewProject.characters}
+          onPanelsUpdate={updatePendingProjectPanels}
+          onGenerateImages={handleGenerateImages}
+          isGenerating={isGenerating}
+        />
+      )}
     </Modal>
   );
 }
