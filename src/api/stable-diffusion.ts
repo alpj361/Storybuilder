@@ -6,6 +6,7 @@
 
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
+import { GenerationQuality } from '../types/storyboard';
 
 const STABLE_DIFFUSION_TEXT_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
 const STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image";
@@ -333,7 +334,7 @@ export async function generateCharacterPortrait(
  * Generate a storyboard panel with optional visual identity preservation
  * @param scenePrompt - The scene description prompt for the panel (can be structured 6-section GPT prompt)
  * @param characters - Array of characters with potential visual identity data
- * @param generationQuality - Quality tier: 'standard' (Stable Diffusion) or 'high' (Seeddream 4)
+ * @param generationQuality - Quality tier: GenerationQuality.STANDARD (Stable Diffusion) or GenerationQuality.HIGH (Seeddream 4)
  * @returns Base64 encoded image data
  */
 export async function generateStoryboardPanelWithVisualIdentity(
@@ -349,10 +350,10 @@ export async function generateStoryboardPanelWithVisualIdentity(
     portraitSeed?: number;
     portraitEngine?: string;
   }>,
-  generationQuality?: 'standard' | 'high'
+  generationQuality?: GenerationQuality
 ): Promise<string> {
   console.log("[generateStoryboardPanelWithVisualIdentity] Generating panel");
-  console.log("[generateStoryboardPanelWithVisualIdentity] Quality tier:", generationQuality || 'standard');
+  console.log("[generateStoryboardPanelWithVisualIdentity] Quality tier:", generationQuality || GenerationQuality.STANDARD);
   console.log("[generateStoryboardPanelWithVisualIdentity] Prompt length:", scenePrompt.length);
 
   /* DISABLED: Visual Identity Preservation (Phase 4 - to be re-enabled later)
@@ -404,7 +405,7 @@ export async function generateStoryboardPanelWithVisualIdentity(
   // CURRENT: Use quality-based generation (Stable Diffusion or Seeddream 4)
   // scenePrompt should be a GPT-generated 6-section structured prompt
 
-  if (generationQuality === 'high') {
+  if (generationQuality === GenerationQuality.HIGH) {
     // Use Seeddream 4 for high quality generation
     console.log("[generateStoryboardPanelWithVisualIdentity] Using Seeddream 4 (Gama Alta)");
     const { generateWithSeedream } = await import('./seedream');
