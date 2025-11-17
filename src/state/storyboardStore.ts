@@ -41,6 +41,7 @@ interface StoryboardState {
   appendPanelsFromInput: (input: string, options?: { count?: number }) => Promise<void>;
   appendArchitecturalPanelsFromInput: (input: string, options?: { count?: number; kind?: ArchitecturalProjectKind }) => Promise<void>;
   updatePanel: (panelId: string, updates: Partial<StoryboardPanel>) => void;
+  updatePanelPrompt: (panelId: string, newPromptText: string) => void;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
   deleteProject: (projectId: string) => void;
@@ -464,6 +465,40 @@ export const useStoryboardStore = create<StoryboardState>()(
           return {
             currentProject: updatedProject,
             projects: state.projects.map(p => 
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Update a panel's prompt text
+      updatePanelPrompt: (panelId: string, newPromptText: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedPanels = state.currentProject.panels.map(panel => {
+            if (panel.id === panelId) {
+              return {
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  generatedPrompt: newPromptText
+                },
+                isEdited: true
+              };
+            }
+            return panel;
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
               p.id === updatedProject.id ? updatedProject : p
             )
           };
