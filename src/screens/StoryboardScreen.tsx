@@ -624,9 +624,9 @@ export default function StoryboardScreen({
 
         {/* Project Info */}
         {activeProject && (
-          <View className="mb-4 p-4 bg-white rounded-lg border border-gray-200">
-            <Text className="text-sm font-semibold text-gray-700 mb-1">Project Description</Text>
-            <Text className="text-sm text-gray-600 mb-3">{activeProject.description}</Text>
+          <View className="mb-5 p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
+            <Text className="text-base font-bold text-gray-800 mb-2">Project Description</Text>
+            <Text className="text-sm text-gray-600 mb-4 leading-5">{activeProject.description}</Text>
 
             {showArchitecturalMetadata ? (
               <View>
