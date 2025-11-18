@@ -21,6 +21,7 @@ import { LocationDetailsModal } from "../components/LocationDetailsModal";
 import { LocationEditModal } from "../components/LocationEditModal";
 import LocationLibraryModal from "../components/LocationLibraryModal";
 import TagsManagementModal from "../components/TagsManagementModal";
+import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 import ExportOptionsModal from "../components/ExportOptionsModal";
@@ -52,9 +53,11 @@ interface StoryboardPanelProps {
   onLocationPress?: (location: Location) => void;
   onManageTags?: (panelId: string) => void;
   onDelete?: (panelId: string) => void;
+  onEditImage?: (panelId: string) => void;
+  onUndoImageEdit?: (panelId: string) => void;
 }
 
-const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onLocationPress, onManageTags, onDelete }) => {
+const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onLocationPress, onManageTags, onDelete, onEditImage, onUndoImageEdit }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   const updatePanelPrompt = useStoryboardStore(state => state.updatePanelPrompt);
@@ -211,6 +214,52 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             Edit Panel Idea
           </Text>
         </Pressable>
+
+        {/* Edit Image with AI (only if image exists) */}
+        {panel.generatedImageUrl && onEditImage && (
+          <Pressable
+            onPress={() => onEditImage(panel.id)}
+            disabled={panel.isGenerating || panel.isEditing}
+            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
+              panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-orange-300'
+            }`}
+            style={{ minHeight: 44 }}
+          >
+            <Ionicons
+              name="hand-left-outline"
+              size={18}
+              color={panel.isGenerating || panel.isEditing ? "#9CA3AF" : "#ea580c"}
+            />
+            <Text className={`text-sm font-semibold ml-2 ${
+              panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-orange-600'
+            }`}>
+              {panel.isEditing ? 'Editing...' : 'Edit Image'}
+            </Text>
+          </Pressable>
+        )}
+
+        {/* Undo Image Edit (only if has original) */}
+        {panel.originalImageUrl && onUndoImageEdit && (
+          <Pressable
+            onPress={() => onUndoImageEdit(panel.id)}
+            disabled={panel.isGenerating || panel.isEditing}
+            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
+              panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-gray-300'
+            }`}
+            style={{ minHeight: 44 }}
+          >
+            <Ionicons
+              name="arrow-undo-outline"
+              size={18}
+              color={panel.isGenerating || panel.isEditing ? "#9CA3AF" : "#6b7280"}
+            />
+            <Text className={`text-sm font-semibold ml-2 ${
+              panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-gray-600'
+            }`}>
+              Undo Edit
+            </Text>
+          </Pressable>
+        )}
 
         {/* Tertiary Action: Manage Tags (Storyboard mode only) */}
         {!isArchitectural && onManageTags && (
@@ -502,6 +551,8 @@ export default function StoryboardScreen({
   const [showLocationLibraryModal, setShowLocationLibraryModal] = useState(false);
   const [showTagsModal, setShowTagsModal] = useState(false);
   const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
+  const [showImageEditModal, setShowImageEditModal] = useState(false);
+  const [editingPanelId, setEditingPanelId] = useState<string | null>(null);
   const currentProject = useCurrentProject();
   const projects = useProjects();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
@@ -517,6 +568,8 @@ export default function StoryboardScreen({
   const addLocationToPanel = useStoryboardStore(state => state.addLocationToPanel);
   const removeLocationFromPanel = useStoryboardStore(state => state.removeLocationFromPanel);
   const deletePanel = useStoryboardStore(state => state.deletePanel);
+  const editPanelImage = useStoryboardStore(state => state.editPanelImage);
+  const undoPanelImageEdit = useStoryboardStore(state => state.undoPanelImageEdit);
 
   const exportModalDismissResolverRef = useRef<(() => void) | null>(null);
 
@@ -608,6 +661,40 @@ export default function StoryboardScreen({
   const handleManageTags = (panelId: string) => {
     setSelectedPanelId(panelId);
     setShowTagsModal(true);
+  };
+
+  // Handle Edit Image button press
+  const handleEditImage = (panelId: string) => {
+    setEditingPanelId(panelId);
+    setShowImageEditModal(true);
+  };
+
+  // Handle image edit submission
+  const handleImageEditSubmit = async (editPrompt: string) => {
+    if (!editingPanelId) return;
+
+    try {
+      await editPanelImage(editingPanelId, editPrompt);
+      setShowImageEditModal(false);
+      setEditingPanelId(null);
+    } catch (error) {
+      Alert.alert('Error', 'Failed to edit panel image');
+    }
+  };
+
+  // Handle undo image edit
+  const handleUndoImageEdit = (panelId: string) => {
+    Alert.alert(
+      'Undo Image Edit',
+      'Are you sure you want to restore the original image?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          onPress: () => undoPanelImageEdit(panelId)
+        }
+      ]
+    );
   };
 
   // Calculate which panels a character appears in
@@ -1014,6 +1101,8 @@ export default function StoryboardScreen({
                   onLocationPress={handleLocationPress}
                   onManageTags={panel && !isArchitectural ? handleManageTags : undefined}
                   onDelete={panel && !isArchitectural ? handleDeletePanel : undefined}
+                  onEditImage={panel && !isArchitectural ? handleEditImage : undefined}
+                  onUndoImageEdit={panel && !isArchitectural ? handleUndoImageEdit : undefined}
                 />
               </View>
             ))}
@@ -1135,6 +1224,17 @@ export default function StoryboardScreen({
           onCreateLocation={(location) => addLocationToProject(location)}
         />
       )}
+
+      {/* Image Edit Modal */}
+      <ImageEditModal
+        visible={showImageEditModal}
+        onClose={() => {
+          setShowImageEditModal(false);
+          setEditingPanelId(null);
+        }}
+        onSubmit={handleImageEditSubmit}
+        isProcessing={editingPanelId ? currentProject?.panels.find(p => p.id === editingPanelId)?.isEditing || false : false}
+      />
 
       {/* Project Selector Modal */}
       <ProjectSelectorModal
