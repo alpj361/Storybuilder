@@ -1,14 +1,14 @@
 /**
  * Structured Prompt Builder Service
- * Uses GPT to generate 6-section structured prompts for storyboard panels
+ * Uses GPT to generate structured prompts for storyboard panels
  *
  * Format:
+ * - LOCATION: Detailed location/environment description (with real place knowledge if applicable)
  * - CHARACTER: Detailed physical description from Gemini fills
  * - ACTION: Specific action/movement in the panel
  * - CAMERA: Shot type, angle, perspective, motion blur
- * - ENVIRONMENT: Specific environment description
+ * - ENVIRONMENT: Additional environmental details and atmospheric effects
  * - STYLE: Visual style (always storyboard sketch style)
- * - DO NOT INCLUDE: Negative prompts to prevent misinterpretation
  */
 
 import { getOpenAIClient } from '../api/openai';
@@ -241,8 +241,6 @@ ENVIRONMENT: [Additional environmental details, atmospheric effects, background 
 
 STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading. No 3D rendering. Hand-drawn look with light crosshatching. Focus on silhouette clarity and expressive motion.
 
-DO NOT INCLUDE: [Things to avoid - always include: No planes, no spaceships, no vehicles (unless specified in action), no humans (if characters are non-human)]
-
 IMPORTANT:
 - If REAL LOCATION is provided, incorporate your knowledge of that place accurately
 - LOCATION section should be first and detailed
@@ -250,8 +248,7 @@ IMPORTANT:
 - ACTION should describe dynamic movement
 - CAMERA should specify angle and shot type
 - ENVIRONMENT should complement LOCATION with atmospheric details
-- STYLE section is ALWAYS the same (rough pencil storyboard sketch)
-- DO NOT INCLUDE should prevent common misinterpretations`;
+- STYLE section is ALWAYS the same (rough pencil storyboard sketch)`;
 
     const userPrompt = `${contextHistory}Generate a structured prompt for storyboard panel #${options.panelNumber}:
 
@@ -323,7 +320,5 @@ CAMERA: Medium shot, eye-level angle
 
 ENVIRONMENT: ${options.location}
 
-STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading. No 3D rendering. Hand-drawn look with light crosshatching. Focus on silhouette clarity and expressive motion.
-
-DO NOT INCLUDE: No planes, no spaceships, no vehicles, no unrelated objects.`;
+STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading. No 3D rendering. Hand-drawn look with light crosshatching. Focus on silhouette clarity and expressive motion.`;
 }
