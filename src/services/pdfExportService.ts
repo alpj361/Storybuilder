@@ -86,13 +86,8 @@ class PDFExportService {
       }
 
       try {
-        // Check if it's already a base64 string
-        if (panel.generatedImageUrl.startsWith('data:image')) {
-          return { id: panel.id, data: panel.generatedImageUrl };
-        }
-
-        // Compress and resize image before converting to base64
-        // This significantly reduces PDF file size and prevents Share Sheet freeze
+        // ALWAYS compress images to reduce PDF file size and prevent Share Sheet freeze
+        // ImageManipulator can handle both file:// URIs and data: URIs
         console.log(`[PDFExportService] Compressing image for panel ${panel.panelNumber}...`);
         const manipulatedImage = await ImageManipulator.manipulateAsync(
           panel.generatedImageUrl,
