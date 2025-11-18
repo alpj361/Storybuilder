@@ -439,7 +439,6 @@ export default function StoryboardScreen({
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportModalKey, setExportModalKey] = useState(0); // Force modal unmount/remount
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -593,36 +592,25 @@ export default function StoryboardScreen({
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // Close modal BEFORE opening share dialog to prevent UI freeze
+      // CRITICAL: Close modal FIRST and wait for complete unmount
+      // By setting showExportModal to false, the modal will NOT be rendered at all
+      // This forces React Native to destroy the native window entirely
+      console.log('[StoryboardScreen] Closing modal...');
       setShowExportModal(false);
 
-      // Force modal to completely unmount by changing its key
-      setExportModalKey(prev => prev + 1);
-
-      // Wait for all animations and interactions to complete before showing share sheet
-      // InteractionManager.runAfterInteractions() waits for:
-      // - All pending animations (modal slide-down)
-      // - All pending interactions (touch events)
-      // - React's rendering/reconciliation cycle
-      console.log('[StoryboardScreen] Waiting for JS interactions to complete...');
-      InteractionManager.runAfterInteractions(() => {
-        console.log('[StoryboardScreen] JS interactions complete, waiting for native modal cleanup...');
-        // Additional delay to ensure native modal view hierarchy is fully cleaned up
-        // InteractionManager only waits for JS-side completion, but the modal's native
-        // backdrop and container views need extra time to unmount from iOS view hierarchy
-        // Without this, the modal's backdrop (blur overlay) persists and blocks touch events
-        setTimeout(() => {
-          console.log('[StoryboardScreen] Native cleanup complete, opening share sheet...');
-          // Share the PDF - this will open native share dialog
-          // This is now fully async and won't block the UI
-          // Error handling is done inside sharePDF()
-          pdfExportService.sharePDF(result.uri);
-        }, 300); // 300ms for native view cleanup
-      });
+      // Wait for modal to fully unmount from both React and native layers
+      // Use longer delay to ensure iOS has time to clean up the modal's native window
+      // The transparent modal creates a UIWindow that persists if we don't wait
+      console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
+      setTimeout(() => {
+        console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
+        // Share the PDF - this will open native share dialog
+        // Error handling is done inside sharePDF()
+        pdfExportService.sharePDF(result.uri);
+      }, 500); // 500ms to ensure complete native cleanup
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
       setShowExportModal(false);
-      setExportModalKey(prev => prev + 1);
       Alert.alert(
         "Export Failed",
         "Failed to export PDF. Please try again.",
@@ -931,15 +919,13 @@ export default function StoryboardScreen({
         onCreateNew={handleCreateNewFromSelector}
       />
 
-      {/* Export PDF Modal */}
-      {activeProject && (
+      {/* Export PDF Modal - Only render when actually showing */}
+      {/* CRITICAL: Using conditional rendering (&&) instead of visible prop */}
+      {/* This ensures modal is completely unmounted when closed, not just hidden */}
+      {showExportModal && activeProject && (
         <ExportOptionsModal
-          key={exportModalKey}
-          visible={showExportModal}
-          onClose={() => {
-            setShowExportModal(false);
-            setExportModalKey(prev => prev + 1);
-          }}
+          visible={true}
+          onClose={() => setShowExportModal(false)}
           project={activeProject}
           onExport={handleExportPDF}
         />
