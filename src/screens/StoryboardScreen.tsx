@@ -603,18 +603,9 @@ export default function StoryboardScreen({
         setTimeout(() => {
           console.log('[StoryboardScreen] Opening share sheet...');
           // Share the PDF - this will open native share dialog
-          // Don't await to prevent UI freeze
-          pdfExportService.sharePDF(result.uri).catch(error => {
-            // Only show error if sharing actually fails (not if user cancels)
-            if (error?.message && !error.message.includes('cancel')) {
-              console.error('[StoryboardScreen] Share failed:', error);
-              Alert.alert(
-                "Share Failed",
-                "Could not share the PDF. Please try again.",
-                [{ text: "OK" }]
-              );
-            }
-          });
+          // This is now fully async and won't block the UI
+          // Error handling is done inside sharePDF()
+          pdfExportService.sharePDF(result.uri);
         }, 600); // 600ms to ensure modal close animation completes on iOS
       });
     } catch (error) {
