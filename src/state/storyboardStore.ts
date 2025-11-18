@@ -303,7 +303,8 @@ export const useStoryboardStore = create<StoryboardState>()(
             const enhancedPrompts = await generateAllPanelPrompts(
               audiencePreparedPanels.map(p => p.prompt),
               result.project.characters,
-              result.project.scenes
+              result.project.scenes,
+              result.project.locations || []
             );
 
             const finalPanels = audiencePreparedPanels.map((panel, index) => ({
@@ -475,7 +476,8 @@ export const useStoryboardStore = create<StoryboardState>()(
             const enhancedPrompts = await generateAllPanelPrompts(
               audiencePreparedPanels.map(p => p.prompt),
               result.project.characters,
-              result.project.scenes
+              result.project.scenes,
+              result.project.locations || []
             );
 
             const finalPanels = audiencePreparedPanels.map((panel, index) => ({
@@ -656,9 +658,10 @@ export const useStoryboardStore = create<StoryboardState>()(
           const requestedCount = Math.max(1, options?.count || result.project.panels.length || 1);
           const newPanelsSource = result.project.panels.slice(0, requestedCount);
 
-          // Merge characters and scenes (simple append)
+          // Merge characters, scenes, and locations (simple append)
           const mergedCharacters = [...state.currentProject.characters, ...result.project.characters];
           const mergedScenes = [...state.currentProject.scenes, ...result.project.scenes];
+          const mergedLocations = [...(state.currentProject.locations || []), ...(result.project.locations || [])];
 
           // Prepare prompts with audience template and style
           const preparedPrompts = newPanelsSource.map(p => applyAudienceTemplate({
@@ -667,7 +670,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           }, audience));
 
           // Generate final prompts for the new panels using merged entities
-          const generatedPrompts = await generateAllPanelPrompts(preparedPrompts, mergedCharacters, mergedScenes);
+          const generatedPrompts = await generateAllPanelPrompts(preparedPrompts, mergedCharacters, mergedScenes, mergedLocations);
 
           // Build StoryboardPanel objects with incremented numbering
           const startIndex = state.currentProject.panels.length;
@@ -683,6 +686,7 @@ export const useStoryboardStore = create<StoryboardState>()(
             ...state.currentProject,
             characters: mergedCharacters,
             scenes: mergedScenes,
+            locations: mergedLocations,
             panels: [...state.currentProject.panels, ...panelsToAppend],
             updatedAt: new Date()
           };
@@ -894,11 +898,12 @@ export const useStoryboardStore = create<StoryboardState>()(
             action: newIdea
           };
 
-          // Generate new structured prompt using GPT
+          // Generate new structured prompt using GPT, including panel's locations
           const enhancedPrompts = await generateAllPanelPrompts(
             [updatedPrompt],
             state.currentProject.characters,
-            state.currentProject.scenes
+            state.currentProject.scenes,
+            state.currentProject.locations || []
           );
 
           const newPrompt = enhancedPrompts[0];
