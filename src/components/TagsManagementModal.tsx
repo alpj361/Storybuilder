@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, ScrollView, Pressable, Modal, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { Character, Location } from "../types/storyboard";
@@ -59,19 +59,19 @@ export default function TagsManagementModal({
     !panelLocationIds.includes(loc.id)
   );
 
-  const handleCreateCharacter = (character: Character) => {
+  const handleCreateCharacter = useCallback((character: Character) => {
     onCreateCharacter(character);
     onAddCharacterToPanel(character.id);
     setShowCharacterEditModal(false);
-  };
+  }, [onCreateCharacter, onAddCharacterToPanel]);
 
-  const handleCreateLocation = (location: Location) => {
+  const handleCreateLocation = useCallback((location: Location) => {
     onCreateLocation(location);
     onAddLocationToPanel(location.id);
     setShowLocationEditModal(false);
-  };
+  }, [onCreateLocation, onAddLocationToPanel]);
 
-  const handleSelectLocationFromLibrary = (location: Location) => {
+  const handleSelectLocationFromLibrary = useCallback((location: Location) => {
     // Add to project if not already there
     const existsInProject = projectLocations.some(l => l.id === location.id);
     if (!existsInProject) {
@@ -80,7 +80,19 @@ export default function TagsManagementModal({
     // Add to panel
     onAddLocationToPanel(location.id);
     setShowLocationLibraryModal(false);
-  };
+  }, [projectLocations, onCreateLocation, onAddLocationToPanel]);
+
+  const handleCloseLocationLibrary = useCallback(() => {
+    setShowLocationLibraryModal(false);
+  }, []);
+
+  const handleCloseCharacterEdit = useCallback(() => {
+    setShowCharacterEditModal(false);
+  }, []);
+
+  const handleCloseLocationEdit = useCallback(() => {
+    setShowLocationEditModal(false);
+  }, []);
 
   return (
     <Modal
@@ -295,7 +307,7 @@ export default function TagsManagementModal({
       {/* Character Edit Modal */}
       <CharacterEditModal
         visible={showCharacterEditModal}
-        onClose={() => setShowCharacterEditModal(false)}
+        onClose={handleCloseCharacterEdit}
         character={null}
         onSave={handleCreateCharacter}
         mode="create"
@@ -304,7 +316,7 @@ export default function TagsManagementModal({
       {/* Location Edit Modal */}
       <LocationEditModal
         visible={showLocationEditModal}
-        onClose={() => setShowLocationEditModal(false)}
+        onClose={handleCloseLocationEdit}
         location={null}
         onSave={handleCreateLocation}
         mode="create"
@@ -313,13 +325,9 @@ export default function TagsManagementModal({
       {/* Location Library Modal */}
       <LocationLibraryModal
         visible={showLocationLibraryModal}
-        onClose={() => setShowLocationLibraryModal(false)}
+        onClose={handleCloseLocationLibrary}
         onSelectLocation={handleSelectLocationFromLibrary}
-        onEditLocation={(location) => {
-          // For now, just close the library modal
-          // Could implement inline editing in the future
-          setShowLocationLibraryModal(false);
-        }}
+        onEditLocation={handleCloseLocationLibrary}
       />
     </Modal>
   );
