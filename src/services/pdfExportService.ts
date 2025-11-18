@@ -6,6 +6,7 @@
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
 
@@ -73,6 +74,7 @@ class PDFExportService {
   /**
    * Convert image URLs to base64 data
    * Uses parallel loading to prevent UI freeze
+   * Compresses images to reduce PDF file size
    */
   private async prepareImages(panels: StoryboardPanel[]): Promise<Map<string, string>> {
     const imageDataMap = new Map<string, string>();
@@ -89,12 +91,29 @@ class PDFExportService {
           return { id: panel.id, data: panel.generatedImageUrl };
         }
 
-        // Download image and convert to base64
-        const base64 = await FileSystem.readAsStringAsync(panel.generatedImageUrl, {
+        // Compress and resize image before converting to base64
+        // This significantly reduces PDF file size and prevents Share Sheet freeze
+        console.log(`[PDFExportService] Compressing image for panel ${panel.panelNumber}...`);
+        const manipulatedImage = await ImageManipulator.manipulateAsync(
+          panel.generatedImageUrl,
+          [
+            // Resize to max 1024x1024 to reduce file size
+            { resize: { width: 1024 } }
+          ],
+          {
+            // Use JPEG compression with quality 0.7 to balance quality and size
+            compress: 0.7,
+            format: ImageManipulator.SaveFormat.JPEG
+          }
+        );
+
+        // Read compressed image as base64
+        const base64 = await FileSystem.readAsStringAsync(manipulatedImage.uri, {
           encoding: FileSystem.EncodingType.Base64
         });
 
         const dataUri = `data:image/jpeg;base64,${base64}`;
+        console.log(`[PDFExportService] Image compressed for panel ${panel.panelNumber}`);
         return { id: panel.id, data: dataUri };
       } catch (error) {
         console.warn(`[PDFExportService] Failed to load image for panel ${panel.panelNumber}:`, error);
