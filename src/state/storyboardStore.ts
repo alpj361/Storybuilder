@@ -160,6 +160,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 userInput: input,
                 panels,
                 characters: finalCharacters,
+                locations: [], // Initialize empty locations array
                 scenes: converted.scenes,
                 style: get().defaultStyle,
                 metadata: {
@@ -320,6 +321,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 userInput: input,
                 panels,
                 characters: finalCharacters,
+                locations: [], // Initialize empty locations array
                 scenes: converted.scenes,
                 style: get().defaultStyle,
                 metadata: {
