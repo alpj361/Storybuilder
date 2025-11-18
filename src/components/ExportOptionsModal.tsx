@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, Modal, Pressable, ScrollView, ActivityIndicator } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ExportOptionsModalProps, PDFLayout, ExportOptions } from "../types/export";
@@ -12,6 +12,14 @@ export default function ExportOptionsModal({
   const [selectedLayout, setSelectedLayout] = useState<PDFLayout>(PDFLayout.SINGLE);
   const [includeMetadata, setIncludeMetadata] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+
+  // Reset exporting state when modal is closed
+  // This ensures clean state on next open
+  useEffect(() => {
+    if (!visible) {
+      setIsExporting(false);
+    }
+  }, [visible]);
 
   const handleExport = async () => {
     setIsExporting(true);

@@ -596,8 +596,8 @@ export default function StoryboardScreen({
       setShowExportModal(false);
 
       // Wait for modal animation to complete before showing share sheet
-      // iOS modal close animations take ~400-600ms, so we use requestAnimationFrame + setTimeout
-      // This prevents UI freeze when transitioning from modal to share sheet
+      // iOS modal slide animations can take 400-800ms depending on device performance
+      // Use conservative delay to ensure modal is completely dismissed
       requestAnimationFrame(() => {
         // Wait one frame, then add delay for modal close animation
         setTimeout(() => {
@@ -606,7 +606,7 @@ export default function StoryboardScreen({
           // This is now fully async and won't block the UI
           // Error handling is done inside sharePDF()
           pdfExportService.sharePDF(result.uri);
-        }, 600); // 600ms to ensure modal close animation completes on iOS
+        }, 1000); // 1000ms (1 second) to ensure modal is completely dismissed on all iOS devices
       });
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
