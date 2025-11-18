@@ -546,37 +546,46 @@ class PDFExportService {
 
   /**
    * Share the generated PDF
+   * DON'T await Sharing.shareAsync to prevent blocking the JS thread
    */
-  async sharePDF(uri: string): Promise<void> {
-    try {
-      console.log('[PDFExportService] sharePDF called with URI:', uri);
+  sharePDF(uri: string): void {
+    console.log('[PDFExportService] sharePDF called with URI:', uri);
 
-      // Check file info before sharing
-      const fileInfo = await FileSystem.getInfoAsync(uri);
-      console.log('[PDFExportService] File info:', fileInfo);
+    // Get file info before sharing
+    FileSystem.getInfoAsync(uri)
+      .then(fileInfo => {
+        console.log('[PDFExportService] File info:', fileInfo);
+        return Sharing.isAvailableAsync();
+      })
+      .then(canShare => {
+        console.log('[PDFExportService] Can share:', canShare);
 
-      const canShare = await Sharing.isAvailableAsync();
-      console.log('[PDFExportService] Can share:', canShare);
+        if (!canShare) {
+          throw new Error('Sharing is not available on this device');
+        }
 
-      if (!canShare) {
-        throw new Error('Sharing is not available on this device');
-      }
+        console.log('[PDFExportService] About to call Sharing.shareAsync...');
 
-      console.log('[PDFExportService] About to call Sharing.shareAsync...');
-
-      // Call shareAsync - this opens the Share Sheet
-      // The await will wait for the user to complete the share action or cancel
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Share Storyboard PDF',
-        UTI: 'com.adobe.pdf' // iOS-specific Uniform Type Identifier
+        // DON'T await - let it run completely async to prevent UI freeze
+        // The Share Sheet will handle its own lifecycle
+        Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Share Storyboard PDF',
+          UTI: 'com.adobe.pdf' // iOS-specific Uniform Type Identifier
+        })
+          .then(() => {
+            console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
+          })
+          .catch(error => {
+            // Only log errors that aren't user cancellations
+            if (error?.message && !error.message.toLowerCase().includes('cancel')) {
+              console.error('[PDFExportService] Share error:', error);
+            }
+          });
+      })
+      .catch(error => {
+        console.error('[PDFExportService] Error preparing share:', error);
       });
-
-      console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
-    } catch (error) {
-      console.error('[PDFExportService] Error sharing PDF:', error);
-      throw error;
-    }
   }
 }
 
