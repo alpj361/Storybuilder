@@ -657,11 +657,17 @@ export default function StoryboardScreen({
       try {
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
-      } catch (shareError) {
+      } catch (shareError: any) {
         console.error('[StoryboardScreen] Share failed:', shareError);
+
+        // Check if it's a timeout error
+        const isTimeout = shareError?.message?.includes('timeout');
+
         Alert.alert(
           "Share Failed",
-          "Failed to open share sheet. Please try again.",
+          isTimeout
+            ? "Share sheet timed out. Please restart the app and try again."
+            : "Failed to open share sheet. Please try again.",
           [{ text: "OK" }]
         );
       }
