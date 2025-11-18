@@ -27,18 +27,29 @@ class PDFExportService {
 
       // Prepare images (convert URLs to base64)
       console.log('[PDFExportService] Preparing images...');
+      const startPrepareImages = Date.now();
       const imageDataMap = await this.prepareImages(panelsWithImages);
+      console.log(`[PDFExportService] Images prepared in ${Date.now() - startPrepareImages}ms`);
 
       // Generate HTML based on layout
       console.log('[PDFExportService] Generating HTML...');
+      const startGenerateHTML = Date.now();
       const html = this.generateHTML(project, panelsWithImages, imageDataMap, options);
+      const htmlSize = new Blob([html]).size;
+      console.log(`[PDFExportService] HTML generated in ${Date.now() - startGenerateHTML}ms, size: ${(htmlSize / 1024 / 1024).toFixed(2)} MB`);
 
       // Generate PDF
       console.log('[PDFExportService] Creating PDF...');
+      const startCreatePDF = Date.now();
       const { uri } = await Print.printToFileAsync({
         html,
         base64: false
       });
+      console.log(`[PDFExportService] PDF created in ${Date.now() - startCreatePDF}ms`);
+
+      // Get file size
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      console.log(`[PDFExportService] PDF file size: ${((fileInfo as any).size / 1024 / 1024).toFixed(2)} MB`);
 
       // Calculate page count based on layout
       const pageCount = this.calculatePageCount(panelsWithImages.length, options.layout);
@@ -524,18 +535,30 @@ class PDFExportService {
    */
   async sharePDF(uri: string): Promise<void> {
     try {
+      console.log('[PDFExportService] sharePDF called with URI:', uri);
+
+      // Check file info before sharing
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      console.log('[PDFExportService] File info:', fileInfo);
+
       const canShare = await Sharing.isAvailableAsync();
+      console.log('[PDFExportService] Can share:', canShare);
 
       if (!canShare) {
         throw new Error('Sharing is not available on this device');
       }
 
+      console.log('[PDFExportService] About to call Sharing.shareAsync...');
+
+      // Call shareAsync - this opens the Share Sheet
+      // The await will wait for the user to complete the share action or cancel
       await Sharing.shareAsync(uri, {
         mimeType: 'application/pdf',
-        dialogTitle: 'Share Storyboard PDF'
+        dialogTitle: 'Share Storyboard PDF',
+        UTI: 'com.adobe.pdf' // iOS-specific Uniform Type Identifier
       });
 
-      console.log('[PDFExportService] PDF shared successfully');
+      console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
     } catch (error) {
       console.error('[PDFExportService] Error sharing PDF:', error);
       throw error;
