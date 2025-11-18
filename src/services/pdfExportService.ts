@@ -4,9 +4,9 @@
  */
 
 import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
+import { Share } from 'react-native';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
 
@@ -545,8 +545,8 @@ class PDFExportService {
   }
 
   /**
-   * Share the generated PDF with timeout protection
-   * Returns a promise that resolves when sharing is complete or fails
+   * Share the generated PDF using React Native Share API
+   * More robust than expo-sharing for iOS modal/window hierarchy issues
    */
   async sharePDF(uri: string): Promise<void> {
     console.log('[PDFExportService] sharePDF called with URI:', uri);
@@ -560,36 +560,39 @@ class PDFExportService {
         throw new Error('PDF file does not exist at the specified path');
       }
 
-      // Check if sharing is available on this device
-      const canShare = await Sharing.isAvailableAsync();
-      console.log('[PDFExportService] Can share:', canShare);
-
-      if (!canShare) {
-        throw new Error('Sharing is not available on this device');
-      }
-
-      // Attempt to share the PDF with timeout protection
-      // iOS Share Sheet can hang if not properly cleaned up from previous call
-      console.log('[PDFExportService] Calling Sharing.shareAsync...');
+      // Use React Native Share API (more stable than expo-sharing on iOS)
+      // On iOS, Share.share with 'url' opens the native UIActivityViewController
+      console.log('[PDFExportService] Opening native share sheet...');
 
       // Create a timeout promise to prevent infinite hanging
       const timeoutMs = 30000; // 30 seconds
       const timeoutPromise = new Promise<never>((_, reject) => {
         setTimeout(() => {
-          reject(new Error('Share sheet timeout - iOS may not have cleaned up previous share sheet'));
+          reject(new Error('Share sheet timeout after 30 seconds'));
         }, timeoutMs);
       });
 
       // Race between share and timeout
-      await Promise.race([
-        Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Share Storyboard PDF'
+      const result = await Promise.race([
+        Share.share({
+          url: uri,
+          title: 'Share Storyboard PDF'
         }),
         timeoutPromise
       ]);
 
-      console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
+      console.log('[PDFExportService] Share result:', result);
+
+      // On iOS: result = { action: 'sharedAction' | 'dismissedAction', activityType?: string }
+      // On Android: result = { action: 'sharedAction' | 'dismissedAction' }
+      if (result.action === Share.sharedAction) {
+        console.log('[PDFExportService] PDF shared successfully');
+        if (result.activityType) {
+          console.log('[PDFExportService] Shared via:', result.activityType);
+        }
+      } else if (result.action === Share.dismissedAction) {
+        console.log('[PDFExportService] User dismissed share sheet');
+      }
 
       // Add a small delay to allow iOS to fully cleanup the Share Sheet
       // This prevents issues when sharing multiple times in quick succession
@@ -604,12 +607,8 @@ class PDFExportService {
         stack: error?.stack
       });
 
-      // Only rethrow if it's not a user cancellation
-      if (!error?.message?.toLowerCase().includes('cancel')) {
-        throw error;
-      } else {
-        console.log('[PDFExportService] User cancelled sharing');
-      }
+      // Rethrow to let caller handle it
+      throw error;
     }
   }
 }
