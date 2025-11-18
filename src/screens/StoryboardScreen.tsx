@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert, Modal } from "react-native";
+import { View, Text, ScrollView, Pressable, Image, Alert, Modal, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
@@ -439,6 +439,7 @@ export default function StoryboardScreen({
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [exportModalKey, setExportModalKey] = useState(0); // Force modal unmount/remount
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -595,22 +596,27 @@ export default function StoryboardScreen({
       // Close modal BEFORE opening share dialog to prevent UI freeze
       setShowExportModal(false);
 
-      // Wait for modal animation to complete before showing share sheet
-      // iOS modal slide animations can take 400-800ms depending on device performance
-      // Use conservative delay to ensure modal is completely dismissed
-      requestAnimationFrame(() => {
-        // Wait one frame, then add delay for modal close animation
-        setTimeout(() => {
-          console.log('[StoryboardScreen] Opening share sheet...');
-          // Share the PDF - this will open native share dialog
-          // This is now fully async and won't block the UI
-          // Error handling is done inside sharePDF()
-          pdfExportService.sharePDF(result.uri);
-        }, 1000); // 1000ms (1 second) to ensure modal is completely dismissed on all iOS devices
+      // Force modal to completely unmount by changing its key
+      setExportModalKey(prev => prev + 1);
+
+      // Wait for all animations and interactions to complete before showing share sheet
+      // InteractionManager.runAfterInteractions() waits for:
+      // - All pending animations (modal slide-down)
+      // - All pending interactions (touch events)
+      // - React's rendering/reconciliation cycle
+      // This is more reliable than arbitrary setTimeout delays
+      console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
+      InteractionManager.runAfterInteractions(() => {
+        console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
+        // Share the PDF - this will open native share dialog
+        // This is now fully async and won't block the UI
+        // Error handling is done inside sharePDF()
+        pdfExportService.sharePDF(result.uri);
       });
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
       setShowExportModal(false);
+      setExportModalKey(prev => prev + 1);
       Alert.alert(
         "Export Failed",
         "Failed to export PDF. Please try again.",
@@ -922,8 +928,12 @@ export default function StoryboardScreen({
       {/* Export PDF Modal */}
       {activeProject && (
         <ExportOptionsModal
+          key={exportModalKey}
           visible={showExportModal}
-          onClose={() => setShowExportModal(false)}
+          onClose={() => {
+            setShowExportModal(false);
+            setExportModalKey(prev => prev + 1);
+          }}
           project={activeProject}
           onExport={handleExportPDF}
         />
