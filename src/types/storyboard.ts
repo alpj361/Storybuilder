@@ -162,6 +162,65 @@ export interface Character {
   portraitEngine?: string; // Engine used: "consistent-character" or "stable-diffusion"
 }
 
+export interface Location {
+  id: string;
+  name: string;
+  description: string;
+  type: "interior" | "exterior" | "mixed";
+
+  // SYSTEM OF FILLS - Main method for describing locations
+  details: {
+    // Location type (always required)
+    locationType?: 'natural' | 'urban' | 'indoor' | 'fantasy' | 'sci-fi' | 'historical' | 'other';
+
+    // Real vs fictional location
+    isRealPlace?: boolean; // User can mark manually
+
+    // FIELDS FOR REAL PLACES (manual fill)
+    realPlaceInfo?: {
+      city?: string;              // e.g., "Paris"
+      country?: string;           // e.g., "France"
+      region?: string;            // e.g., "Île-de-France"
+      specificLocation?: string;  // e.g., "Eiffel Tower"
+      landmark?: string;          // e.g., "Iconic iron tower"
+      knownFor?: string;          // e.g., "Symbol of Paris, built in 1889"
+    };
+
+    // UNIVERSAL FIELDS (manual fill or auto-filled by AI)
+    setting?: string;        // Forest, city, beach, space station, medieval castle
+    timeOfDay?: 'dawn' | 'morning' | 'noon' | 'afternoon' | 'dusk' | 'night';
+    weather?: string;        // Sunny, rainy, foggy, stormy, clear, overcast
+    lighting?: string;       // Natural, artificial, dim, bright, dramatic, soft
+    atmosphere?: string;     // Peaceful, tense, mysterious, chaotic, romantic, eerie
+
+    // VISUAL DETAILS (manual fill or auto-filled)
+    architecture?: string;   // Gothic, modern, rustic, futuristic, Victorian, brutalist
+    terrain?: string;        // Flat, hilly, mountainous, underwater, floating, rocky
+    vegetation?: string;     // Dense forest, sparse trees, desert, jungle, none
+    prominentFeatures?: string[]; // ["fountain", "statue", "bridge", "neon signs"]
+    colorPalette?: string;   // Warm tones, cool blues, monochrome, vibrant, muted
+
+    // CONTEXT (manual fill)
+    scale?: 'intimate' | 'medium' | 'vast' | 'epic';
+    condition?: string;      // Well-maintained, abandoned, ruins, pristine, decaying
+    crowdLevel?: 'empty' | 'sparse' | 'moderate' | 'crowded';
+    soundscape?: string;     // Silent, bustling, echoing, nature sounds, mechanical hum
+    culturalContext?: string; // Western, Eastern, futuristic, tribal, medieval
+  };
+
+  // REFERENCE IMAGES (OPTIONAL - only for auto-filling)
+  referenceImage?: string;      // Base64 or URI - OPTIONAL
+  useReferenceInPrompt?: boolean;
+  referenceMode?: "description" | "visual";
+  imageStrength?: number;
+
+  // AI GENERATED DESCRIPTIONS (only if image is used)
+  aiGeneratedDescription?: string;  // Only if image is uploaded
+  conceptImage?: string;            // Generated concept art (optional)
+  conceptDescription?: string;      // Description of concept (optional)
+  isGeneratingConcept?: boolean;    // Whether concept is being generated
+}
+
 export interface Scene {
   id: string;
   name: string;
@@ -181,6 +240,7 @@ export interface StoryboardPrompt {
   composition: CompositionType;
   sceneDescription: string;
   characters: string[]; // Character IDs present in this panel
+  locations: string[]; // Location IDs present in this panel
   sceneId: string;
   action: string;
   dialogue?: string;
@@ -225,6 +285,7 @@ export interface StoryboardProject {
   description: string;
   userInput: string; // Original natural language input
   characters: Character[];
+  locations: Location[]; // Location library for this project
   scenes: Scene[];
   panels: StoryboardPanel[];
   style: StoryboardStyle;

@@ -12,7 +12,7 @@
  */
 
 import { getOpenAIClient } from '../api/openai';
-import { Character } from '../types/storyboard';
+import { Character, Location } from '../types/storyboard';
 
 const MAX_CONTEXT_LENGTH = 2000; // Maximum characters for context history
 
@@ -80,6 +80,89 @@ function buildCharacterSection(character: Character): string {
 }
 
 /**
+ * Build LOCATION section from location fills
+ */
+function buildLocationSection(locations: Location[]): string {
+  if (locations.length === 0) return '';
+
+  return locations.map(loc => {
+    const { details, aiGeneratedDescription } = loc;
+
+    // ===== CASE 1: REAL PLACE =====
+    if (details.isRealPlace && details.realPlaceInfo) {
+      const { specificLocation, city, country, knownFor } = details.realPlaceInfo;
+
+      let prompt = `REAL LOCATION: ${specificLocation || loc.name}`;
+      if (city) prompt += ` in ${city}`;
+      if (country) prompt += `, ${country}`;
+      prompt += `. Use your extensive knowledge of this real-world location.`;
+
+      if (knownFor) {
+        prompt += ` Context: ${knownFor}.`;
+      }
+
+      // Add additional visual details from fills
+      const visualDetails = [];
+      if (details.timeOfDay) visualDetails.push(`${details.timeOfDay} time`);
+      if (details.weather) visualDetails.push(details.weather);
+      if (details.lighting) visualDetails.push(`${details.lighting} lighting`);
+      if (details.atmosphere) visualDetails.push(`${details.atmosphere} atmosphere`);
+
+      if (visualDetails.length > 0) {
+        prompt += ` Visual context: ${visualDetails.join(', ')}.`;
+      }
+
+      if (aiGeneratedDescription) {
+        prompt += ` Additional details from reference: ${aiGeneratedDescription}`;
+      }
+
+      return prompt;
+    }
+
+    // ===== CASE 2: FICTIONAL PLACE WITH FILLS =====
+    const parts = [];
+
+    // Type and setting
+    if (details.locationType) parts.push(details.locationType);
+    if (details.setting) parts.push(details.setting);
+
+    // Time and atmosphere
+    if (details.timeOfDay) parts.push(`${details.timeOfDay} time`);
+    if (details.weather) parts.push(`${details.weather} weather`);
+    if (details.lighting) parts.push(`${details.lighting} lighting`);
+    if (details.atmosphere) parts.push(`${details.atmosphere} atmosphere`);
+
+    // Physical characteristics
+    if (details.architecture) parts.push(`${details.architecture} architecture`);
+    if (details.terrain) parts.push(`${details.terrain} terrain`);
+    if (details.vegetation) parts.push(details.vegetation);
+
+    // Prominent features
+    if (details.prominentFeatures && details.prominentFeatures.length > 0) {
+      parts.push(`featuring: ${details.prominentFeatures.join(', ')}`);
+    }
+
+    // Color and scale
+    if (details.colorPalette) parts.push(`${details.colorPalette} tones`);
+    if (details.scale) parts.push(`${details.scale} scale`);
+    if (details.condition) parts.push(details.condition);
+    if (details.crowdLevel) parts.push(`${details.crowdLevel} crowd level`);
+
+    // Soundscape (additional context)
+    if (details.soundscape) parts.push(`soundscape: ${details.soundscape}`);
+
+    let prompt = `LOCATION: ${loc.name}. ${parts.join(', ')}.`;
+
+    // If there's AI description from image, add it
+    if (aiGeneratedDescription) {
+      prompt += ` Additional visual details: ${aiGeneratedDescription}`;
+    }
+
+    return prompt;
+  }).join('\n\n');
+}
+
+/**
  * Generate context history summary from previous panels
  */
 function buildContextHistory(previousPanels: Array<{panelNumber: number; action: string; characterDesc?: string}>): string {
@@ -110,9 +193,10 @@ function buildContextHistory(previousPanels: Array<{panelNumber: number; action:
 export async function generateStructuredPrompt(options: {
   panelNumber: number;
   characters: Character[];
+  locations?: Location[]; // New: structured locations
   action: string;
   sceneDescription: string;
-  location: string;
+  location: string; // Kept for backward compatibility
   cameraAngle?: string;
   composition?: string;
   lighting?: string;
@@ -130,6 +214,11 @@ export async function generateStructuredPrompt(options: {
       return `CHARACTER: ${char.name} - ${charDesc}`;
     }).join('\n');
 
+    // Build location section
+    const locationSection = options.locations && options.locations.length > 0
+      ? buildLocationSection(options.locations)
+      : '';
+
     // Build context history if not first panel
     const contextHistory = options.previousPanels && options.previousPanels.length > 0
       ? buildContextHistory(options.previousPanels)
@@ -140,32 +229,37 @@ export async function generateStructuredPrompt(options: {
 
 The output format MUST follow this structure:
 
+LOCATION: [Detailed location/environment description. If REAL LOCATION is specified, use your knowledge of that real place. Otherwise, describe the fictional setting with all provided details]
+
 CHARACTER: [Detailed physical description of the character(s) including species, body type, features, coloration, etc.]
 
 ACTION: [Specific action/movement happening in this panel - be dynamic and descriptive]
 
 CAMERA: [Shot type (wide, medium, close-up), angle (low, high, eye-level), perspective, motion blur effects]
 
-ENVIRONMENT: [Specific location details, architectural elements, background elements]
+ENVIRONMENT: [Additional environmental details, atmospheric effects, background elements]
 
 STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading. No 3D rendering. Hand-drawn look with light crosshatching. Focus on silhouette clarity and expressive motion.
 
 DO NOT INCLUDE: [Things to avoid - always include: No planes, no spaceships, no vehicles (unless specified in action), no humans (if characters are non-human)]
 
 IMPORTANT:
+- If REAL LOCATION is provided, incorporate your knowledge of that place accurately
+- LOCATION section should be first and detailed
 - Keep each section clear and specific
 - ACTION should describe dynamic movement
 - CAMERA should specify angle and shot type
-- ENVIRONMENT should be detailed but concise
+- ENVIRONMENT should complement LOCATION with atmospheric details
 - STYLE section is ALWAYS the same (rough pencil storyboard sketch)
 - DO NOT INCLUDE should prevent common misinterpretations`;
 
     const userPrompt = `${contextHistory}Generate a structured prompt for storyboard panel #${options.panelNumber}:
 
+${locationSection ? locationSection + '\n' : ''}
 ${characterSections}
 
 SCENE ACTION: ${options.action || options.sceneDescription}
-LOCATION: ${options.location}
+${!locationSection ? `LOCATION: ${options.location}` : ''}
 ${options.cameraAngle ? `CAMERA ANGLE: ${options.cameraAngle}` : ''}
 ${options.composition ? `COMPOSITION: ${options.composition}` : ''}
 ${options.lighting ? `LIGHTING: ${options.lighting}` : ''}
@@ -209,13 +303,19 @@ Generate the complete 6-section prompt following the exact format.`;
 function generateFallbackPrompt(options: {
   panelNumber: number;
   characters: Character[];
+  locations?: Location[];
   action: string;
   sceneDescription: string;
   location: string;
 }): string {
   const characterDescs = options.characters.map(char => buildCharacterSection(char)).join(' and ');
+  const locationDesc = options.locations && options.locations.length > 0
+    ? buildLocationSection(options.locations)
+    : `LOCATION: ${options.location}`;
 
-  return `CHARACTER: ${characterDescs}
+  return `${locationDesc}
+
+CHARACTER: ${characterDescs}
 
 ACTION: ${options.action || options.sceneDescription}
 
