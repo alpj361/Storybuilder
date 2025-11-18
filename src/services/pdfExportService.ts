@@ -566,22 +566,28 @@ class PDFExportService {
 
         console.log('[PDFExportService] About to call Sharing.shareAsync...');
 
-        // DON'T await - let it run completely async to prevent UI freeze
-        // The Share Sheet will handle its own lifecycle
-        Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Share Storyboard PDF',
-          UTI: 'com.adobe.pdf' // iOS-specific Uniform Type Identifier
-        })
-          .then(() => {
-            console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
+        // Add a small delay to ensure iOS has completed all pending operations
+        // This prevents race conditions that cause the Share Sheet to freeze
+        setTimeout(() => {
+          console.log('[PDFExportService] Calling Sharing.shareAsync now...');
+
+          // DON'T await - let it run completely async to prevent UI freeze
+          // The Share Sheet will handle its own lifecycle
+          Sharing.shareAsync(uri, {
+            mimeType: 'application/pdf',
+            dialogTitle: 'Share Storyboard PDF',
+            UTI: 'com.adobe.pdf' // iOS-specific Uniform Type Identifier
           })
-          .catch(error => {
-            // Only log errors that aren't user cancellations
-            if (error?.message && !error.message.toLowerCase().includes('cancel')) {
-              console.error('[PDFExportService] Share error:', error);
-            }
-          });
+            .then(() => {
+              console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
+            })
+            .catch(error => {
+              // Only log errors that aren't user cancellations
+              if (error?.message && !error.message.toLowerCase().includes('cancel')) {
+                console.error('[PDFExportService] Share error:', error);
+              }
+            });
+        }, 200); // 200ms additional delay to prevent race conditions
       })
       .catch(error => {
         console.error('[PDFExportService] Error preparing share:', error);
