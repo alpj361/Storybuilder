@@ -4,6 +4,7 @@ import {
   CompositionType,
   PanelType,
   Character,
+  Location,
   Scene
 } from "../types/storyboard";
 import { getCharacterDescription } from "../services/characterDescriber";
@@ -133,7 +134,8 @@ export async function generateStoryboardPrompt(
   prompt: StoryboardPrompt,
   characters: Character[],
   scene: Scene,
-  previousPanelsSummary?: string
+  previousPanelsSummary?: string,
+  locations?: Location[]
 ): Promise<string> {
   console.log("[generateStoryboardPrompt] Generating GPT-based structured prompt for panel", prompt.panelNumber);
 
@@ -141,6 +143,11 @@ export async function generateStoryboardPrompt(
   const panelCharacters = characters.filter(char =>
     prompt.characters.includes(char.id)
   );
+
+  // Get locations for this panel
+  const panelLocations = locations?.filter(loc =>
+    prompt.locations?.includes(loc.id)
+  ) || [];
 
   // Build previous panels context if panel 2+
   const previousPanels = previousPanelsSummary
@@ -155,6 +162,7 @@ export async function generateStoryboardPrompt(
   const structuredPrompt = await generateStructuredPrompt({
     panelNumber: prompt.panelNumber,
     characters: panelCharacters,
+    locations: panelLocations.length > 0 ? panelLocations : undefined,
     action: prompt.action || prompt.sceneDescription,
     sceneDescription: prompt.sceneDescription,
     location: scene.location,
@@ -212,7 +220,8 @@ export function enhancePromptForStoryboard(basePrompt: string): string {
 export async function generateAllPanelPrompts(
   prompts: StoryboardPrompt[],
   characters: Character[],
-  scenes: Scene[]
+  scenes: Scene[],
+  locations?: Location[]
 ): Promise<StoryboardPrompt[]> {
   // Build story context progressively as we process each panel
   const processedPrompts: StoryboardPrompt[] = [];
@@ -229,7 +238,8 @@ export async function generateAllPanelPrompts(
       prompt,
       characters,
       scene,
-      previousPanelsSummary
+      previousPanelsSummary,
+      locations
     );
     const enhancedPrompt = enhancePromptForStoryboard(generatedPrompt);
 
