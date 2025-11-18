@@ -288,3 +288,130 @@ ATMOSPHERE: Neutral lighting
 
 NOTES: Keep sketch rough; emphasize character likeness and facial proportions. Background should stay minimalistic and sketched.`;
 }
+
+/**
+ * Generate MiniWorld-style structured prompt using GPT
+ * Isometric diorama style with warm pastel colors
+ */
+export async function generateMiniWorldPrompt(options: {
+  location: string;
+  characters?: Character[];
+  locations?: Location[];
+  sceneDescription: string;
+}): Promise<string> {
+  console.log('[PromptBuilder] Generating MiniWorld prompt');
+
+  try {
+    const openai = await getOpenAIClient();
+
+    // Build character section if characters are present
+    const characterSections = options.characters && options.characters.length > 0
+      ? options.characters.map(char => {
+          const charDesc = buildCharacterSection(char);
+          return `CHARACTER: ${char.name} - ${charDesc}`;
+        }).join('\n')
+      : '';
+
+    // Build location section
+    const locationSection = options.locations && options.locations.length > 0
+      ? buildLocationSection(options.locations)
+      : options.location;
+
+    // Create GPT prompt for MiniWorld style
+    const systemPrompt = `You are a 3D diorama artist. Create prompts for isometric miniature world scenes with:
+- ISOMETRIC/DIORAMA perspective: Slightly elevated angle, clean lines, small contained "open box" presentation
+- WARM SOFT COLORS: Pastel palette, earth tones, soft warm diffuse lighting, no harsh shadows
+- SIMPLIFIED BUT REALISTIC: Moderate detail level, not hyper-realistic, stylized miniature aesthetic
+- COZY ATMOSPHERE: Calm, well-balanced, harmonious composition
+- MATERIALS: Soft textures, light wood, discrete fabric details, miniature-like accessories
+
+Output format (STYLE goes FIRST):
+
+STYLE: Isometric diorama, miniature world aesthetic. Pastel and warm earth tone color palette. Soft diffuse lighting, no harsh shadows. Moderate detail level - realistic but stylized like a small exhibition piece or miniature set. Clean angles, slightly elevated perspective.
+
+LOCATION: [The main setting - simplified but with enough detail to feel real and cozy]
+
+CHARACTERS: [If present - natural proportions, smooth movement, simple but expressive, integrated into environment]
+
+OBJECTS: [Furniture, plants, accessories - stylized, miniature-like, each with purpose, well-ordered]
+
+COMPOSITION: [Small contained world, "open box" presentation showing a cut section, clean edges, no ceiling visible]
+
+ATMOSPHERE: [Cozy, calm, warm, well-balanced, habitable feeling]
+
+LIGHTING: [Soft warm diffuse light, well-balanced, creates inviting atmosphere]
+
+CRITICAL RULES:
+- ALWAYS use isometric or slightly elevated perspective
+- ALWAYS use soft, warm, pastel color palette
+- Keep detail level moderate - not too simple, not hyper-realistic
+- Everything should feel like part of a miniature exhibition piece
+- Composition must feel contained, harmonious, and purposeful
+- No harsh shadows or dramatic lighting
+- Environment should feel cozy and habitable`;
+
+    const userPrompt = `Create a MiniWorld scene:
+
+${locationSection ? `Location: ${locationSection}` : ''}
+${characterSections ? `\n${characterSections}` : ''}
+${options.sceneDescription ? `\nScene: ${options.sceneDescription}` : ''}
+
+Create a CONCISE prompt for this isometric miniature diorama.`;
+
+    console.log('[PromptBuilder] Calling GPT for MiniWorld style');
+
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o-2024-11-20',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.6,
+      max_tokens: 500
+    });
+
+    const miniWorldPrompt = response.choices[0].message.content || '';
+
+    console.log('[PromptBuilder] Generated MiniWorld prompt:', miniWorldPrompt.substring(0, 200) + '...');
+
+    return miniWorldPrompt;
+  } catch (error) {
+    console.error('[PromptBuilder] Error generating MiniWorld prompt:', error);
+
+    // Fallback: generate basic MiniWorld prompt without GPT
+    console.warn('[PromptBuilder] Falling back to basic MiniWorld prompt generation');
+    return generateFallbackMiniWorldPrompt(options);
+  }
+}
+
+/**
+ * Fallback MiniWorld prompt generation if GPT fails
+ */
+function generateFallbackMiniWorldPrompt(options: {
+  location: string;
+  characters?: Character[];
+  locations?: Location[];
+  sceneDescription: string;
+}): string {
+  const characterDescs = options.characters && options.characters.length > 0
+    ? options.characters.map(char => `${char.name}: ${buildCharacterSection(char)}`).join('. ')
+    : '';
+
+  const locationDesc = options.locations && options.locations.length > 0
+    ? buildLocationSection(options.locations)
+    : options.location;
+
+  return `STYLE: Isometric diorama, miniature world aesthetic. Pastel and warm earth tone color palette. Soft diffuse lighting, no harsh shadows. Moderate detail level - realistic but stylized like a small exhibition piece or miniature set. Clean angles, slightly elevated perspective.
+
+LOCATION: ${locationDesc}
+
+${characterDescs ? `CHARACTERS: ${characterDescs}` : 'CHARACTERS: None'}
+
+SCENE: ${options.sceneDescription}
+
+COMPOSITION: Small contained world, "open box" presentation showing a cut section, clean edges, no ceiling visible. Everything well-ordered and harmonious.
+
+ATMOSPHERE: Cozy, calm, warm, well-balanced, habitable feeling
+
+LIGHTING: Soft warm diffuse light, well-balanced, creates inviting atmosphere`;
+}
