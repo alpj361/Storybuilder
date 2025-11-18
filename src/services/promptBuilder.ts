@@ -1,14 +1,14 @@
 /**
- * Structured Prompt Builder Service
- * Uses GPT to generate structured prompts for storyboard panels
+ * Simplified Prompt Builder for Storyboard Sketches
+ * Generates BRIEF, MINIMAL prompts for rough pencil sketch style
  *
  * Format:
- * - LOCATION: Detailed location/environment description (with real place knowledge if applicable)
- * - CHARACTER: Detailed physical description from Gemini fills
- * - ACTION: Specific action/movement in the panel
- * - CAMERA: Shot type, angle, perspective, motion blur
- * - ENVIRONMENT: Additional environmental details and atmospheric effects
- * - STYLE: Visual style (always storyboard sketch style)
+ * - SHOT: Shot type and angle (brief)
+ * - CHARACTERS: Character names and key features (minimal)
+ * - ACTION: What's happening (one sentence)
+ * - LOCATION: Environment essentials only (1-2 phrases)
+ * - ATMOSPHERE: Mood, weather, lighting (very brief)
+ * - STYLE: Always rough pencil sketch with minimal background
  */
 
 import { getOpenAIClient } from '../api/openai';
@@ -17,149 +17,59 @@ import { Character, Location } from '../types/storyboard';
 const MAX_CONTEXT_LENGTH = 2000; // Maximum characters for context history
 
 /**
- * Build CHARACTER section from Gemini fills
+ * Build BRIEF character description - minimal for sketch style
  */
 function buildCharacterSection(character: Character): string {
   const appearance = character.appearance;
-
-  // Build character description from fills
   const parts: string[] = [];
 
-  // Start with "Based on" reference if provided
+  // "Based on" reference (most important for AI)
   if (appearance.basedOn) {
-    parts.push(`Based on: ${appearance.basedOn}`);
+    parts.push(`based on ${appearance.basedOn}`);
   }
 
-  // Start with character type and species
-  if (appearance.characterType) {
-    const typeStr = `${appearance.characterType}`;
-    const speciesStr = appearance.species ? ` | SPECIES: ${appearance.species}` : '';
-    parts.push(`(${typeStr}${speciesStr})`);
+  // Type/species (essential)
+  if (appearance.species) {
+    parts.push(appearance.species);
+  } else if (appearance.characterType) {
+    parts.push(appearance.characterType);
   }
 
-  // Add universal fields
-  if (appearance.age) parts.push(appearance.age);
+  // Key visual features (minimal)
   if (appearance.size) parts.push(appearance.size);
-  if (appearance.build) parts.push(`${appearance.build} build`);
-  if (appearance.bodyType) parts.push(appearance.bodyType);
+  if (appearance.build) parts.push(appearance.build);
 
-  // Add texture/surface
-  if (appearance.texture) parts.push(appearance.texture);
+  // Coloration (important for silhouette)
   if (appearance.coloration) parts.push(appearance.coloration);
 
-  // Add distinctive features
-  if (appearance.features && appearance.features.length > 0) {
-    parts.push(appearance.features.join(', '));
-  }
-  if (appearance.distinctiveFeatures && appearance.distinctiveFeatures.length > 0) {
-    parts.push(appearance.distinctiveFeatures.join(', '));
-  }
+  // Clothing (brief)
+  if (appearance.clothing) parts.push(appearance.clothing);
 
-  // Human-specific fields
-  if (appearance.characterType === 'human') {
-    if (appearance.faceShape) parts.push(appearance.faceShape);
-    if (appearance.eyeShape && appearance.eyeColor) {
-      parts.push(`${appearance.eyeShape} ${appearance.eyeColor} eyes`);
-    } else if (appearance.eyeColor) {
-      parts.push(`${appearance.eyeColor} eyes`);
-    }
-    if (appearance.hair) parts.push(appearance.hair);
-    if (appearance.skinTone) parts.push(appearance.skinTone);
-  }
-
-  // Clothing
-  if (appearance.clothing) parts.push(`wearing ${appearance.clothing}`);
-
-  // Gender
-  if (appearance.gender) parts.push(appearance.gender);
-
-  // Default expression or impression
-  if (appearance.defaultExpression) parts.push(`${appearance.defaultExpression} expression`);
-
-  return parts.join('. ').replace(/\.\./g, '.');
+  return parts.join(', ');
 }
 
 /**
- * Build LOCATION section from location fills
+ * Build BRIEF location description - keep it minimal for sketch style
  */
 function buildLocationSection(locations: Location[]): string {
   if (locations.length === 0) return '';
 
   return locations.map(loc => {
-    const { details, aiGeneratedDescription } = loc;
-
-    // ===== CASE 1: REAL PLACE =====
-    if (details.isRealPlace && details.realPlaceInfo) {
-      const { specificLocation, city, country, knownFor } = details.realPlaceInfo;
-
-      let prompt = `REAL LOCATION: ${specificLocation || loc.name}`;
-      if (city) prompt += ` in ${city}`;
-      if (country) prompt += `, ${country}`;
-      prompt += `. Use your extensive knowledge of this real-world location.`;
-
-      if (knownFor) {
-        prompt += ` Context: ${knownFor}.`;
-      }
-
-      // Add additional visual details from fills
-      const visualDetails = [];
-      if (details.timeOfDay) visualDetails.push(`${details.timeOfDay} time`);
-      if (details.weather) visualDetails.push(details.weather);
-      if (details.lighting) visualDetails.push(`${details.lighting} lighting`);
-      if (details.atmosphere) visualDetails.push(`${details.atmosphere} atmosphere`);
-
-      if (visualDetails.length > 0) {
-        prompt += ` Visual context: ${visualDetails.join(', ')}.`;
-      }
-
-      if (aiGeneratedDescription) {
-        prompt += ` Additional details from reference: ${aiGeneratedDescription}`;
-      }
-
-      return prompt;
-    }
-
-    // ===== CASE 2: FICTIONAL PLACE WITH FILLS =====
+    const { details } = loc;
     const parts = [];
 
-    // Type and setting
+    // Real place - just the name
+    if (details.isRealPlace && details.realPlaceInfo?.specificLocation) {
+      return `REAL LOCATION: ${details.realPlaceInfo.specificLocation}${details.realPlaceInfo.city ? ', ' + details.realPlaceInfo.city : ''}`;
+    }
+
+    // Fictional - only essentials
     if (details.locationType) parts.push(details.locationType);
     if (details.setting) parts.push(details.setting);
+    if (details.timeOfDay) parts.push(details.timeOfDay);
 
-    // Time and atmosphere
-    if (details.timeOfDay) parts.push(`${details.timeOfDay} time`);
-    if (details.weather) parts.push(`${details.weather} weather`);
-    if (details.lighting) parts.push(`${details.lighting} lighting`);
-    if (details.atmosphere) parts.push(`${details.atmosphere} atmosphere`);
-
-    // Physical characteristics
-    if (details.architecture) parts.push(`${details.architecture} architecture`);
-    if (details.terrain) parts.push(`${details.terrain} terrain`);
-    if (details.vegetation) parts.push(details.vegetation);
-
-    // Prominent features
-    if (details.prominentFeatures && details.prominentFeatures.length > 0) {
-      parts.push(`featuring: ${details.prominentFeatures.join(', ')}`);
-    }
-
-    // Color and scale
-    if (details.colorPalette) parts.push(`${details.colorPalette} tones`);
-    if (details.scale) parts.push(`${details.scale} scale`);
-    if (details.condition) parts.push(details.condition);
-    if (details.crowdLevel) parts.push(`${details.crowdLevel} crowd level`);
-
-    // Soundscape (additional context)
-    if (details.soundscape) parts.push(`soundscape: ${details.soundscape}`);
-
-    let prompt = `LOCATION: ${loc.name}. ${parts.join(', ')}.`;
-
-    // If there's AI description from image, add it
-    if (aiGeneratedDescription) {
-      prompt += ` Additional visual details: ${aiGeneratedDescription}`;
-    }
-
-    return prompt;
-  }).join('\n\n');
+    return `LOCATION: ${loc.name}${parts.length > 0 ? ' (' + parts.join(', ') + ')' : ''}`;
+  }).join(', ');
 }
 
 /**
@@ -224,45 +134,40 @@ export async function generateStructuredPrompt(options: {
       ? buildContextHistory(options.previousPanels)
       : '';
 
-    // Create GPT prompt
-    const systemPrompt = `You are an expert storyboard artist assistant. Your task is to transform scene descriptions into structured 6-section prompts for AI image generation.
+    // Create GPT prompt - SIMPLIFIED for sketch style
+    const systemPrompt = `You are a storyboard artist. Create BRIEF, MINIMAL prompts for rough pencil sketches. Keep descriptions SHORT and SIMPLE.
 
-The output format MUST follow this structure:
+Output format:
 
-LOCATION: [Detailed location/environment description. If REAL LOCATION is specified, use your knowledge of that real place. Otherwise, describe the fictional setting with all provided details]
+SHOT: [shot type and angle - e.g. "medium shot, eye-level" or "wide shot, low angle"]
 
-CHARACTER: [Detailed physical description of the character(s) including species, body type, features, coloration, etc.]
+CHARACTERS: [brief description - name, key features, clothing]
 
-ACTION: [Specific action/movement happening in this panel - be dynamic and descriptive]
+ACTION: [what the character is doing - one sentence]
 
-CAMERA: [Shot type (wide, medium, close-up), angle (low, high, eye-level), perspective, motion blur effects]
+LOCATION: [environment essentials only - brief, avoid long descriptions]
 
-ENVIRONMENT: [Additional environmental details, atmospheric effects, background elements]
+ATMOSPHERE: [mood, weather, lighting - very brief]
 
-STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading. No 3D rendering. Hand-drawn look with light crosshatching. Focus on silhouette clarity and expressive motion.
+STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading, hand-drawn look, minimal background details.
 
-IMPORTANT:
-- If REAL LOCATION is provided, incorporate your knowledge of that place accurately
-- LOCATION section should be first and detailed
-- Keep each section clear and specific
-- ACTION should describe dynamic movement
-- CAMERA should specify angle and shot type
-- ENVIRONMENT should complement LOCATION with atmospheric details
-- STYLE section is ALWAYS the same (rough pencil storyboard sketch)`;
+CRITICAL RULES:
+- Keep ALL sections brief and minimal
+- LOCATION should be 1-2 short phrases maximum
+- If REAL LOCATION is specified, just mention the place name
+- Focus on ACTION and COMPOSITION, not elaborate detail
+- Background should be MINIMAL and LOOSELY sketched
+- This is a SKETCH, not a detailed rendering`;
 
-    const userPrompt = `${contextHistory}Generate a structured prompt for storyboard panel #${options.panelNumber}:
+    const userPrompt = `${contextHistory}Panel #${options.panelNumber}:
 
-${locationSection ? locationSection + '\n' : ''}
 ${characterSections}
+${locationSection ? locationSection : `Location: ${options.location}`}
+Action: ${options.action || options.sceneDescription}
+${options.cameraAngle ? `Shot: ${options.cameraAngle}` : ''}
+${options.composition ? `Composition: ${options.composition}` : ''}
 
-SCENE ACTION: ${options.action || options.sceneDescription}
-${!locationSection ? `LOCATION: ${options.location}` : ''}
-${options.cameraAngle ? `CAMERA ANGLE: ${options.cameraAngle}` : ''}
-${options.composition ? `COMPOSITION: ${options.composition}` : ''}
-${options.lighting ? `LIGHTING: ${options.lighting}` : ''}
-${options.mood ? `MOOD: ${options.mood}` : ''}
-
-Generate the complete 6-section prompt following the exact format.`;
+Create a BRIEF prompt. Keep it MINIMAL and SKETCHY.`;
 
     console.log('[PromptBuilder] Calling GPT with:', {
       panelNumber: options.panelNumber,
@@ -276,8 +181,8 @@ Generate the complete 6-section prompt following the exact format.`;
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
       ],
-      temperature: 0.7,
-      max_tokens: 1000
+      temperature: 0.5,
+      max_tokens: 400
     });
 
     const structuredPrompt = response.choices[0].message.content || '';
@@ -295,7 +200,7 @@ Generate the complete 6-section prompt following the exact format.`;
 }
 
 /**
- * Fallback prompt generation if GPT fails
+ * Fallback prompt generation if GPT fails - SIMPLIFIED
  */
 function generateFallbackPrompt(options: {
   panelNumber: number;
@@ -305,20 +210,20 @@ function generateFallbackPrompt(options: {
   sceneDescription: string;
   location: string;
 }): string {
-  const characterDescs = options.characters.map(char => buildCharacterSection(char)).join(' and ');
-  const locationDesc = options.locations && options.locations.length > 0
-    ? buildLocationSection(options.locations)
-    : `LOCATION: ${options.location}`;
+  const characterNames = options.characters.map(char => char.name).join(' and ');
+  const locationName = options.locations && options.locations.length > 0
+    ? options.locations[0].name
+    : options.location;
 
-  return `${locationDesc}
+  return `SHOT: Medium shot, eye-level
 
-CHARACTER: ${characterDescs}
+CHARACTERS: ${characterNames}
 
 ACTION: ${options.action || options.sceneDescription}
 
-CAMERA: Medium shot, eye-level angle
+LOCATION: ${locationName}
 
-ENVIRONMENT: ${options.location}
+ATMOSPHERE: neutral lighting
 
-STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading. No 3D rendering. Hand-drawn look with light crosshatching. Focus on silhouette clarity and expressive motion.`;
+STYLE: Rough pencil storyboard sketch, loose gestural lines, black and white, draft-quality shading, hand-drawn look, minimal background details.`;
 }
