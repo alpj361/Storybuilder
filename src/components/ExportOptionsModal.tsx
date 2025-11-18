@@ -6,6 +6,7 @@ import { ExportOptionsModalProps, PDFLayout, ExportOptions } from "../types/expo
 export default function ExportOptionsModal({
   visible,
   onClose,
+  onDismiss,
   project,
   onExport
 }: ExportOptionsModalProps) {
@@ -53,6 +54,7 @@ export default function ExportOptionsModal({
       presentationStyle="pageSheet"
       transparent={false}
       onRequestClose={handleClose}
+      onDismiss={onDismiss}
     >
       <View className="flex-1 bg-white">
         {/* Header */}

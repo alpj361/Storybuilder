@@ -19,7 +19,21 @@ import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 import ExportOptionsModal from "../components/ExportOptionsModal";
 import pdfExportService from "../services/pdfExportService";
-import { ExportOptions } from "../types/export";
+import { ExportOptions, PDFExportResult } from "../types/export";
+
+const waitForModalTeardown = async () => {
+  // Ensure React has a chance to commit the modal removal
+  await new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+
+  // Wait until all layout/animation work has finished. This prevents the
+  // native pageSheet animation from fighting with the iOS share sheet.
+  await new Promise(resolve => InteractionManager.runAfterInteractions(() => resolve(null)));
+
+  // Give iOS a brief moment to destroy the underlying UIWindow before
+  // invoking the share sheet. Without this, the share sheet can appear but
+  // the invisible modal window still captures all touches.
+  await new Promise(resolve => setTimeout(resolve, 300));
+};
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -439,6 +453,7 @@ export default function StoryboardScreen({
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+  const [pendingExportResult, setPendingExportResult] = useState<PDFExportResult | null>(null);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -592,30 +607,33 @@ export default function StoryboardScreen({
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // CRITICAL: Close modal FIRST and wait for complete unmount
-      // By setting showExportModal to false, the modal will NOT be rendered at all
-      // This forces React Native to destroy the native window entirely
-      console.log('[StoryboardScreen] Closing modal...');
+      // Close modal and store the pending share until the modal finishes dismissing
+      console.log('[StoryboardScreen] Closing export modal before sharing...');
+      setPendingExportResult(result);
       setShowExportModal(false);
-
-      // Wait for modal to fully unmount from both React and native layers
-      // Use longer delay to ensure iOS has time to clean up the modal's native window
-      // The transparent modal creates a UIWindow that persists if we don't wait
-      console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
-      setTimeout(() => {
-        console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
-        // Share the PDF - this will open native share dialog
-        // Error handling is done inside sharePDF()
-        pdfExportService.sharePDF(result.uri);
-      }, 500); // 500ms to ensure complete native cleanup
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
+      setPendingExportResult(null);
       setShowExportModal(false);
       Alert.alert(
         "Export Failed",
         "Failed to export PDF. Please try again.",
         [{ text: "OK" }]
       );
+    }
+  };
+
+  const handleExportModalDismissed = async () => {
+    if (!pendingExportResult) {
+      return;
+    }
+
+    try {
+      console.log('[StoryboardScreen] Export modal dismissed, preparing share sheet...');
+      await waitForModalTeardown();
+      pdfExportService.sharePDF(pendingExportResult.uri);
+    } finally {
+      setPendingExportResult(null);
     }
   };
 
@@ -926,6 +944,7 @@ export default function StoryboardScreen({
         <ExportOptionsModal
           visible={true}
           onClose={() => setShowExportModal(false)}
+          onDismiss={handleExportModalDismissed}
           project={activeProject}
           onExport={handleExportPDF}
         />

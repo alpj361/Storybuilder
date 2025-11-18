@@ -32,6 +32,7 @@ export interface ExportOptions {
 export interface ExportOptionsModalProps {
   visible: boolean;
   onClose: () => void;
+  onDismiss?: () => void;
   project: StoryboardProject;
   onExport: (options: ExportOptions) => Promise<void>;
 }
