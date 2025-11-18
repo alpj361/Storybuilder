@@ -1062,7 +1062,7 @@ export const useStoryboardStore = create<StoryboardState>()(
 
           const updatedProject = {
             ...state.currentProject,
-            locations: [...state.currentProject.locations, location],
+            locations: [...(state.currentProject.locations || []), location],
             updatedAt: new Date()
           };
 
@@ -1080,7 +1080,7 @@ export const useStoryboardStore = create<StoryboardState>()(
         set(state => {
           if (!state.currentProject) return state;
 
-          const updatedLocations = state.currentProject.locations.map(location =>
+          const updatedLocations = (state.currentProject.locations || []).map(location =>
             location.id === locationId
               ? { ...location, ...updates }
               : location
@@ -1107,14 +1107,14 @@ export const useStoryboardStore = create<StoryboardState>()(
           if (!state.currentProject) return state;
 
           // Remove location from project
-          const updatedLocations = state.currentProject.locations.filter(l => l.id !== locationId);
+          const updatedLocations = (state.currentProject.locations || []).filter(l => l.id !== locationId);
 
           // Remove location from all panels
           const updatedPanels = state.currentProject.panels.map(panel => ({
             ...panel,
             prompt: {
               ...panel.prompt,
-              locations: panel.prompt.locations.filter(id => id !== locationId)
+              locations: (panel.prompt.locations || []).filter(id => id !== locationId)
             }
           }));
 
@@ -1142,7 +1142,7 @@ export const useStoryboardStore = create<StoryboardState>()(
           const updatedPanels = state.currentProject.panels.map(panel => {
             if (panel.id === panelId) {
               // Don't add if already exists
-              if (panel.prompt.locations.includes(locationId)) {
+              if (panel.prompt.locations?.includes(locationId)) {
                 return panel;
               }
 
@@ -1150,7 +1150,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 ...panel,
                 prompt: {
                   ...panel.prompt,
-                  locations: [...panel.prompt.locations, locationId]
+                  locations: [...(panel.prompt.locations || []), locationId]
                 }
               };
             }
@@ -1183,7 +1183,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 ...panel,
                 prompt: {
                   ...panel.prompt,
-                  locations: panel.prompt.locations.filter(id => id !== locationId)
+                  locations: (panel.prompt.locations || []).filter(id => id !== locationId)
                 }
               };
             }
