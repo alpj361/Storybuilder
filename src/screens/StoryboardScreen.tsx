@@ -20,6 +20,7 @@ import { CharacterEditModal } from "../components/CharacterEditModal";
 import { LocationDetailsModal } from "../components/LocationDetailsModal";
 import { LocationEditModal } from "../components/LocationEditModal";
 import LocationLibraryModal from "../components/LocationLibraryModal";
+import TagsManagementModal from "../components/TagsManagementModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 import ExportOptionsModal from "../components/ExportOptionsModal";
@@ -49,10 +50,11 @@ interface StoryboardPanelProps {
   mode: "storyboard" | "architectural";
   onCharacterPress?: (character: Character) => void;
   onLocationPress?: (location: Location) => void;
+  onManageTags?: (panelId: string) => void;
   onDelete?: (panelId: string) => void;
 }
 
-const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onLocationPress, onDelete }) => {
+const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onLocationPress, onManageTags, onDelete }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   const updatePanelPrompt = useStoryboardStore(state => state.updatePanelPrompt);
@@ -209,6 +211,29 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             Edit Panel Idea
           </Text>
         </Pressable>
+
+        {/* Tertiary Action: Manage Tags (Storyboard mode only) */}
+        {!isArchitectural && onManageTags && (
+          <Pressable
+            onPress={() => onManageTags(panel.id)}
+            disabled={panel.isGenerating}
+            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
+              panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-purple-300'
+            }`}
+            style={{ minHeight: 44 }}
+          >
+            <Ionicons
+              name="pricetags-outline"
+              size={18}
+              color={panel.isGenerating ? "#9CA3AF" : "#9333ea"}
+            />
+            <Text className={`text-sm font-semibold ml-2 ${
+              panel.isGenerating ? 'text-gray-400' : 'text-purple-600'
+            }`}>
+              Manage Tags
+            </Text>
+          </Pressable>
+        )}
       </View>
       
       {/* Tags */}
@@ -475,6 +500,8 @@ export default function StoryboardScreen({
   const [showLocationModal, setShowLocationModal] = useState(false);
   const [showLocationEditModal, setShowLocationEditModal] = useState(false);
   const [showLocationLibraryModal, setShowLocationLibraryModal] = useState(false);
+  const [showTagsModal, setShowTagsModal] = useState(false);
+  const [selectedPanelId, setSelectedPanelId] = useState<string | null>(null);
   const currentProject = useCurrentProject();
   const projects = useProjects();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
@@ -483,6 +510,12 @@ export default function StoryboardScreen({
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
   const updateCharacter = useStoryboardStore(state => state.updateCharacter);
   const updateLocation = useStoryboardStore(state => state.updateLocation);
+  const addCharacterToProject = useStoryboardStore(state => state.addCharacterToProject);
+  const addLocationToProject = useStoryboardStore(state => state.addLocationToProject);
+  const addCharacterToPanel = useStoryboardStore(state => state.addCharacterToPanel);
+  const removeCharacterFromPanel = useStoryboardStore(state => state.removeCharacterFromPanel);
+  const addLocationToPanel = useStoryboardStore(state => state.addLocationToPanel);
+  const removeLocationFromPanel = useStoryboardStore(state => state.removeLocationFromPanel);
   const deletePanel = useStoryboardStore(state => state.deletePanel);
 
   const exportModalDismissResolverRef = useRef<(() => void) | null>(null);
@@ -569,6 +602,12 @@ export default function StoryboardScreen({
   // Handler for deleting a panel
   const handleDeletePanel = (panelId: string) => {
     deletePanel(panelId);
+  };
+
+  // Handler for managing tags (characters and locations) for a panel
+  const handleManageTags = (panelId: string) => {
+    setSelectedPanelId(panelId);
+    setShowTagsModal(true);
   };
 
   // Calculate which panels a character appears in
@@ -973,6 +1012,7 @@ export default function StoryboardScreen({
                   mode={mode}
                   onCharacterPress={handleCharacterPress}
                   onLocationPress={handleLocationPress}
+                  onManageTags={panel && !isArchitectural ? handleManageTags : undefined}
                   onDelete={panel && !isArchitectural ? handleDeletePanel : undefined}
                 />
               </View>
@@ -1067,6 +1107,34 @@ export default function StoryboardScreen({
         }}
         onEditLocation={handleEditLocation}
       />
+
+      {/* Tags Management Modal */}
+      {selectedPanelId && currentProject && (
+        <TagsManagementModal
+          visible={showTagsModal}
+          onClose={() => {
+            setShowTagsModal(false);
+            setSelectedPanelId(null);
+          }}
+          panelNumber={
+            currentProject.panels.find(p => p.id === selectedPanelId)?.panelNumber || 1
+          }
+          panelCharacterIds={
+            currentProject.panels.find(p => p.id === selectedPanelId)?.prompt.characters || []
+          }
+          panelLocationIds={
+            currentProject.panels.find(p => p.id === selectedPanelId)?.prompt.locations || []
+          }
+          projectCharacters={currentProject.characters}
+          projectLocations={currentProject.locations || []}
+          onAddCharacterToPanel={(characterId) => addCharacterToPanel(selectedPanelId, characterId)}
+          onRemoveCharacterFromPanel={(characterId) => removeCharacterFromPanel(selectedPanelId, characterId)}
+          onAddLocationToPanel={(locationId) => addLocationToPanel(selectedPanelId, locationId)}
+          onRemoveLocationFromPanel={(locationId) => removeLocationFromPanel(selectedPanelId, locationId)}
+          onCreateCharacter={(character) => addCharacterToProject(character)}
+          onCreateLocation={(location) => addLocationToProject(location)}
+        />
+      )}
 
       {/* Project Selector Modal */}
       <ProjectSelectorModal
