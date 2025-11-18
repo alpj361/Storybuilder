@@ -652,9 +652,19 @@ export default function StoryboardScreen({
       console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
       await waitForModalTeardown();
       console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
+
       // Share the PDF - this will open native share dialog
-      // Error handling is done inside sharePDF()
-      pdfExportService.sharePDF(result.uri);
+      try {
+        await pdfExportService.sharePDF(result.uri);
+        console.log('[StoryboardScreen] Share completed successfully');
+      } catch (shareError) {
+        console.error('[StoryboardScreen] Share failed:', shareError);
+        Alert.alert(
+          "Share Failed",
+          "Failed to open share sheet. Please try again.",
+          [{ text: "OK" }]
+        );
+      }
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
       setShowExportModal(false);
