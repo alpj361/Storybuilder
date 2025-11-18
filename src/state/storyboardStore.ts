@@ -52,6 +52,9 @@ interface StoryboardState {
   regeneratePanelPromptFromIdea: (panelId: string, newIdea: string) => Promise<void>;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
+  addCharacterToProject: (character: Character) => void;
+  addCharacterToPanel: (panelId: string, characterId: string) => void;
+  removeCharacterFromPanel: (panelId: string, characterId: string) => void;
   addLocationToProject: (location: Location) => void;
   updateLocation: (locationId: string, updates: Partial<Location>) => void;
   deleteLocation: (locationId: string) => void;
@@ -949,6 +952,92 @@ export const useStoryboardStore = create<StoryboardState>()(
           const updatedProject = {
             ...state.currentProject,
             characters: updatedCharacters,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Add a character to the current project
+      addCharacterToProject: (character: Character) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedProject = {
+            ...state.currentProject,
+            characters: [...state.currentProject.characters, character],
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Add a character to a specific panel
+      addCharacterToPanel: (panelId: string, characterId: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedPanels = state.currentProject.panels.map(panel => {
+            if (panel.id === panelId && !panel.prompt.characters.includes(characterId)) {
+              return {
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  characters: [...panel.prompt.characters, characterId]
+                }
+              };
+            }
+            return panel;
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Remove a character from a specific panel
+      removeCharacterFromPanel: (panelId: string, characterId: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedPanels = state.currentProject.panels.map(panel => {
+            if (panel.id === panelId) {
+              return {
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  characters: panel.prompt.characters.filter(id => id !== characterId)
+                }
+              };
+            }
+            return panel;
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
             updatedAt: new Date()
           };
 
