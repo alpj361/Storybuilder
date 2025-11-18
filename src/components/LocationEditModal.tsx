@@ -15,6 +15,79 @@ interface LocationEditModalProps {
   mode?: "create" | "edit";
 }
 
+// Helper components defined OUTSIDE to prevent recreation on every render
+const CollapsibleSection = ({ title, isExpanded, onToggle, children }: {
+  title: string;
+  isExpanded: boolean;
+  onToggle: () => void;
+  children: React.ReactNode;
+}) => (
+  <View className="mb-4">
+    <Pressable
+      onPress={onToggle}
+      className="flex-row items-center justify-between bg-gray-100 p-4 rounded-lg mb-2"
+    >
+      <Text className="text-base font-semibold text-gray-800">{title}</Text>
+      <Ionicons
+        name={isExpanded ? "chevron-up" : "chevron-down"}
+        size={20}
+        color="#6b7280"
+      />
+    </Pressable>
+    {isExpanded && <View className="px-2">{children}</View>}
+  </View>
+);
+
+const InputField = ({ label, value, onChangeText, placeholder, multiline = false }: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder: string;
+  multiline?: boolean;
+}) => (
+  <View className="mb-4">
+    <Text className="text-sm font-medium text-gray-700 mb-1">{label}</Text>
+    <TextInput
+      value={value}
+      onChangeText={onChangeText}
+      placeholder={placeholder}
+      placeholderTextColor="#9ca3af"
+      multiline={multiline}
+      numberOfLines={multiline ? 3 : 1}
+      className="border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900"
+      style={{ textAlignVertical: multiline ? 'top' : 'center' }}
+    />
+  </View>
+);
+
+const PickerField = ({ label, options, value, onValueChange }: {
+  label: string;
+  options: Array<{ label: string; value: string }>;
+  value: string;
+  onValueChange: (value: any) => void;
+}) => (
+  <View className="mb-4">
+    <Text className="text-sm font-medium text-gray-700 mb-1">{label}</Text>
+    <View className="border border-gray-300 rounded-lg overflow-hidden">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row p-1">
+        {options.map((option) => (
+          <Pressable
+            key={option.value}
+            onPress={() => onValueChange(option.value)}
+            className={`px-4 py-2 rounded-md mr-2 ${
+              value === option.value ? 'bg-blue-500' : 'bg-gray-200'
+            }`}
+          >
+            <Text className={`text-sm ${value === option.value ? 'text-white font-semibold' : 'text-gray-700'}`}>
+              {option.label}
+            </Text>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  </View>
+);
+
 export function LocationEditModal({
   visible,
   onClose,
@@ -412,79 +485,6 @@ export function LocationEditModal({
       console.error(error);
     }
   };
-
-  // Collapsible section component
-  const CollapsibleSection = ({ title, isExpanded, onToggle, children }: {
-    title: string;
-    isExpanded: boolean;
-    onToggle: () => void;
-    children: React.ReactNode;
-  }) => (
-    <View className="mb-4">
-      <Pressable
-        onPress={onToggle}
-        className="flex-row items-center justify-between bg-gray-100 p-4 rounded-lg mb-2"
-      >
-        <Text className="text-base font-semibold text-gray-800">{title}</Text>
-        <Ionicons
-          name={isExpanded ? "chevron-up" : "chevron-down"}
-          size={20}
-          color="#6b7280"
-        />
-      </Pressable>
-      {isExpanded && <View className="px-2">{children}</View>}
-    </View>
-  );
-
-  const InputField = ({ label, value, onChangeText, placeholder, multiline = false }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    placeholder: string;
-    multiline?: boolean;
-  }) => (
-    <View className="mb-4">
-      <Text className="text-sm font-medium text-gray-700 mb-1">{label}</Text>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor="#9ca3af"
-        multiline={multiline}
-        numberOfLines={multiline ? 3 : 1}
-        className="border border-gray-300 rounded-lg px-4 py-2.5 text-gray-900"
-        style={{ textAlignVertical: multiline ? 'top' : 'center' }}
-      />
-    </View>
-  );
-
-  const PickerField = ({ label, options, value, onValueChange }: {
-    label: string;
-    options: Array<{ label: string; value: string }>;
-    value: string;
-    onValueChange: (value: any) => void;
-  }) => (
-    <View className="mb-4">
-      <Text className="text-sm font-medium text-gray-700 mb-1">{label}</Text>
-      <View className="border border-gray-300 rounded-lg overflow-hidden">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row p-1">
-          {options.map((option) => (
-            <Pressable
-              key={option.value}
-              onPress={() => onValueChange(option.value)}
-              className={`px-4 py-2 rounded-md mr-2 ${
-                value === option.value ? 'bg-blue-500' : 'bg-gray-200'
-              }`}
-            >
-              <Text className={`text-sm ${value === option.value ? 'text-white font-semibold' : 'text-gray-700'}`}>
-                {option.label}
-              </Text>
-            </Pressable>
-          ))}
-        </ScrollView>
-      </View>
-    </View>
-  );
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
