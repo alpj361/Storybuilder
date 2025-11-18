@@ -40,6 +40,7 @@ interface StoryboardState {
   // Actions
   createProjectFromInput: (input: string, customCharacters?: Character[], customLocations?: Location[]) => Promise<void>;
   createProjectWithPromptReview: (input: string, customCharacters?: Character[], customLocations?: Location[]) => Promise<StoryboardProject | null>;
+  createMiniWorldProject: (input: string, customCharacters?: Character[], customLocations?: Location[]) => Promise<void>;
   setPendingProject: (project: StoryboardProject | null) => void;
   updatePendingProjectPanels: (panels: StoryboardPanel[]) => void;
   generateImagesForPendingProject: (quality?: GenerationQuality) => Promise<void>;
@@ -517,6 +518,113 @@ export const useStoryboardStore = create<StoryboardState>()(
             isGenerating: false
           });
           return null;
+        }
+      },
+
+      // Create a new MiniWorld project (single scene, direct generation)
+      createMiniWorldProject: async (input: string, customCharacters?: Character[], customLocations?: Location[]) => {
+        set({ isGenerating: true, error: null });
+
+        try {
+          console.log("[storyboardStore] Creating MiniWorld project from input:", input);
+          console.log("[storyboardStore] Custom characters provided:", customCharacters?.length || 0);
+          console.log("[storyboardStore] Custom locations provided:", customLocations?.length || 0);
+
+          // Import MiniWorld prompt generator
+          const { generateMiniWorldPrompt } = await import('../services/promptBuilder');
+
+          // Use custom characters if provided
+          const finalCharacters = customCharacters && customCharacters.length > 0
+            ? customCharacters
+            : [];
+
+          // Use custom locations if provided
+          const finalLocations = customLocations && customLocations.length > 0
+            ? customLocations
+            : [];
+
+          console.log("[storyboardStore] Using characters:", finalCharacters.length);
+          console.log("[storyboardStore] Using locations:", finalLocations.length);
+
+          // Generate MiniWorld prompt
+          const miniWorldPrompt = await generateMiniWorldPrompt({
+            location: finalLocations.length > 0 ? finalLocations[0].name : input,
+            characters: finalCharacters,
+            locations: finalLocations,
+            sceneDescription: input
+          });
+
+          // Create a single panel project
+          const panel: StoryboardPanel = {
+            id: uuidv4(),
+            panelNumber: 1,
+            prompt: {
+              id: uuidv4(),
+              panelNumber: 1,
+              panelType: "establishing" as any,
+              action: input,
+              sceneDescription: input,
+              characters: finalCharacters.map(c => c.id),
+              locations: finalLocations.map(l => l.id),
+              sceneId: uuidv4(),
+              style: get().defaultStyle,
+              composition: "medium_shot" as any,
+              mood: "cozy and warm",
+              lighting: "soft diffuse warm lighting",
+              generatedPrompt: miniWorldPrompt
+            },
+            isGenerating: false,
+            isEdited: false
+          };
+
+          const project: StoryboardProject = {
+            id: uuidv4(),
+            title: input.slice(0, 50),
+            description: input,
+            userInput: input,
+            panels: [panel],
+            characters: finalCharacters,
+            locations: finalLocations,
+            scenes: [{
+              id: uuidv4(),
+              sceneNumber: 1,
+              description: input,
+              location: finalLocations.length > 0 ? finalLocations[0].name : input,
+              timeOfDay: "day",
+              lighting: "soft diffuse warm lighting",
+              mood: "cozy and warm"
+            }],
+            style: get().defaultStyle,
+            metadata: {
+              genre: "miniworld",
+              targetAudience: "general" as any,
+              aspectRatio: "1:1" as const
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            isComplete: true,
+            projectType: ProjectType.MINIWORLD
+          };
+
+          console.log("[storyboardStore] MiniWorld project created successfully");
+
+          // Add project to state
+          set(state => ({
+            currentProject: project,
+            projects: [...state.projects, project],
+            isGenerating: false
+          }));
+
+          // Generate image immediately with high quality (Seeddream)
+          console.log("[storyboardStore] Generating MiniWorld image with Seeddream");
+          await get().generatePanelImage(panel.id, GenerationQuality.HIGH);
+
+        } catch (error) {
+          console.error("[storyboardStore] MiniWorld creation error:", error);
+          set({
+            error: error instanceof Error ? error.message : "Failed to create MiniWorld",
+            isGenerating: false
+          });
         }
       },
 

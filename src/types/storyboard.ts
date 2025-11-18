@@ -8,7 +8,8 @@ export enum StoryboardStyle {
 
 export enum ProjectType {
   STORYBOARD = "storyboard",
-  ARCHITECTURAL = "architectural"
+  ARCHITECTURAL = "architectural",
+  MINIWORLD = "miniworld"
 }
 
 export type ArchitecturalProjectKind = "detalles" | "planos" | "prototipos";
