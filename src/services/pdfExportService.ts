@@ -61,18 +61,21 @@ class PDFExportService {
 
   /**
    * Convert image URLs to base64 data
+   * Uses parallel loading to prevent UI freeze
    */
   private async prepareImages(panels: StoryboardPanel[]): Promise<Map<string, string>> {
     const imageDataMap = new Map<string, string>();
 
-    for (const panel of panels) {
-      if (!panel.generatedImageUrl) continue;
+    // Load all images in parallel to prevent blocking the UI thread
+    const imagePromises = panels.map(async (panel) => {
+      if (!panel.generatedImageUrl) {
+        return { id: panel.id, data: '' };
+      }
 
       try {
         // Check if it's already a base64 string
         if (panel.generatedImageUrl.startsWith('data:image')) {
-          imageDataMap.set(panel.id, panel.generatedImageUrl);
-          continue;
+          return { id: panel.id, data: panel.generatedImageUrl };
         }
 
         // Download image and convert to base64
@@ -81,13 +84,21 @@ class PDFExportService {
         });
 
         const dataUri = `data:image/jpeg;base64,${base64}`;
-        imageDataMap.set(panel.id, dataUri);
+        return { id: panel.id, data: dataUri };
       } catch (error) {
         console.warn(`[PDFExportService] Failed to load image for panel ${panel.panelNumber}:`, error);
         // Use placeholder if image fails to load
-        imageDataMap.set(panel.id, '');
+        return { id: panel.id, data: '' };
       }
-    }
+    });
+
+    // Wait for all images to load in parallel
+    const results = await Promise.all(imagePromises);
+
+    // Populate the map with results
+    results.forEach(result => {
+      imageDataMap.set(result.id, result.data);
+    });
 
     return imageDataMap;
   }
