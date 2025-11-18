@@ -8,13 +8,18 @@ import {
   ProjectType,
   ArchitecturalProjectKind,
   Character,
+  Location,
   GenerationQuality
 } from "../types/storyboard";
 import StoryboardInputModal from "../components/StoryboardInputModal";
 import PromptPreview from "../components/PromptPreview";
 import CharacterTag from "../components/CharacterTag";
+import LocationTag from "../components/LocationTag";
 import { CharacterDetailsModal } from "../components/CharacterDetailsModal";
 import { CharacterEditModal } from "../components/CharacterEditModal";
+import { LocationDetailsModal } from "../components/LocationDetailsModal";
+import { LocationEditModal } from "../components/LocationEditModal";
+import LocationLibraryModal from "../components/LocationLibraryModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 import ExportOptionsModal from "../components/ExportOptionsModal";
@@ -43,10 +48,11 @@ interface StoryboardPanelProps {
   panelNumber: number;
   mode: "storyboard" | "architectural";
   onCharacterPress?: (character: Character) => void;
+  onLocationPress?: (location: Location) => void;
   onDelete?: (panelId: string) => void;
 }
 
-const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onDelete }) => {
+const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, mode, onCharacterPress, onLocationPress, onDelete }) => {
   const currentProject = useCurrentProject();
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
   const updatePanelPrompt = useStoryboardStore(state => state.updatePanelPrompt);
@@ -82,6 +88,10 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   const panelCharacters = isArchitectural
     ? []
     : currentProject?.characters.filter(char => panel.prompt.characters.includes(char.id)) || [];
+
+  const panelLocations = isArchitectural
+    ? []
+    : currentProject?.locations.filter(loc => panel.prompt.locations?.includes(loc.id)) || [];
 
   const architecturalMetadata = currentProject?.architecturalMetadata;
   const panelComponents = Array.from(new Set(panel.prompt.components || architecturalMetadata?.components || []));
@@ -216,18 +226,32 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           ))}
         </View>
       ) : (
-        panelCharacters.length > 0 && (
-          <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
-            {panelCharacters.map(character => (
-              <CharacterTag
-                key={character.id}
-                character={character}
-                size="small"
-                onPress={onCharacterPress ? () => onCharacterPress(character) : undefined}
-              />
-            ))}
-          </View>
-        )
+        <>
+          {panelCharacters.length > 0 && (
+            <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
+              {panelCharacters.map(character => (
+                <CharacterTag
+                  key={character.id}
+                  character={character}
+                  size="small"
+                  onPress={onCharacterPress ? () => onCharacterPress(character) : undefined}
+                />
+              ))}
+            </View>
+          )}
+          {panelLocations.length > 0 && (
+            <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
+              {panelLocations.map(location => (
+                <LocationTag
+                  key={location.id}
+                  location={location}
+                  size="small"
+                  onPress={onLocationPress ? () => onLocationPress(location) : undefined}
+                />
+              ))}
+            </View>
+          )}
+        </>
       )}
       
       {/* Drawing Area */}
@@ -447,6 +471,10 @@ export default function StoryboardScreen({
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [showLocationModal, setShowLocationModal] = useState(false);
+  const [showLocationEditModal, setShowLocationEditModal] = useState(false);
+  const [showLocationLibraryModal, setShowLocationLibraryModal] = useState(false);
   const currentProject = useCurrentProject();
   const projects = useProjects();
   const clearCurrentProject = useStoryboardStore(state => state.clearCurrentProject);
@@ -454,6 +482,7 @@ export default function StoryboardScreen({
   const isGenerating = useStoryboardStore(state => state.isGenerating);
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
   const updateCharacter = useStoryboardStore(state => state.updateCharacter);
+  const updateLocation = useStoryboardStore(state => state.updateLocation);
   const deletePanel = useStoryboardStore(state => state.deletePanel);
 
   const exportModalDismissResolverRef = useRef<(() => void) | null>(null);
@@ -519,6 +548,24 @@ export default function StoryboardScreen({
     updateCharacter(character.id, character);
   };
 
+  // Handler for opening location details modal
+  const handleLocationPress = (location: Location) => {
+    setSelectedLocation(location);
+    setShowLocationModal(true);
+  };
+
+  // Handler for opening location edit modal
+  const handleEditLocation = (location: Location) => {
+    setSelectedLocation(location);
+    setShowLocationModal(false);
+    setShowLocationEditModal(true);
+  };
+
+  // Handler for saving location edits
+  const handleSaveLocation = (location: Location) => {
+    updateLocation(location.id, location);
+  };
+
   // Handler for deleting a panel
   const handleDeletePanel = (panelId: string) => {
     deletePanel(panelId);
@@ -529,6 +576,15 @@ export default function StoryboardScreen({
     if (!currentProject) return [];
     return currentProject.panels
       .filter(panel => panel.prompt.characters.includes(characterId))
+      .map(panel => panel.panelNumber)
+      .sort((a, b) => a - b);
+  };
+
+  // Calculate which panels a location appears in
+  const getLocationPanelNumbers = (locationId: string): number[] => {
+    if (!currentProject) return [];
+    return currentProject.panels
+      .filter(panel => panel.prompt.locations?.includes(locationId))
       .map(panel => panel.panelNumber)
       .sort((a, b) => a - b);
   };
@@ -916,6 +972,7 @@ export default function StoryboardScreen({
                   panelNumber={idx + 1}
                   mode={mode}
                   onCharacterPress={handleCharacterPress}
+                  onLocationPress={handleLocationPress}
                   onDelete={panel && !isArchitectural ? handleDeletePanel : undefined}
                 />
               </View>
@@ -974,6 +1031,41 @@ export default function StoryboardScreen({
         character={selectedCharacter}
         onSave={handleSaveCharacter}
         mode="edit"
+      />
+
+      {/* Location Details Modal */}
+      <LocationDetailsModal
+        visible={showLocationModal}
+        onClose={() => {
+          setShowLocationModal(false);
+          setSelectedLocation(null);
+        }}
+        location={selectedLocation}
+        panelNumbers={selectedLocation ? getLocationPanelNumbers(selectedLocation.id) : []}
+        onEdit={handleEditLocation}
+      />
+
+      {/* Location Edit Modal */}
+      <LocationEditModal
+        visible={showLocationEditModal}
+        onClose={() => {
+          setShowLocationEditModal(false);
+          setSelectedLocation(null);
+        }}
+        location={selectedLocation}
+        onSave={handleSaveLocation}
+        mode="edit"
+      />
+
+      {/* Location Library Modal */}
+      <LocationLibraryModal
+        visible={showLocationLibraryModal}
+        onClose={() => setShowLocationLibraryModal(false)}
+        onSelectLocation={(location) => {
+          // This will be used when adding locations to panels in the future
+          setShowLocationLibraryModal(false);
+        }}
+        onEditLocation={handleEditLocation}
       />
 
       {/* Project Selector Modal */}
