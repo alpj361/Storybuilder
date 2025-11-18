@@ -653,7 +653,7 @@ export default function StoryboardScreen({
       await waitForModalTeardown();
       console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
 
-      // Share the PDF - this will open native share dialog
+      // Share the PDF using React Native Share API
       try {
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
@@ -666,7 +666,7 @@ export default function StoryboardScreen({
         Alert.alert(
           "Share Failed",
           isTimeout
-            ? "Share sheet timed out. Please restart the app and try again."
+            ? "Share sheet timed out after 30 seconds. Please try again."
             : "Failed to open share sheet. Please try again.",
           [{ text: "OK" }]
         );
