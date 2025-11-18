@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert, Modal, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,19 +21,10 @@ import ExportOptionsModal from "../components/ExportOptionsModal";
 import pdfExportService from "../services/pdfExportService";
 import { ExportOptions } from "../types/export";
 
-const waitForModalTeardown = async () => {
-  // Ensure React has a chance to commit the modal removal
-  await new Promise(resolve => requestAnimationFrame(() => resolve(null)));
-
-  // Wait until all layout/animation work has finished. This prevents the
-  // native pageSheet animation from fighting with the iOS share sheet.
-  await new Promise(resolve => InteractionManager.runAfterInteractions(() => resolve(null)));
-
-  // Give iOS a brief moment to destroy the underlying UIWindow before
-  // invoking the share sheet. Without this, the share sheet can appear but
-  // the invisible modal window still captures all touches.
-  await new Promise(resolve => setTimeout(resolve, 300));
-};
+const waitForNextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+const waitForInteractionsToFinish = () =>
+  new Promise(resolve => InteractionManager.runAfterInteractions(() => resolve(null)));
+const waitForIosWindowCleanup = () => new Promise(resolve => setTimeout(resolve, 300));
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
@@ -465,6 +456,51 @@ export default function StoryboardScreen({
   const updateCharacter = useStoryboardStore(state => state.updateCharacter);
   const deletePanel = useStoryboardStore(state => state.deletePanel);
 
+  const exportModalDismissResolverRef = useRef<(() => void) | null>(null);
+
+  const handleExportModalDismiss = useCallback(() => {
+    console.log('[StoryboardScreen] Export modal dismissed (native onDismiss)');
+    exportModalDismissResolverRef.current?.();
+  }, []);
+
+  const waitForModalDismissal = useCallback(() => {
+    console.log('[StoryboardScreen] Waiting for export modal dismissal...');
+
+    // Clear out any stale resolver to avoid leaks
+    if (exportModalDismissResolverRef.current) {
+      exportModalDismissResolverRef.current();
+    }
+
+    return new Promise<void>(resolve => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+      const resolveOnce = () => {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+          timeoutId = null;
+        }
+        if (exportModalDismissResolverRef.current === resolveOnce) {
+          exportModalDismissResolverRef.current = null;
+        }
+        resolve();
+      };
+
+      timeoutId = setTimeout(() => {
+        console.log('[StoryboardScreen] Export modal dismissal timeout reached');
+        resolveOnce();
+      }, 800);
+
+      exportModalDismissResolverRef.current = resolveOnce;
+    });
+  }, []);
+
+  const waitForModalTeardown = useCallback(async () => {
+    await waitForModalDismissal();
+    await waitForNextFrame();
+    await waitForInteractionsToFinish();
+    await waitForIosWindowCleanup();
+  }, [waitForModalDismissal]);
+
   // Handler for opening character details modal
   const handleCharacterPress = (character: Character) => {
     setSelectedCharacter(character);
@@ -606,15 +642,13 @@ export default function StoryboardScreen({
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // CRITICAL: Close modal FIRST and wait for complete unmount
-      // By setting showExportModal to false, the modal will NOT be rendered at all
-      // This forces React Native to destroy the native window entirely
+      // CRITICAL: Close modal FIRST and wait for complete teardown
+      // By setting showExportModal to false we trigger the native pageSheet dismissal
       console.log('[StoryboardScreen] Closing modal...');
       setShowExportModal(false);
 
-      // Wait for modal to fully unmount from both React and native layers
-      // Use longer delay to ensure iOS has time to clean up the modal's native window
-      // The transparent modal creates a UIWindow that persists if we don't wait
+      // Wait for the modal's onDismiss + frame/interaction cleanup before sharing
+      // This guarantees the iOS share sheet isn't fighting an existing UIWindow
       console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
       await waitForModalTeardown();
       console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
@@ -932,15 +966,14 @@ export default function StoryboardScreen({
         onCreateNew={handleCreateNewFromSelector}
       />
 
-      {/* Export PDF Modal - Only render when actually showing */}
-      {/* CRITICAL: Using conditional rendering (&&) instead of visible prop */}
-      {/* This ensures modal is completely unmounted when closed, not just hidden */}
-      {showExportModal && activeProject && (
+      {/* Export PDF Modal */}
+      {activeProject && (
         <ExportOptionsModal
-          visible={true}
+          visible={showExportModal}
           onClose={() => setShowExportModal(false)}
           project={activeProject}
           onExport={handleExportPDF}
+          onDismissComplete={handleExportModalDismiss}
         />
       )}
     </SafeAreaView>
