@@ -604,14 +604,20 @@ export default function StoryboardScreen({
       // - All pending animations (modal slide-down)
       // - All pending interactions (touch events)
       // - React's rendering/reconciliation cycle
-      // This is more reliable than arbitrary setTimeout delays
-      console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
+      console.log('[StoryboardScreen] Waiting for JS interactions to complete...');
       InteractionManager.runAfterInteractions(() => {
-        console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
-        // Share the PDF - this will open native share dialog
-        // This is now fully async and won't block the UI
-        // Error handling is done inside sharePDF()
-        pdfExportService.sharePDF(result.uri);
+        console.log('[StoryboardScreen] JS interactions complete, waiting for native modal cleanup...');
+        // Additional delay to ensure native modal view hierarchy is fully cleaned up
+        // InteractionManager only waits for JS-side completion, but the modal's native
+        // backdrop and container views need extra time to unmount from iOS view hierarchy
+        // Without this, the modal's backdrop (blur overlay) persists and blocks touch events
+        setTimeout(() => {
+          console.log('[StoryboardScreen] Native cleanup complete, opening share sheet...');
+          // Share the PDF - this will open native share dialog
+          // This is now fully async and won't block the UI
+          // Error handling is done inside sharePDF()
+          pdfExportService.sharePDF(result.uri);
+        }, 300); // 300ms for native view cleanup
       });
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
