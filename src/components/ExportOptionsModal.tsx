@@ -7,7 +7,8 @@ export default function ExportOptionsModal({
   visible,
   onClose,
   project,
-  onExport
+  onExport,
+  onDismissComplete
 }: ExportOptionsModalProps) {
   const [selectedLayout, setSelectedLayout] = useState<PDFLayout>(PDFLayout.SINGLE);
   const [includeMetadata, setIncludeMetadata] = useState(false);
@@ -53,6 +54,7 @@ export default function ExportOptionsModal({
       presentationStyle="pageSheet"
       transparent={false}
       onRequestClose={handleClose}
+      onDismiss={onDismissComplete}
     >
       <View className="flex-1 bg-white">
         {/* Header */}
