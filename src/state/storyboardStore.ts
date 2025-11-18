@@ -70,6 +70,8 @@ interface StoryboardState {
   regenerateAllPanels: () => Promise<void>;
   generatePanelImage: (panelId: string, quality?: GenerationQuality) => Promise<void>;
   generateAllPanelImages: (quality?: GenerationQuality) => Promise<void>;
+  editPanelImage: (panelId: string, editPrompt: string) => Promise<void>;
+  undoPanelImageEdit: (panelId: string) => void;
   saveProject: () => Promise<void>;
   loadProject: (projectId: string) => void;
   setError: (error: string | null) => void;
@@ -1610,6 +1612,136 @@ export const useStoryboardStore = create<StoryboardState>()(
             isGenerating: false 
           });
         }
+      },
+
+      // Edit panel image with NanoBanana
+      editPanelImage: async (panelId: string, editPrompt: string) => {
+        const state = get();
+        if (!state.currentProject) return;
+
+        const panel = state.currentProject.panels.find(p => p.id === panelId);
+        if (!panel || !panel.generatedImageUrl) {
+          set({ error: 'Panel not found or has no image to edit' });
+          return;
+        }
+
+        console.log('[storyboardStore] Editing panel image:', panelId);
+        console.log('[storyboardStore] Edit prompt:', editPrompt);
+
+        // Set isEditing flag
+        const updatedPanelsStart = state.currentProject.panels.map(p =>
+          p.id === panelId ? { ...p, isEditing: true } : p
+        );
+
+        set({
+          currentProject: {
+            ...state.currentProject,
+            panels: updatedPanelsStart
+          }
+        });
+
+        try {
+          // Import NanoBanana service
+          const { editImageWithNanoBanana } = await import('../services/nanoBanana');
+
+          // Save original image before editing (if not already saved)
+          const originalImage = panel.originalImageUrl || panel.generatedImageUrl;
+
+          console.log('[storyboardStore] Calling NanoBanana...');
+
+          // Edit the image
+          const editedImageUrl = await editImageWithNanoBanana(
+            panel.generatedImageUrl,
+            editPrompt
+          );
+
+          console.log('[storyboardStore] Image edited successfully');
+
+          // Update panel with edited image
+          const updatedPanels = state.currentProject.panels.map(p => {
+            if (p.id === panelId) {
+              return {
+                ...p,
+                generatedImageUrl: editedImageUrl,
+                originalImageUrl: originalImage, // Save original for undo
+                isEditing: false,
+                lastEdited: new Date()
+              };
+            }
+            return p;
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          set({
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          });
+
+          console.log('[storyboardStore] Panel image updated');
+        } catch (error) {
+          console.error('[storyboardStore] Error editing panel image:', error);
+
+          // Reset isEditing flag
+          const updatedPanelsError = state.currentProject.panels.map(p =>
+            p.id === panelId ? { ...p, isEditing: false } : p
+          );
+
+          set({
+            error: error instanceof Error ? error.message : 'Failed to edit panel image',
+            currentProject: {
+              ...state.currentProject,
+              panels: updatedPanelsError
+            }
+          });
+        }
+      },
+
+      // Undo panel image edit (restore original)
+      undoPanelImageEdit: (panelId: string) => {
+        const state = get();
+        if (!state.currentProject) return;
+
+        const panel = state.currentProject.panels.find(p => p.id === panelId);
+        if (!panel || !panel.originalImageUrl) {
+          console.log('[storyboardStore] No original image to restore');
+          return;
+        }
+
+        console.log('[storyboardStore] Undoing image edit for panel:', panelId);
+
+        const updatedPanels = state.currentProject.panels.map(p => {
+          if (p.id === panelId) {
+            return {
+              ...p,
+              generatedImageUrl: p.originalImageUrl,
+              originalImageUrl: undefined, // Clear original after undo
+              lastEdited: undefined
+            };
+          }
+          return p;
+        });
+
+        const updatedProject = {
+          ...state.currentProject,
+          panels: updatedPanels,
+          updatedAt: new Date()
+        };
+
+        set({
+          currentProject: updatedProject,
+          projects: state.projects.map(p =>
+            p.id === updatedProject.id ? updatedProject : p
+          )
+        });
+
+        console.log('[storyboardStore] Image edit undone');
       },
 
       // Save current project
