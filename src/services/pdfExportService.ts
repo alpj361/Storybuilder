@@ -6,9 +6,11 @@
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { Share } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
+
+const { PDFShareManager } = NativeModules;
 
 class PDFExportService {
   /**
@@ -545,8 +547,8 @@ class PDFExportService {
   }
 
   /**
-   * Share the generated PDF using React Native Share API
-   * More robust than expo-sharing for iOS modal/window hierarchy issues
+   * Share the generated PDF using native iOS module
+   * This bypasses React Native window hierarchy issues completely
    */
   async sharePDF(uri: string): Promise<void> {
     console.log('[PDFExportService] sharePDF called with URI:', uri);
@@ -560,9 +562,12 @@ class PDFExportService {
         throw new Error('PDF file does not exist at the specified path');
       }
 
-      // Use React Native Share API (more stable than expo-sharing on iOS)
-      // On iOS, Share.share with 'url' opens the native UIActivityViewController
-      console.log('[PDFExportService] Opening native share sheet...');
+      // Check if native module is available (iOS only)
+      if (!PDFShareManager) {
+        throw new Error('PDFShareManager native module not available');
+      }
+
+      console.log('[PDFExportService] Using native PDFShareManager...');
 
       // Create a timeout promise to prevent infinite hanging
       const timeoutMs = 30000; // 30 seconds
@@ -572,25 +577,22 @@ class PDFExportService {
         }, timeoutMs);
       });
 
-      // Race between share and timeout
+      // Call native module with timeout protection
+      // The native module handles all view controller transitions and window hierarchy
       const result = await Promise.race([
-        Share.share({
-          url: uri,
-          title: 'Share Storyboard PDF'
-        }),
+        PDFShareManager.sharePDF(uri),
         timeoutPromise
       ]);
 
       console.log('[PDFExportService] Share result:', result);
 
-      // On iOS: result = { action: 'sharedAction' | 'dismissedAction', activityType?: string }
-      // On Android: result = { action: 'sharedAction' | 'dismissedAction' }
-      if (result.action === Share.sharedAction) {
+      // result = { action: 'sharedAction' | 'dismissedAction', activityType?: string }
+      if (result.action === 'sharedAction') {
         console.log('[PDFExportService] PDF shared successfully');
         if (result.activityType) {
           console.log('[PDFExportService] Shared via:', result.activityType);
         }
-      } else if (result.action === Share.dismissedAction) {
+      } else if (result.action === 'dismissedAction') {
         console.log('[PDFExportService] User dismissed share sheet');
       }
 
