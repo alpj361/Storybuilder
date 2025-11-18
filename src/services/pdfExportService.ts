@@ -546,47 +546,54 @@ class PDFExportService {
 
   /**
    * Share the generated PDF
-   * DON'T await Sharing.shareAsync to prevent blocking the JS thread
+   * Returns a promise that resolves when sharing is complete or fails
    */
-  sharePDF(uri: string): void {
+  async sharePDF(uri: string): Promise<void> {
     console.log('[PDFExportService] sharePDF called with URI:', uri);
 
-    // Get file info before sharing
-    FileSystem.getInfoAsync(uri)
-      .then(fileInfo => {
-        console.log('[PDFExportService] File info:', fileInfo);
-        return Sharing.isAvailableAsync();
-      })
-      .then(canShare => {
-        console.log('[PDFExportService] Can share:', canShare);
+    try {
+      // Verify file exists before attempting to share
+      const fileInfo = await FileSystem.getInfoAsync(uri);
+      console.log('[PDFExportService] File info:', fileInfo);
 
-        if (!canShare) {
-          throw new Error('Sharing is not available on this device');
-        }
+      if (!fileInfo.exists) {
+        throw new Error('PDF file does not exist at the specified path');
+      }
 
-        console.log('[PDFExportService] Calling Sharing.shareAsync...');
+      // Check if sharing is available on this device
+      const canShare = await Sharing.isAvailableAsync();
+      console.log('[PDFExportService] Can share:', canShare);
 
-        // DON'T await - let it run completely async to prevent UI freeze
-        // The Share Sheet will handle its own lifecycle
-        // Modal cleanup delay is handled in StoryboardScreen (1000ms)
-        Sharing.shareAsync(uri, {
-          mimeType: 'application/pdf',
-          dialogTitle: 'Share Storyboard PDF',
-          UTI: 'com.adobe.pdf' // iOS-specific Uniform Type Identifier
-        })
-          .then(() => {
-            console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
-          })
-          .catch(error => {
-            // Only log errors that aren't user cancellations
-            if (error?.message && !error.message.toLowerCase().includes('cancel')) {
-              console.error('[PDFExportService] Share error:', error);
-            }
-          });
-      })
-      .catch(error => {
-        console.error('[PDFExportService] Error preparing share:', error);
+      if (!canShare) {
+        throw new Error('Sharing is not available on this device');
+      }
+
+      // Attempt to share the PDF
+      // Note: Removed UTI parameter as it may cause issues on some iOS versions
+      console.log('[PDFExportService] Calling Sharing.shareAsync...');
+
+      await Sharing.shareAsync(uri, {
+        mimeType: 'application/pdf',
+        dialogTitle: 'Share Storyboard PDF'
       });
+
+      console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
+    } catch (error: any) {
+      // Log all errors for debugging
+      console.error('[PDFExportService] Share error:', error);
+      console.error('[PDFExportService] Error details:', {
+        message: error?.message,
+        code: error?.code,
+        stack: error?.stack
+      });
+
+      // Only rethrow if it's not a user cancellation
+      if (!error?.message?.toLowerCase().includes('cancel')) {
+        throw error;
+      } else {
+        console.log('[PDFExportService] User cancelled sharing');
+      }
+    }
   }
 }
 
