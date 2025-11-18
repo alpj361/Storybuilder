@@ -439,7 +439,6 @@ export default function StoryboardScreen({
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
-  const [exportModalKey, setExportModalKey] = useState(0); // Force modal unmount/remount
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [showCharacterModal, setShowCharacterModal] = useState(false);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
@@ -596,9 +595,6 @@ export default function StoryboardScreen({
       // Close modal BEFORE opening share dialog to prevent UI freeze
       setShowExportModal(false);
 
-      // Force modal to completely unmount by changing its key
-      setExportModalKey(prev => prev + 1);
-
       // Wait for all animations and interactions to complete before showing share sheet
       // InteractionManager.runAfterInteractions() waits for:
       // - All pending animations (modal slide-down)
@@ -616,7 +612,6 @@ export default function StoryboardScreen({
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
       setShowExportModal(false);
-      setExportModalKey(prev => prev + 1);
       Alert.alert(
         "Export Failed",
         "Failed to export PDF. Please try again.",
@@ -928,11 +923,9 @@ export default function StoryboardScreen({
       {/* Export PDF Modal */}
       {activeProject && (
         <ExportOptionsModal
-          key={exportModalKey}
           visible={showExportModal}
           onClose={() => {
             setShowExportModal(false);
-            setExportModalKey(prev => prev + 1);
           }}
           project={activeProject}
           onExport={handleExportPDF}

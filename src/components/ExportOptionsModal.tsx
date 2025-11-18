@@ -13,11 +13,12 @@ export default function ExportOptionsModal({
   const [includeMetadata, setIncludeMetadata] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
 
-  // Reset exporting state when modal is closed
-  // This ensures clean state on next open
+  // Reset modal state when it's closed so every open starts fresh
   useEffect(() => {
     if (!visible) {
       setIsExporting(false);
+      setSelectedLayout(PDFLayout.SINGLE);
+      setIncludeMetadata(false);
     }
   }, [visible]);
 
