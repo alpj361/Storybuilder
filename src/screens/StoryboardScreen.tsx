@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert, Modal, InteractionManager } from "react-native";
+import { View, Text, ScrollView, Pressable, Image, Alert, Modal } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
@@ -595,23 +595,27 @@ export default function StoryboardScreen({
       // Close modal BEFORE opening share dialog to prevent UI freeze
       setShowExportModal(false);
 
-      // Wait for all animations and interactions to complete before showing share sheet
-      // This prevents UI freeze on iOS when transitioning from modal to share sheet
-      InteractionManager.runAfterInteractions(() => {
-        console.log('[StoryboardScreen] Opening share sheet...');
-        // Share the PDF - this will open native share dialog
-        // Don't await to prevent UI freeze
-        pdfExportService.sharePDF(result.uri).catch(error => {
-          // Only show error if sharing actually fails (not if user cancels)
-          if (error?.message && !error.message.includes('cancel')) {
-            console.error('[StoryboardScreen] Share failed:', error);
-            Alert.alert(
-              "Share Failed",
-              "Could not share the PDF. Please try again.",
-              [{ text: "OK" }]
-            );
-          }
-        });
+      // Wait for modal animation to complete before showing share sheet
+      // iOS modal close animations take ~400-600ms, so we use requestAnimationFrame + setTimeout
+      // This prevents UI freeze when transitioning from modal to share sheet
+      requestAnimationFrame(() => {
+        // Wait one frame, then add delay for modal close animation
+        setTimeout(() => {
+          console.log('[StoryboardScreen] Opening share sheet...');
+          // Share the PDF - this will open native share dialog
+          // Don't await to prevent UI freeze
+          pdfExportService.sharePDF(result.uri).catch(error => {
+            // Only show error if sharing actually fails (not if user cancels)
+            if (error?.message && !error.message.includes('cancel')) {
+              console.error('[StoryboardScreen] Share failed:', error);
+              Alert.alert(
+                "Share Failed",
+                "Could not share the PDF. Please try again.",
+                [{ text: "OK" }]
+              );
+            }
+          });
+        }, 600); // 600ms to ensure modal close animation completes on iOS
       });
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
