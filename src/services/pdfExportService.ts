@@ -545,7 +545,7 @@ class PDFExportService {
   }
 
   /**
-   * Share the generated PDF
+   * Share the generated PDF with timeout protection
    * Returns a promise that resolves when sharing is complete or fails
    */
   async sharePDF(uri: string): Promise<void> {
@@ -568,16 +568,33 @@ class PDFExportService {
         throw new Error('Sharing is not available on this device');
       }
 
-      // Attempt to share the PDF
-      // Note: Removed UTI parameter as it may cause issues on some iOS versions
+      // Attempt to share the PDF with timeout protection
+      // iOS Share Sheet can hang if not properly cleaned up from previous call
       console.log('[PDFExportService] Calling Sharing.shareAsync...');
 
-      await Sharing.shareAsync(uri, {
-        mimeType: 'application/pdf',
-        dialogTitle: 'Share Storyboard PDF'
+      // Create a timeout promise to prevent infinite hanging
+      const timeoutMs = 30000; // 30 seconds
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        setTimeout(() => {
+          reject(new Error('Share sheet timeout - iOS may not have cleaned up previous share sheet'));
+        }, timeoutMs);
       });
 
+      // Race between share and timeout
+      await Promise.race([
+        Sharing.shareAsync(uri, {
+          mimeType: 'application/pdf',
+          dialogTitle: 'Share Storyboard PDF'
+        }),
+        timeoutPromise
+      ]);
+
       console.log('[PDFExportService] PDF shared successfully (user completed or cancelled)');
+
+      // Add a small delay to allow iOS to fully cleanup the Share Sheet
+      // This prevents issues when sharing multiple times in quick succession
+      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('[PDFExportService] Share sheet cleanup delay completed');
     } catch (error: any) {
       // Log all errors for debugging
       console.error('[PDFExportService] Share error:', error);
