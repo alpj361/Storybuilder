@@ -272,8 +272,11 @@ export interface StoryboardPanel {
   panelNumber: number;
   prompt: StoryboardPrompt;
   generatedImageUrl?: string;
+  originalImageUrl?: string; // Saved before AI editing for undo
   isGenerating: boolean;
+  isEditing?: boolean; // True when AI editing is in progress
   lastGenerated?: Date;
+  lastEdited?: Date; // When AI edit was last applied
   userNotes?: string;
   isEdited: boolean;
   detailLevel?: ArchitecturalDetailLevel;
