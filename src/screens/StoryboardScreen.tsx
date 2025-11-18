@@ -21,6 +21,20 @@ import ExportOptionsModal from "../components/ExportOptionsModal";
 import pdfExportService from "../services/pdfExportService";
 import { ExportOptions } from "../types/export";
 
+const waitForModalTeardown = async () => {
+  // Ensure React has a chance to commit the modal removal
+  await new Promise(resolve => requestAnimationFrame(() => resolve(null)));
+
+  // Wait until all layout/animation work has finished. This prevents the
+  // native pageSheet animation from fighting with the iOS share sheet.
+  await new Promise(resolve => InteractionManager.runAfterInteractions(() => resolve(null)));
+
+  // Give iOS a brief moment to destroy the underlying UIWindow before
+  // invoking the share sheet. Without this, the share sheet can appear but
+  // the invisible modal window still captures all touches.
+  await new Promise(resolve => setTimeout(resolve, 300));
+};
+
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
     className={
@@ -602,12 +616,11 @@ export default function StoryboardScreen({
       // Use longer delay to ensure iOS has time to clean up the modal's native window
       // The transparent modal creates a UIWindow that persists if we don't wait
       console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
-      setTimeout(() => {
-        console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
-        // Share the PDF - this will open native share dialog
-        // Error handling is done inside sharePDF()
-        pdfExportService.sharePDF(result.uri);
-      }, 500); // 500ms to ensure complete native cleanup
+      await waitForModalTeardown();
+      console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
+      // Share the PDF - this will open native share dialog
+      // Error handling is done inside sharePDF()
+      pdfExportService.sharePDF(result.uri);
     } catch (error) {
       console.error('[StoryboardScreen] Export failed:', error);
       setShowExportModal(false);
