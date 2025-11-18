@@ -653,20 +653,23 @@ export default function StoryboardScreen({
       await waitForModalTeardown();
       console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
 
-      // Share the PDF using React Native Share API
+      // Share the PDF using native iOS module
       try {
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
       } catch (shareError: any) {
         console.error('[StoryboardScreen] Share failed:', shareError);
 
-        // Check if it's a timeout error
+        // Check error type
         const isTimeout = shareError?.message?.includes('timeout');
+        const isModuleMissing = shareError?.message?.includes('native module not available');
 
         Alert.alert(
           "Share Failed",
           isTimeout
             ? "Share sheet timed out after 30 seconds. Please try again."
+            : isModuleMissing
+            ? "Native share module not available. Please rebuild the app."
             : "Failed to open share sheet. Please try again.",
           [{ text: "OK" }]
         );
