@@ -91,7 +91,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
 
   const panelLocations = isArchitectural
     ? []
-    : currentProject?.locations.filter(loc => panel.prompt.locations?.includes(loc.id)) || [];
+    : currentProject?.locations?.filter(loc => panel.prompt.locations?.includes(loc.id)) || [];
 
   const architecturalMetadata = currentProject?.architecturalMetadata;
   const panelComponents = Array.from(new Set(panel.prompt.components || architecturalMetadata?.components || []));
