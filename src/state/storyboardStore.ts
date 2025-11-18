@@ -11,7 +11,8 @@ import {
   ProjectType,
   ArchitecturalMetadata,
   ArchitecturalProjectKind,
-  Character
+  Character,
+  Location
 } from "../types/storyboard";
 import { parseUserInput } from "../services/promptParser";
 import { parseUserInputWithAI, convertAIResultToAppFormat } from "../services/aiParser";
@@ -37,8 +38,8 @@ interface StoryboardState {
   generationOptions: GenerationOptions;
 
   // Actions
-  createProjectFromInput: (input: string, customCharacters?: Character[]) => Promise<void>;
-  createProjectWithPromptReview: (input: string, customCharacters?: Character[]) => Promise<StoryboardProject | null>;
+  createProjectFromInput: (input: string, customCharacters?: Character[], customLocations?: Location[]) => Promise<void>;
+  createProjectWithPromptReview: (input: string, customCharacters?: Character[], customLocations?: Location[]) => Promise<StoryboardProject | null>;
   setPendingProject: (project: StoryboardProject | null) => void;
   updatePendingProjectPanels: (panels: StoryboardPanel[]) => void;
   generateImagesForPendingProject: (quality?: GenerationQuality) => Promise<void>;
@@ -51,6 +52,11 @@ interface StoryboardState {
   regeneratePanelPromptFromIdea: (panelId: string, newIdea: string) => Promise<void>;
   updateProject: (projectId: string, updates: Partial<StoryboardProject>) => void;
   updateCharacter: (characterId: string, updates: Partial<Character>) => void;
+  addLocationToProject: (location: Location) => void;
+  updateLocation: (locationId: string, updates: Partial<Location>) => void;
+  deleteLocation: (locationId: string) => void;
+  addLocationToPanel: (panelId: string, locationId: string) => void;
+  removeLocationFromPanel: (panelId: string, locationId: string) => void;
   deleteProject: (projectId: string) => void;
   duplicateProject: (projectId: string) => void;
   renameProject: (projectId: string, newTitle: string) => void;
@@ -77,6 +83,80 @@ const defaultGenerationOptions: GenerationOptions = {
   maintainCharacterConsistency: true,
   generationQuality: GenerationQuality.STANDARD // Default: Gama baja (Stable Diffusion)
 };
+
+/**
+ * Migrate old projects that have string location to Location objects
+ * This ensures backward compatibility with projects created before the location system was added
+ */
+function migrateProjectLocations(project: StoryboardProject): StoryboardProject {
+  // Check if project needs migration
+  const needsMigration = project.panels.some(panel =>
+    panel.prompt.location && // Has old string location
+    panel.prompt.locations.length === 0 // But no Location objects
+  );
+
+  if (!needsMigration) {
+    return project;
+  }
+
+  console.log('[Migration] Migrating project locations for:', project.title);
+
+  // Collect unique location strings from all panels
+  const uniqueLocationStrings = new Set<string>();
+  project.panels.forEach(panel => {
+    if (panel.prompt.location && panel.prompt.locations.length === 0) {
+      uniqueLocationStrings.add(panel.prompt.location);
+    }
+  });
+
+  // Create Location objects for each unique location string
+  const migratedLocations = Array.from(uniqueLocationStrings).map((locationString): Location => ({
+    id: `migrated_${uuidv4()}`,
+    name: locationString.slice(0, 50), // Use first 50 chars as name
+    description: locationString,
+    type: "exterior", // Default to exterior
+    details: {
+      locationType: 'other',
+      setting: locationString,
+    },
+  }));
+
+  // Create a map of location string to Location id
+  const locationStringToId = new Map<string, string>();
+  migratedLocations.forEach(loc => {
+    const originalString = uniqueLocationStrings.size === 1
+      ? Array.from(uniqueLocationStrings)[0]
+      : loc.description;
+    locationStringToId.set(originalString, loc.id);
+  });
+
+  // Update panels to reference the new Location objects
+  const updatedPanels = project.panels.map(panel => {
+    if (panel.prompt.location && panel.prompt.locations.length === 0) {
+      const locationId = locationStringToId.get(panel.prompt.location);
+      return {
+        ...panel,
+        prompt: {
+          ...panel.prompt,
+          locations: locationId ? [locationId] : []
+        }
+      };
+    }
+    return panel;
+  });
+
+  // Merge migrated locations with existing ones (if any)
+  const updatedProject = {
+    ...project,
+    locations: [...(project.locations || []), ...migratedLocations],
+    panels: updatedPanels,
+    updatedAt: new Date()
+  };
+
+  console.log(`[Migration] Migrated ${migratedLocations.length} locations`);
+
+  return updatedProject;
+}
 
 export const useStoryboardStore = create<StoryboardState>()(
   persist(
@@ -123,10 +203,20 @@ export const useStoryboardStore = create<StoryboardState>()(
               ? customCharacters
               : converted.characters;
 
+            // Use custom locations if provided
+            const finalLocations = customLocations && customLocations.length > 0
+              ? customLocations
+              : [];
+
             console.log("[storyboardStore] Using characters:", {
               custom: customCharacters?.length || 0,
               aiDetected: converted.characters.length,
               final: finalCharacters.length
+            });
+
+            console.log("[storyboardStore] Using locations:", {
+              custom: customLocations?.length || 0,
+              final: finalLocations.length
             });
 
             // Build panels from AI-generated story beats
@@ -160,7 +250,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 userInput: input,
                 panels,
                 characters: finalCharacters,
-                locations: [], // Initialize empty locations array
+                locations: finalLocations,
                 scenes: converted.scenes,
                 style: get().defaultStyle,
                 metadata: {
@@ -253,12 +343,13 @@ export const useStoryboardStore = create<StoryboardState>()(
       },
 
       // Create a new project with prompt review (two-stage generation)
-      createProjectWithPromptReview: async (input: string, customCharacters?: Character[]): Promise<StoryboardProject | null> => {
+      createProjectWithPromptReview: async (input: string, customCharacters?: Character[], customLocations?: Location[]): Promise<StoryboardProject | null> => {
         set({ isGenerating: true, error: null });
 
         try {
           console.log("[storyboardStore] Creating project with prompt review:", input);
           console.log("[storyboardStore] Custom characters provided:", customCharacters?.length || 0);
+          console.log("[storyboardStore] Custom locations provided:", customLocations?.length || 0);
 
           // Extract panel count from input for AI parser
           const panelCountMatch = input.toLowerCase().match(/\((?:panels?|frames?):\s*(\d{1,2})\)|(\d{1,2})\s*(?:panels?|frames?)/);
@@ -284,10 +375,20 @@ export const useStoryboardStore = create<StoryboardState>()(
               ? customCharacters
               : converted.characters;
 
+            // Use custom locations if provided
+            const finalLocations = customLocations && customLocations.length > 0
+              ? customLocations
+              : [];
+
             console.log("[storyboardStore] Using characters:", {
               custom: customCharacters?.length || 0,
               aiDetected: converted.characters.length,
               final: finalCharacters.length
+            });
+
+            console.log("[storyboardStore] Using locations:", {
+              custom: customLocations?.length || 0,
+              final: finalLocations.length
             });
 
             // Build panels from AI-generated story beats
@@ -321,7 +422,7 @@ export const useStoryboardStore = create<StoryboardState>()(
                 userInput: input,
                 panels,
                 characters: finalCharacters,
-                locations: [], // Initialize empty locations array
+                locations: finalLocations,
                 scenes: converted.scenes,
                 style: get().defaultStyle,
                 metadata: {
@@ -860,6 +961,156 @@ export const useStoryboardStore = create<StoryboardState>()(
         });
       },
 
+      // Add a location to the current project
+      addLocationToProject: (location: Location) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedProject = {
+            ...state.currentProject,
+            locations: [...state.currentProject.locations, location],
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Update a location in the current project
+      updateLocation: (locationId: string, updates: Partial<Location>) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedLocations = state.currentProject.locations.map(location =>
+            location.id === locationId
+              ? { ...location, ...updates }
+              : location
+          );
+
+          const updatedProject = {
+            ...state.currentProject,
+            locations: updatedLocations,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Delete a location from the current project
+      deleteLocation: (locationId: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          // Remove location from project
+          const updatedLocations = state.currentProject.locations.filter(l => l.id !== locationId);
+
+          // Remove location from all panels
+          const updatedPanels = state.currentProject.panels.map(panel => ({
+            ...panel,
+            prompt: {
+              ...panel.prompt,
+              locations: panel.prompt.locations.filter(id => id !== locationId)
+            }
+          }));
+
+          const updatedProject = {
+            ...state.currentProject,
+            locations: updatedLocations,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Add a location to a specific panel
+      addLocationToPanel: (panelId: string, locationId: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedPanels = state.currentProject.panels.map(panel => {
+            if (panel.id === panelId) {
+              // Don't add if already exists
+              if (panel.prompt.locations.includes(locationId)) {
+                return panel;
+              }
+
+              return {
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  locations: [...panel.prompt.locations, locationId]
+                }
+              };
+            }
+            return panel;
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
+      // Remove a location from a specific panel
+      removeLocationFromPanel: (panelId: string, locationId: string) => {
+        set(state => {
+          if (!state.currentProject) return state;
+
+          const updatedPanels = state.currentProject.panels.map(panel => {
+            if (panel.id === panelId) {
+              return {
+                ...panel,
+                prompt: {
+                  ...panel.prompt,
+                  locations: panel.prompt.locations.filter(id => id !== locationId)
+                }
+              };
+            }
+            return panel;
+          });
+
+          const updatedProject = {
+            ...state.currentProject,
+            panels: updatedPanels,
+            updatedAt: new Date()
+          };
+
+          return {
+            currentProject: updatedProject,
+            projects: state.projects.map(p =>
+              p.id === updatedProject.id ? updatedProject : p
+            )
+          };
+        });
+      },
+
       // Delete a project
       deleteProject: (projectId: string) => {
         set(state => ({
@@ -975,10 +1226,12 @@ export const useStoryboardStore = create<StoryboardState>()(
       setCurrentProject: (project: StoryboardProject | null) => {
         const current = get().currentProject;
         if ((current?.id || null) === (project?.id || null)) return;
-        
+
         // Update lastOpenedAt when setting a project
         if (project) {
-          const updatedProject = { ...project, lastOpenedAt: new Date() };
+          // Apply migration for old projects
+          const migratedProject = migrateProjectLocations(project);
+          const updatedProject = { ...migratedProject, lastOpenedAt: new Date() };
           set(state => ({
             currentProject: updatedProject,
             projects: state.projects.map(p =>
