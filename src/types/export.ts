@@ -30,10 +30,16 @@ export interface ExportOptions {
  * Props for ExportOptionsModal
  */
 export interface ExportOptionsModalProps {
+  /** Whether the modal should be visible */
   visible: boolean;
+  /** Close handler triggered by cancel actions */
   onClose: () => void;
+  /** Project context for the export */
   project: StoryboardProject;
+  /** Called when the user confirms export */
   onExport: (options: ExportOptions) => Promise<void>;
+  /** Optional callback fired after the modal has fully dismissed */
+  onDismissComplete?: () => void;
 }
 
 /**
