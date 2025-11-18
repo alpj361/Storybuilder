@@ -2,10 +2,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useStoryboardStore } from "../state/storyboardStore";
-import { ProjectType, ArchitecturalProjectKind, Character, GenerationQuality, StoryboardProject } from "../types/storyboard";
+import { ProjectType, ArchitecturalProjectKind, Character, Location, GenerationQuality, StoryboardProject } from "../types/storyboard";
 import { cn } from "../utils/cn";
 import { CharacterEditModal } from "./CharacterEditModal";
 import CharacterTag from "./CharacterTag";
+import { LocationEditModal } from "./LocationEditModal";
+import LocationTag from "./LocationTag";
+import LocationLibraryModal from "./LocationLibraryModal";
 import PromptReviewModal from "./PromptReviewModal";
 
 interface StoryboardInputModalProps {
@@ -31,6 +34,10 @@ export default function StoryboardInputModal({
   const [characters, setCharacters] = useState<Character[]>([]);
   const [showCharacterEditModal, setShowCharacterEditModal] = useState(false);
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
+  const [locations, setLocations] = useState<Location[]>([]);
+  const [showLocationEditModal, setShowLocationEditModal] = useState(false);
+  const [showLocationLibraryModal, setShowLocationLibraryModal] = useState(false);
+  const [editingLocation, setEditingLocation] = useState<Location | null>(null);
   const [showPromptReview, setShowPromptReview] = useState(false);
   const [reviewProject, setReviewProject] = useState<StoryboardProject | null>(null);
 
@@ -91,6 +98,7 @@ export default function StoryboardInputModal({
       setAppendCount("1");
       setInput("");
       setCharacters([]);
+      setLocations([]);
     }
   }, [visible, defaultCreateCount]);
 
@@ -139,6 +147,55 @@ export default function StoryboardInputModal({
     );
   };
 
+  // Location management handlers
+  const handleAddLocation = () => {
+    setEditingLocation(null);
+    setShowLocationEditModal(true);
+  };
+
+  const handleSelectFromLibrary = () => {
+    setShowLocationLibraryModal(true);
+  };
+
+  const handleEditLocation = (location: Location) => {
+    setEditingLocation(location);
+    setShowLocationEditModal(true);
+  };
+
+  const handleSaveLocation = (location: Location) => {
+    if (editingLocation) {
+      // Update existing location
+      setLocations(prev => prev.map(l => l.id === location.id ? location : l));
+    } else {
+      // Add new location
+      setLocations(prev => [...prev, location]);
+    }
+  };
+
+  const handleSelectLocationFromLibrary = (location: Location) => {
+    // Check if location already exists in the list
+    const exists = locations.some(l => l.id === location.id);
+    if (!exists) {
+      setLocations(prev => [...prev, location]);
+    }
+    setShowLocationLibraryModal(false);
+  };
+
+  const handleDeleteLocation = (locationId: string) => {
+    Alert.alert(
+      "Delete Location",
+      "Are you sure you want to delete this location?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => setLocations(prev => prev.filter(l => l.id !== locationId))
+        }
+      ]
+    );
+  };
+
   const handleGenerate = async () => {
     if (!input.trim()) {
       Alert.alert("Input Required", isArchitectural ? "Please describe the architectural detail" : "Please describe your storyboard idea");
@@ -165,7 +222,11 @@ export default function StoryboardInputModal({
           onClose();
         } else {
           // Use two-stage workflow for storyboards: generate prompts first, then review
-          const project = await createProjectWithPromptReview(inputWithCount, characters.length > 0 ? characters : undefined);
+          const project = await createProjectWithPromptReview(
+            inputWithCount,
+            characters.length > 0 ? characters : undefined,
+            locations.length > 0 ? locations : undefined
+          );
           if (project) {
             // Show prompt review modal
             setReviewProject(project);
@@ -187,6 +248,7 @@ export default function StoryboardInputModal({
     // Clear input and close modal
     setInput("");
     setCharacters([]);
+    setLocations([]);
     onClose();
   };
 
@@ -208,6 +270,7 @@ export default function StoryboardInputModal({
     setReviewProject(null);
     setInput("");
     setCharacters([]);
+    setLocations([]);
     onClose();
   };
 
@@ -517,6 +580,110 @@ export default function StoryboardInputModal({
             </View>
           )}
 
+          {/* Location Management - Only for Storyboard mode */}
+          {!isArchitectural && (
+            <View className="mb-6">
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center">
+                  <Ionicons name="location" size={18} color="#374151" />
+                  <Text className="text-sm font-medium text-gray-700 ml-2">
+                    Locations ({locations.length})
+                  </Text>
+                </View>
+                <View className="flex-row items-center gap-2">
+                  <Pressable
+                    onPress={handleSelectFromLibrary}
+                    disabled={isGenerating}
+                    className={cn(
+                      "flex-row items-center px-3 py-1.5 rounded-lg bg-orange-100",
+                      isGenerating && "opacity-50"
+                    )}
+                  >
+                    <Ionicons name="library" size={16} color="#ea580c" />
+                    <Text className="text-orange-600 font-medium text-xs ml-1">From Library</Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={handleAddLocation}
+                    disabled={isGenerating}
+                    className={cn(
+                      "flex-row items-center px-3 py-1.5 rounded-lg bg-blue-100",
+                      isGenerating && "opacity-50"
+                    )}
+                  >
+                    <Ionicons name="add" size={16} color="#3b82f6" />
+                    <Text className="text-blue-600 font-medium text-xs ml-1">Add Location</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              {locations.length > 0 ? (
+                <View className="space-y-2">
+                  {locations.map((location) => (
+                    <View
+                      key={location.id}
+                      className="flex-row items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                    >
+                      <View className="flex-1 flex-row items-center">
+                        <LocationTag location={location} size="small" />
+                        <View className="ml-3 flex-1">
+                          {location.description && (
+                            <Text className="text-xs text-gray-600 line-clamp-1">
+                              {location.description}
+                            </Text>
+                          )}
+                          {location.details.isRealPlace && location.details.realPlaceInfo && (
+                            <View className="flex-row items-center mt-1">
+                              <Ionicons name="globe" size={12} color="#ea580c" />
+                              <Text className="text-xs text-orange-600 ml-1">
+                                {location.details.realPlaceInfo.city && location.details.realPlaceInfo.country
+                                  ? `${location.details.realPlaceInfo.city}, ${location.details.realPlaceInfo.country}`
+                                  : 'Real place'}
+                              </Text>
+                            </View>
+                          )}
+                          {location.referenceImage && (
+                            <View className="flex-row items-center mt-1">
+                              <Ionicons name="image" size={12} color="#16a34a" />
+                              <Text className="text-xs text-green-600 ml-1">Has reference</Text>
+                            </View>
+                          )}
+                        </View>
+                      </View>
+                      <View className="flex-row items-center gap-2">
+                        <Pressable
+                          onPress={() => handleEditLocation(location)}
+                          disabled={isGenerating}
+                          className={cn(
+                            "p-2 rounded-full bg-blue-100",
+                            isGenerating && "opacity-50"
+                          )}
+                        >
+                          <Ionicons name="pencil" size={14} color="#3b82f6" />
+                        </Pressable>
+                        <Pressable
+                          onPress={() => handleDeleteLocation(location.id)}
+                          disabled={isGenerating}
+                          className={cn(
+                            "p-2 rounded-full bg-red-100",
+                            isGenerating && "opacity-50"
+                          )}
+                        >
+                          <Ionicons name="trash" size={14} color="#ef4444" />
+                        </Pressable>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                <View className="p-4 bg-gray-50 rounded-lg border border-dashed border-gray-300">
+                  <Text className="text-gray-500 text-xs text-center">
+                    No locations added yet. Add locations to give your story specific settings and environments.
+                  </Text>
+                </View>
+              )}
+            </View>
+          )}
+
           {/* Example Prompts */}
           <View className="mb-6">
             <Text className="text-sm font-medium text-gray-700 mb-3">
@@ -637,6 +804,26 @@ export default function StoryboardInputModal({
         character={editingCharacter}
         onSave={handleSaveCharacter}
         mode={editingCharacter ? "edit" : "create"}
+      />
+
+      {/* Location Edit Modal */}
+      <LocationEditModal
+        visible={showLocationEditModal}
+        onClose={() => {
+          setShowLocationEditModal(false);
+          setEditingLocation(null);
+        }}
+        location={editingLocation}
+        onSave={handleSaveLocation}
+        mode={editingLocation ? "edit" : "create"}
+      />
+
+      {/* Location Library Modal */}
+      <LocationLibraryModal
+        visible={showLocationLibraryModal}
+        onClose={() => setShowLocationLibraryModal(false)}
+        onSelectLocation={handleSelectLocationFromLibrary}
+        onEditLocation={handleEditLocation}
       />
 
       {/* Prompt Review Modal */}
