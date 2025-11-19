@@ -16,7 +16,7 @@ import { LocationDetailsModal } from "../components/LocationDetailsModal";
 import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
-// import { MiniWorldInputModal } from "../components/MiniWorldInputModal"; // Temporarily disabled for debugging
+import { MiniWorldInputModal } from "../components/MiniWorldInputModal";
 
 export default function MiniWorldsScreen() {
   const currentProject = useCurrentProject();
@@ -157,11 +157,7 @@ export default function MiniWorldsScreen() {
               Generate beautiful isometric diorama scenes with warm pastel colors and cozy atmosphere
             </Text>
             <Pressable
-              onPress={() => {
-                // Temporarily disabled for debugging
-                Alert.alert("Debug", "MiniWorldInputModal temporarily disabled for debugging");
-                // setShowInputModal(true);
-              }}
+              onPress={() => setShowInputModal(true)}
               className="bg-indigo-600 px-6 py-3 rounded-xl flex-row items-center shadow-lg"
             >
               <Ionicons name="add-circle" size={24} color="#FFFFFF" />
@@ -304,11 +300,7 @@ export default function MiniWorldsScreen() {
 
       {/* Floating Action Button - Create New MiniWorld */}
       <Pressable
-        onPress={() => {
-          // Temporarily disabled for debugging
-          Alert.alert("Debug", "MiniWorldInputModal temporarily disabled for debugging");
-          // setShowInputModal(true);
-        }}
+        onPress={() => setShowInputModal(true)}
         className="absolute bottom-6 right-6 bg-indigo-600 rounded-full p-4 shadow-2xl flex-row items-center"
         style={{ elevation: 8 }}
       >
@@ -316,11 +308,10 @@ export default function MiniWorldsScreen() {
       </Pressable>
 
       {/* Modals */}
-      {/* Temporarily disabled for debugging */}
-      {/* <MiniWorldInputModal
+      <MiniWorldInputModal
         visible={showInputModal}
         onClose={() => setShowInputModal(false)}
-      /> */}
+      />
 
       <ProjectSelectorModal
         visible={showProjectSelector}
