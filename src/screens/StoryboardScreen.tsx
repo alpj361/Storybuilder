@@ -825,21 +825,16 @@ export default function StoryboardScreen({
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // CRITICAL: Close modal FIRST and wait for complete teardown
-      // By setting showExportModal to false we trigger the native pageSheet dismissal
-      console.log('[StoryboardScreen] Closing modal...');
-      setShowExportModal(false);
-
-      // Wait for the modal's onDismiss + frame/interaction cleanup before sharing
-      // This guarantees the iOS share sheet isn't fighting an existing UIWindow
-      console.log('[StoryboardScreen] Waiting for modal to fully unmount...');
-      await waitForModalTeardown();
-      console.log('[StoryboardScreen] Modal unmounted, opening share sheet...');
-
       // Share the PDF using native iOS module
+      // We share BEFORE closing the modal to avoid view hierarchy conflicts during dismissal
+      console.log('[StoryboardScreen] Opening share sheet...');
       try {
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
+        
+        // Close modal after sharing is done
+        console.log('[StoryboardScreen] Closing modal...');
+        setShowExportModal(false);
       } catch (shareError: any) {
         console.error('[StoryboardScreen] Share failed:', shareError);
 
