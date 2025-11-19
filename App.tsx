@@ -6,9 +6,29 @@ import { useEffect } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import { ErrorUtils } from 'react-native';
 import StoryboardScreen from "./src/screens/StoryboardScreen";
 import MiniWorldsScreen from "./src/screens/MiniWorldsScreen";
 // import ArchitecturalScreen from "./src/screens/ArchitecturalScreen"; // Comentado para uso futuro
+
+// Global error handler
+const originalHandler = ErrorUtils.getGlobalHandler();
+ErrorUtils.setGlobalHandler((error, isFatal) => {
+  console.error('='.repeat(80));
+  console.error('GLOBAL ERROR HANDLER CAUGHT ERROR');
+  console.error('='.repeat(80));
+  console.error('Is Fatal:', isFatal);
+  console.error('Error:', error);
+  console.error('Error Name:', error.name);
+  console.error('Error Message:', error.message);
+  console.error('Error Stack:', error.stack);
+  console.error('='.repeat(80));
+
+  // Call original handler
+  if (originalHandler) {
+    originalHandler(error, isFatal);
+  }
+});
 
 // Keep the splash screen visible while we load fonts
 SplashScreen.preventAutoHideAsync();
