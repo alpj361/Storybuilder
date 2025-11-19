@@ -218,7 +218,6 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
     <Modal
       visible={visible}
       animationType="slide"
-      transparent={false}
       presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
