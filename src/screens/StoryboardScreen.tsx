@@ -825,22 +825,23 @@ export default function StoryboardScreen({
       const result = await pdfExportService.generateComicPDF(activeProject, options);
       console.log('[StoryboardScreen] PDF generated:', result.filename);
 
-      // Share the PDF using native iOS module
-      // We share BEFORE closing the modal to avoid view hierarchy conflicts during dismissal
+      // CRITICAL FIX: Close modal BEFORE sharing to prevent view hierarchy conflicts
+      // The share sheet must be presented from a stable view hierarchy
+      console.log('[StoryboardScreen] Closing export modal before sharing...');
+      setShowExportModal(false);
+      
+      // Wait for modal to fully dismiss before presenting share sheet
+      // This prevents the share sheet from freezing
+      await waitForModalDismissal();
+      
       console.log('[StoryboardScreen] Opening share sheet...');
       try {
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
         
-        // We do NOT close the modal automatically here.
-        // If we close it while the Share Sheet is potentially still animating or active,
-        // it causes the "frozen UI" issue on iOS.
-        // Instead, we let the user close it manually or just leave it open.
-        // Or we could show a success alert which requires interaction.
-        
-        Alert.alert("Success", "PDF exported successfully!", [
-          { text: "OK", onPress: () => setShowExportModal(false) }
-        ]);
+        // Don't show alert immediately - it can interfere with share sheet
+        // The share sheet will handle user interaction, and we can show
+        // a subtle success message if needed (but not an Alert that blocks)
       } catch (shareError: any) {
         console.error('[StoryboardScreen] Share failed:', shareError);
 
@@ -851,7 +852,7 @@ export default function StoryboardScreen({
         Alert.alert(
           "Share Failed",
           isTimeout
-            ? "Share sheet timed out after 30 seconds. Please try again."
+            ? "Share sheet timed out. Please try again."
             : isModuleMissing
             ? "Native share module not available. Please rebuild the app."
             : "Failed to open share sheet. Please try again.",
