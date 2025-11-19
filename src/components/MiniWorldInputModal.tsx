@@ -146,24 +146,33 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
       return;
     }
 
+    console.log("[MiniWorldInputModal] Starting generation...");
     setIsGenerating(true);
+
     try {
+      console.log("[MiniWorldInputModal] Calling createMiniWorldProject...");
       await createMiniWorldProject(
         input.trim(),
         characters.length > 0 ? characters : undefined,
         locations.length > 0 ? locations : undefined
       );
 
+      console.log("[MiniWorldInputModal] Generation completed successfully");
+
       // Clear and close
       setInput("");
       setCharacters([]);
       setLocations([]);
+
+      console.log("[MiniWorldInputModal] Closing modal...");
       onClose();
+      console.log("[MiniWorldInputModal] Modal closed");
     } catch (err) {
-      console.error("Generation error:", err);
+      console.error("[MiniWorldInputModal] Generation error:", err);
       Alert.alert("Error", error || "Failed to generate MiniWorld");
     } finally {
       setIsGenerating(false);
+      console.log("[MiniWorldInputModal] Generation process finished");
     }
   };
 
