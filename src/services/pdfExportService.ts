@@ -6,11 +6,10 @@
 import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
-import { NativeModules, Platform } from 'react-native';
+import * as Sharing from 'expo-sharing';
+import { Platform } from 'react-native';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
-
-const { PDFShareManager } = NativeModules;
 
 class PDFExportService {
   /**
@@ -547,8 +546,7 @@ class PDFExportService {
   }
 
   /**
-   * Share the generated PDF using native iOS module
-   * This bypasses React Native window hierarchy issues completely
+   * Share the generated PDF using expo-sharing
    */
   async sharePDF(uri: string): Promise<void> {
     console.log('[PDFExportService] sharePDF called with URI:', uri);
@@ -562,55 +560,22 @@ class PDFExportService {
         throw new Error('PDF file does not exist at the specified path');
       }
 
-      // Check if native module is available (iOS only)
-      if (!PDFShareManager) {
-        console.log('[PDFExportService] Available NativeModules:', Object.keys(NativeModules));
-        throw new Error('PDFShareManager native module not available');
+      // Check if sharing is available
+      const isAvailable = await Sharing.isAvailableAsync();
+      if (!isAvailable) {
+        throw new Error('Sharing is not available on this device');
       }
 
-      console.log('[PDFExportService] Using native PDFShareManager...');
-
-      // Create a timeout promise to prevent infinite hanging
-      const timeoutMs = 30000; // 30 seconds
-      const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => {
-          reject(new Error('Share sheet timeout after 30 seconds'));
-        }, timeoutMs);
+      console.log('[PDFExportService] Using expo-sharing...');
+      await Sharing.shareAsync(uri, {
+        UTI: 'com.adobe.pdf',
+        mimeType: 'application/pdf',
+        dialogTitle: 'Share PDF'
       });
-
-      // Call native module with timeout protection
-      // The native module handles all view controller transitions and window hierarchy
-      const result = await Promise.race([
-        PDFShareManager.sharePDF(uri),
-        timeoutPromise
-      ]);
-
-      console.log('[PDFExportService] Share result:', result);
-
-      // result = { action: 'sharedAction' | 'dismissedAction', activityType?: string }
-      if (result.action === 'sharedAction') {
-        console.log('[PDFExportService] PDF shared successfully');
-        if (result.activityType) {
-          console.log('[PDFExportService] Shared via:', result.activityType);
-        }
-      } else if (result.action === 'dismissedAction') {
-        console.log('[PDFExportService] User dismissed share sheet');
-      }
-
-      // Add a small delay to allow iOS to fully cleanup the Share Sheet
-      // This prevents issues when sharing multiple times in quick succession
-      await new Promise(resolve => setTimeout(resolve, 500));
-      console.log('[PDFExportService] Share sheet cleanup delay completed');
+      
+      console.log('[PDFExportService] Share completed');
     } catch (error: any) {
-      // Log all errors for debugging
       console.error('[PDFExportService] Share error:', error);
-      console.error('[PDFExportService] Error details:', {
-        message: error?.message,
-        code: error?.code,
-        stack: error?.stack
-      });
-
-      // Rethrow to let caller handle it
       throw error;
     }
   }
