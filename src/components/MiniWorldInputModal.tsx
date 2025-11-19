@@ -3,7 +3,7 @@ import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { useStoryboardStore } from "../state/storyboardStore";
 import { Character, Location } from "../types/storyboard";
-import { CharacterEditModal } from "./CharacterEditModal";
+// import { CharacterEditModal } from "./CharacterEditModal"; // Temporarily disabled - imports CharacterLibraryModal
 import CharacterTag from "./CharacterTag";
 import { LocationEditModal } from "./LocationEditModal";
 import LocationTag from "./LocationTag";
@@ -32,8 +32,10 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
 
   // Character management handlers
   const handleAddCharacter = () => {
-    setEditingCharacter(null);
-    setShowCharacterEditModal(true);
+    // Temporarily disabled for debugging
+    Alert.alert("Character Edit", "Character editing temporarily disabled for debugging");
+    // setEditingCharacter(null);
+    // setShowCharacterEditModal(true);
   };
 
   const handleSelectCharacterFromLibrary = () => {
@@ -52,8 +54,10 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
   };
 
   const handleEditCharacter = (character: Character) => {
-    setEditingCharacter(character);
-    setShowCharacterEditModal(true);
+    // Temporarily disabled for debugging
+    Alert.alert("Character Edit", "Character editing temporarily disabled for debugging");
+    // setEditingCharacter(character);
+    // setShowCharacterEditModal(true);
   };
 
   const handleSaveCharacter = (character: Character) => {
@@ -382,7 +386,8 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
       </View>
 
       {/* Modals */}
-      <CharacterEditModal
+      {/* Temporarily disabled for debugging - CharacterEditModal imports CharacterLibraryModal */}
+      {/* <CharacterEditModal
         visible={showCharacterEditModal}
         onClose={() => {
           setShowCharacterEditModal(false);
@@ -390,7 +395,7 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
         }}
         character={editingCharacter}
         onSave={handleSaveCharacter}
-      />
+      /> */}
 
       {/* Temporarily disabled for debugging */}
       {/* <CharacterLibraryModal
