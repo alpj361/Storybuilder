@@ -7,7 +7,6 @@ import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Sharing from 'expo-sharing';
-import { Platform, InteractionManager, Linking } from 'react-native';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
 
@@ -547,6 +546,7 @@ class PDFExportService {
 
   /**
    * Share the generated PDF using expo-sharing
+   * Fixed to prevent share sheet freezing issues
    */
   async sharePDF(uri: string): Promise<void> {
     console.log('[PDFExportService] sharePDF called with URI:', uri);
@@ -577,43 +577,20 @@ class PDFExportService {
         to: newPath
       });
 
-      console.log('[PDFExportService] Using expo-sharing...');
-      
-      // Wrap in InteractionManager to ensure UI is ready
-      await new Promise<void>((resolve, reject) => {
-        InteractionManager.runAfterInteractions(async () => {
-          try {
-            // Try using Linking first on iOS as it's more stable for large files/memory pressure
-            // It opens the system Quick Look which has a share button
-            if (Platform.OS === 'ios') {
-              const supported = await Linking.canOpenURL(newPath);
-              if (supported) {
-                console.log('[PDFExportService] Using Linking.openURL for stability...');
-                await Linking.openURL(newPath);
-                resolve();
-                return;
-              }
-            }
+      // Small delay to ensure UI is ready and any modal dismissals are complete
+      // This prevents share sheet from freezing due to view hierarchy conflicts
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-            // Fallback to expo-sharing
-            console.log('[PDFExportService] Using expo-sharing fallback...');
-            await Sharing.shareAsync(newPath, {
-              dialogTitle: 'Share PDF'
-            });
-            resolve();
-          } catch (e) {
-            console.warn('[PDFExportService] Share failed, trying fallback...', e);
-            // If Linking fails, try Sharing as last resort
-            try {
-               await Sharing.shareAsync(newPath, {
-                dialogTitle: 'Share PDF'
-              });
-              resolve();
-            } catch (shareError) {
-              reject(shareError);
-            }
-          }
-        });
+      console.log('[PDFExportService] Sharing PDF via expo-sharing...');
+      
+      // Use Sharing.shareAsync directly - it's the most reliable method
+      // InteractionManager and Linking.openURL were causing issues:
+      // - InteractionManager doesn't properly wait for async operations
+      // - Linking.openURL only works for http/https URLs, not file:// URIs
+      await Sharing.shareAsync(newPath, {
+        dialogTitle: 'Share PDF',
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf' // iOS UTI for PDFs
       });
       
       console.log('[PDFExportService] Share completed');
