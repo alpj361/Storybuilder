@@ -16,6 +16,9 @@ interface MiniWorldInputModalProps {
 }
 
 export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalProps) {
+  console.log('[MiniWorldInputModal] ========== Component Rendering ==========');
+  console.log('[MiniWorldInputModal] visible:', visible);
+
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -27,8 +30,13 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
   const [showLocationLibraryModal, setShowLocationLibraryModal] = useState(false);
   const [editingLocation, setEditingLocation] = useState<Location | null>(null);
 
+  console.log('[MiniWorldInputModal] State hooks initialized');
+
   const createMiniWorldProject = useStoryboardStore(state => state.createMiniWorldProject);
+  console.log('[MiniWorldInputModal] createMiniWorldProject hook OK');
+
   const error = useStoryboardStore(state => state.error);
+  console.log('[MiniWorldInputModal] error hook OK');
 
   // Character management handlers
   const handleAddCharacter = () => {
@@ -129,38 +137,63 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
   };
 
   const handleGenerate = async () => {
+    console.log("[MiniWorldInputModal] ===== handleGenerate CALLED =====");
+    console.log("[MiniWorldInputModal] Input value:", input);
+
     if (!input.trim()) {
       Alert.alert("Input Required", "Please describe your MiniWorld scene");
       return;
     }
 
-    console.log("[MiniWorldInputModal] Starting generation...");
-    setIsGenerating(true);
+    console.log("[MiniWorldInputModal] Input validation passed");
+    console.log("[MiniWorldInputModal] Setting isGenerating to true");
 
     try {
-      console.log("[MiniWorldInputModal] Calling createMiniWorldProject...");
-      await createMiniWorldProject(
+      setIsGenerating(true);
+      console.log("[MiniWorldInputModal] isGenerating set to true");
+    } catch (e) {
+      console.error("[MiniWorldInputModal] ERROR setting isGenerating:", e);
+      console.error("[MiniWorldInputModal] Error stack:", (e as Error).stack);
+      throw e;
+    }
+
+    try {
+      console.log("[MiniWorldInputModal] About to call createMiniWorldProject");
+      console.log("[MiniWorldInputModal] Input:", input.trim());
+      console.log("[MiniWorldInputModal] Characters count:", characters.length);
+      console.log("[MiniWorldInputModal] Locations count:", locations.length);
+
+      const result = await createMiniWorldProject(
         input.trim(),
         characters.length > 0 ? characters : undefined,
         locations.length > 0 ? locations : undefined
       );
 
+      console.log("[MiniWorldInputModal] createMiniWorldProject returned:", result);
       console.log("[MiniWorldInputModal] Generation completed successfully");
 
       // Clear and close
+      console.log("[MiniWorldInputModal] Clearing state...");
       setInput("");
       setCharacters([]);
       setLocations([]);
 
-      console.log("[MiniWorldInputModal] Closing modal...");
+      console.log("[MiniWorldInputModal] Calling onClose...");
       onClose();
-      console.log("[MiniWorldInputModal] Modal closed");
+      console.log("[MiniWorldInputModal] onClose completed");
     } catch (err) {
-      console.error("[MiniWorldInputModal] Generation error:", err);
+      console.error("[MiniWorldInputModal] ===== ERROR IN handleGenerate =====");
+      console.error("[MiniWorldInputModal] Error object:", err);
+      console.error("[MiniWorldInputModal] Error message:", (err as Error).message);
+      console.error("[MiniWorldInputModal] Error stack:", (err as Error).stack);
+      console.error("[MiniWorldInputModal] Error name:", (err as Error).name);
+      console.error("[MiniWorldInputModal] Full error:", JSON.stringify(err, null, 2));
+
       Alert.alert("Error", error || "Failed to generate MiniWorld");
     } finally {
+      console.log("[MiniWorldInputModal] Finally block - setting isGenerating to false");
       setIsGenerating(false);
-      console.log("[MiniWorldInputModal] Generation process finished");
+      console.log("[MiniWorldInputModal] ===== handleGenerate COMPLETE =====");
     }
   };
 

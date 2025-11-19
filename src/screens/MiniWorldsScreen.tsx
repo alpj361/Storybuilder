@@ -17,6 +17,7 @@ import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 import { MiniWorldInputModal } from "../components/MiniWorldInputModal";
+import { ErrorBoundary } from "../components/ErrorBoundary";
 
 export default function MiniWorldsScreen() {
   const currentProject = useCurrentProject();
@@ -308,10 +309,18 @@ export default function MiniWorldsScreen() {
       </Pressable>
 
       {/* Modals */}
-      <MiniWorldInputModal
-        visible={showInputModal}
-        onClose={() => setShowInputModal(false)}
-      />
+      <ErrorBoundary
+        onError={(error, errorInfo) => {
+          console.error('[MiniWorldsScreen] ErrorBoundary caught error in modal');
+          console.error('Error:', error);
+          console.error('ErrorInfo:', errorInfo);
+        }}
+      >
+        <MiniWorldInputModal
+          visible={showInputModal}
+          onClose={() => setShowInputModal(false)}
+        />
+      </ErrorBoundary>
 
       <ProjectSelectorModal
         visible={showProjectSelector}
