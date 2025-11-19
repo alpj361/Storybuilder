@@ -564,6 +564,7 @@ class PDFExportService {
 
       // Check if native module is available (iOS only)
       if (!PDFShareManager) {
+        console.log('[PDFExportService] Available NativeModules:', Object.keys(NativeModules));
         throw new Error('PDFShareManager native module not available');
       }
 
