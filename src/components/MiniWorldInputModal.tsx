@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, NavigationIndependentTree } from "@react-navigation/native";
 import { useStoryboardStore } from "../state/storyboardStore";
 import { Character, Location } from "../types/storyboard";
 import { CharacterEditModal } from "./CharacterEditModal";
@@ -180,8 +180,9 @@ export default function MiniWorldInputModal({ visible, onClose }: MiniWorldInput
       transparent={false}
       onRequestClose={handleClose}
     >
-      <NavigationContainer independent={true}>
-        <View className="flex-1 bg-gray-50">
+      <NavigationIndependentTree>
+        <NavigationContainer>
+          <View className="flex-1 bg-gray-50">
         {/* Header */}
         <View className="bg-white border-b border-gray-200 px-4 pt-12 pb-4">
           <View className="flex-row items-center justify-between">
@@ -413,7 +414,8 @@ export default function MiniWorldInputModal({ visible, onClose }: MiniWorldInput
         onClose={() => setShowLocationLibraryModal(false)}
         onSelectLocation={handleSelectLocationFromLibrary}
       />
-      </NavigationContainer>
+        </NavigationContainer>
+      </NavigationIndependentTree>
     </Modal>
   );
 }
