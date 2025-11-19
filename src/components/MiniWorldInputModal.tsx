@@ -8,14 +8,14 @@ import CharacterTag from "./CharacterTag";
 import { LocationEditModal } from "./LocationEditModal";
 import LocationTag from "./LocationTag";
 import LocationLibraryModal from "./LocationLibraryModal";
-import CharacterLibraryModal from "./CharacterLibraryModal";
+// import CharacterLibraryModal from "./CharacterLibraryModal"; // Temporarily disabled for debugging
 
 interface MiniWorldInputModalProps {
   visible: boolean;
   onClose: () => void;
 }
 
-export default function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalProps) {
+export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalProps) {
   const [input, setInput] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [characters, setCharacters] = useState<Character[]>([]);
@@ -37,7 +37,9 @@ export default function MiniWorldInputModal({ visible, onClose }: MiniWorldInput
   };
 
   const handleSelectCharacterFromLibrary = () => {
-    setShowCharacterLibraryModal(true);
+    // Temporarily disabled for debugging
+    // setShowCharacterLibraryModal(true);
+    Alert.alert("Character Library", "Character library temporarily disabled for debugging");
   };
 
   const handleCharacterFromLibrarySelected = (character: Character) => {
@@ -390,11 +392,12 @@ export default function MiniWorldInputModal({ visible, onClose }: MiniWorldInput
         onSave={handleSaveCharacter}
       />
 
-      <CharacterLibraryModal
+      {/* Temporarily disabled for debugging */}
+      {/* <CharacterLibraryModal
         visible={showCharacterLibraryModal}
         onClose={() => setShowCharacterLibraryModal(false)}
         onSelectCharacter={handleCharacterFromLibrarySelected}
-      />
+      /> */}
 
       <LocationEditModal
         visible={showLocationEditModal}

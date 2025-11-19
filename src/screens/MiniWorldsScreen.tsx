@@ -16,7 +16,7 @@ import { LocationDetailsModal } from "../components/LocationDetailsModal";
 import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
-import MiniWorldInputModal from "../components/MiniWorldInputModal";
+import { MiniWorldInputModal } from "../components/MiniWorldInputModal";
 
 export default function MiniWorldsScreen() {
   const currentProject = useCurrentProject();
