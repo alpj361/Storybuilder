@@ -3,12 +3,12 @@ import { View, Text, TextInput, Pressable, Modal, ScrollView, Alert } from "reac
 import { Ionicons } from "@expo/vector-icons";
 import { useStoryboardStore } from "../state/storyboardStore";
 import { Character, Location } from "../types/storyboard";
-// import { CharacterEditModal } from "./CharacterEditModal"; // Temporarily disabled - imports CharacterLibraryModal
+import { CharacterEditModal } from "./CharacterEditModal";
 import CharacterTag from "./CharacterTag";
-// import { LocationEditModal } from "./LocationEditModal"; // Temporarily disabled for debugging
+import { LocationEditModal } from "./LocationEditModal";
 import LocationTag from "./LocationTag";
-// import LocationLibraryModal from "./LocationLibraryModal"; // Temporarily disabled for debugging
-// import CharacterLibraryModal from "./CharacterLibraryModal"; // Temporarily disabled for debugging
+import LocationLibraryModal from "./LocationLibraryModal";
+import CharacterLibraryModal from "./CharacterLibraryModal";
 
 interface MiniWorldInputModalProps {
   visible: boolean;
@@ -32,16 +32,12 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
 
   // Character management handlers
   const handleAddCharacter = () => {
-    // Temporarily disabled for debugging
-    Alert.alert("Character Edit", "Character editing temporarily disabled for debugging");
-    // setEditingCharacter(null);
-    // setShowCharacterEditModal(true);
+    setEditingCharacter(null);
+    setShowCharacterEditModal(true);
   };
 
   const handleSelectCharacterFromLibrary = () => {
-    // Temporarily disabled for debugging
-    // setShowCharacterLibraryModal(true);
-    Alert.alert("Character Library", "Character library temporarily disabled for debugging");
+    setShowCharacterLibraryModal(true);
   };
 
   const handleCharacterFromLibrarySelected = (character: Character) => {
@@ -54,10 +50,8 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
   };
 
   const handleEditCharacter = (character: Character) => {
-    // Temporarily disabled for debugging
-    Alert.alert("Character Edit", "Character editing temporarily disabled for debugging");
-    // setEditingCharacter(character);
-    // setShowCharacterEditModal(true);
+    setEditingCharacter(character);
+    setShowCharacterEditModal(true);
   };
 
   const handleSaveCharacter = (character: Character) => {
@@ -87,23 +81,17 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
 
   // Location management handlers
   const handleAddLocation = () => {
-    // Temporarily disabled for debugging
-    Alert.alert("Location Edit", "Location editing temporarily disabled for debugging");
-    // setEditingLocation(null);
-    // setShowLocationEditModal(true);
+    setEditingLocation(null);
+    setShowLocationEditModal(true);
   };
 
   const handleSelectFromLibrary = () => {
-    // Temporarily disabled for debugging
-    Alert.alert("Location Library", "Location library temporarily disabled for debugging");
-    // setShowLocationLibraryModal(true);
+    setShowLocationLibraryModal(true);
   };
 
   const handleEditLocation = (location: Location) => {
-    // Temporarily disabled for debugging
-    Alert.alert("Location Edit", "Location editing temporarily disabled for debugging");
-    // setEditingLocation(location);
-    // setShowLocationEditModal(true);
+    setEditingLocation(location);
+    setShowLocationEditModal(true);
   };
 
   const handleSaveLocation = (location: Location) => {
@@ -198,6 +186,7 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
       visible={visible}
       animationType="slide"
       transparent={false}
+      presentationStyle="pageSheet"
       onRequestClose={handleClose}
     >
       <View className="flex-1 bg-gray-50">
@@ -401,8 +390,7 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
       </View>
 
       {/* Modals */}
-      {/* Temporarily disabled for debugging - CharacterEditModal imports CharacterLibraryModal */}
-      {/* <CharacterEditModal
+      <CharacterEditModal
         visible={showCharacterEditModal}
         onClose={() => {
           setShowCharacterEditModal(false);
@@ -410,17 +398,15 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
         }}
         character={editingCharacter}
         onSave={handleSaveCharacter}
-      /> */}
+      />
 
-      {/* Temporarily disabled for debugging */}
-      {/* <CharacterLibraryModal
+      <CharacterLibraryModal
         visible={showCharacterLibraryModal}
         onClose={() => setShowCharacterLibraryModal(false)}
         onSelectCharacter={handleCharacterFromLibrarySelected}
-      /> */}
+      />
 
-      {/* Temporarily disabled for debugging */}
-      {/* <LocationEditModal
+      <LocationEditModal
         visible={showLocationEditModal}
         onClose={() => {
           setShowLocationEditModal(false);
@@ -428,14 +414,13 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
         }}
         location={editingLocation}
         onSave={handleSaveLocation}
-      /> */}
+      />
 
-      {/* Temporarily disabled for debugging */}
-      {/* <LocationLibraryModal
+      <LocationLibraryModal
         visible={showLocationLibraryModal}
         onClose={() => setShowLocationLibraryModal(false)}
         onSelectLocation={handleSelectLocationFromLibrary}
-      /> */}
+      />
     </Modal>
   );
 }
