@@ -31,7 +31,8 @@ import { ExportOptions } from "../types/export";
 const waitForNextFrame = () => new Promise(resolve => requestAnimationFrame(() => resolve(null)));
 const waitForInteractionsToFinish = () =>
   new Promise(resolve => InteractionManager.runAfterInteractions(() => resolve(null)));
-const waitForIosWindowCleanup = () => new Promise(resolve => setTimeout(resolve, 300));
+// Increased delay to 1000ms to prevent Share Sheet freezing on iOS
+const waitForIosWindowCleanup = () => new Promise(resolve => setTimeout(resolve, 1000));
 
 const Chip: React.FC<{ label: string; tone?: "blue" | "gray" }> = ({ label, tone = "blue" }) => (
   <View
