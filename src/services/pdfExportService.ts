@@ -7,7 +7,7 @@ import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Sharing from 'expo-sharing';
-import { Platform, InteractionManager } from 'react-native';
+import { Platform, InteractionManager, Linking } from 'react-native';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
 
@@ -583,13 +583,35 @@ class PDFExportService {
       await new Promise<void>((resolve, reject) => {
         InteractionManager.runAfterInteractions(async () => {
           try {
-            // Removing UTI/mimeType to let iOS infer type, which can prevent freezing
+            // Try using Linking first on iOS as it's more stable for large files/memory pressure
+            // It opens the system Quick Look which has a share button
+            if (Platform.OS === 'ios') {
+              const supported = await Linking.canOpenURL(newPath);
+              if (supported) {
+                console.log('[PDFExportService] Using Linking.openURL for stability...');
+                await Linking.openURL(newPath);
+                resolve();
+                return;
+              }
+            }
+
+            // Fallback to expo-sharing
+            console.log('[PDFExportService] Using expo-sharing fallback...');
             await Sharing.shareAsync(newPath, {
               dialogTitle: 'Share PDF'
             });
             resolve();
           } catch (e) {
-            reject(e);
+            console.warn('[PDFExportService] Share failed, trying fallback...', e);
+            // If Linking fails, try Sharing as last resort
+            try {
+               await Sharing.shareAsync(newPath, {
+                dialogTitle: 'Share PDF'
+              });
+              resolve();
+            } catch (shareError) {
+              reject(shareError);
+            }
           }
         });
       });
