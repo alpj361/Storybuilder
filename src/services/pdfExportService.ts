@@ -566,8 +566,19 @@ class PDFExportService {
         throw new Error('Sharing is not available on this device');
       }
 
+      // Move file to document directory to ensure stability and prevent cache cleanup issues
+      // This often fixes "freezing" issues on iOS Share Sheet when sharing from cache
+      const fileName = uri.split('/').pop() || 'export.pdf';
+      const newPath = `${FileSystem.documentDirectory}${fileName}`;
+      
+      console.log('[PDFExportService] Moving file to document directory:', newPath);
+      await FileSystem.moveAsync({
+        from: uri,
+        to: newPath
+      });
+
       console.log('[PDFExportService] Using expo-sharing...');
-      await Sharing.shareAsync(uri, {
+      await Sharing.shareAsync(newPath, {
         UTI: 'com.adobe.pdf',
         mimeType: 'application/pdf',
         dialogTitle: 'Share PDF'
