@@ -1,0 +1,30 @@
+# Git Configuration Helper para mantener .env solo en origin
+# 
+# ESTRATEGIA:
+# - origin (vibecode): Puede tener .env en el historial (seguro en SSH)
+# - github: NO debe tener .env en el historial
+#
+# USO:
+# - Para hacer push a GitHub: usar `git push github main` (normal)
+# - Para hacer push a origin: usar `git push origin main` (normal)
+# - Para hacer pull de origin: seguir los pasos a continuación
+
+# Si origin trae el commit e56523d con .env, eliminar ese commit antes de push a GitHub:
+# 1. git pull origin main --no-rebase
+# 2. git log --oneline | grep e56523d
+# 3. Si aparece, hacer: git rebase -i <commit-antes-de-e56523d>
+# 4. En el editor, marcar la línea de e56523d como 'drop' o eliminarla
+# 5. Guardar y cerrar
+# 6. git push github main (ahora sin el commit con .env)
+
+# ALTERNATIVA MÁS SIMPLE:
+# Si origin trae cambios nuevos (sin .env), simplemente hacer:
+# git pull origin main --no-rebase
+# git push github main
+
+# Si origin trae el commit e56523d con .env, hacer:
+# git pull origin main --no-rebase
+# git rebase -i 72e94d4  # rebase desde el commit antes del problema
+# # En el editor, eliminar la línea del commit e56523d
+# git push github main --force-with-lease  # si es necesario
+

@@ -8,8 +8,10 @@
 
 /* Begin PBXBuildFile section */
 		13B07FBF1A68108700A75B9A /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 13B07FB51A68108700A75B9A /* Images.xcassets */; };
+		2732771ABC7F8FA2CBAEC7AB /* PDFShareManager.m in Sources */ = {isa = PBXBuildFile; fileRef = AFDDAB4A539E401D1A5004A8 /* PDFShareManager.m */; };
 		3909EF47BF9D10E31EEF2965 /* libPods-vibecode.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 12D8C8B95D34E42FC8754F5D /* libPods-vibecode.a */; };
 		3E461D99554A48A4959DE609 /* SplashScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */; };
+		4C784CC2118227B10696A30F /* PDFShareManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D4E5A8ED426784AF879EB98 /* PDFShareManager.swift */; };
 		5D0FCEA6B493B7A5AF7DDD40 /* ExpoModulesProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = C54CEAAB69A61A7AB56EAE1B /* ExpoModulesProvider.swift */; };
 		BB2F792D24A3F905000567C9 /* Expo.plist in Resources */ = {isa = PBXBuildFile; fileRef = BB2F792C24A3F905000567C9 /* Expo.plist */; };
 		E0D55A8E2AE25204E29F4ECE /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 75E95B020898EDE0ABCC8C25 /* PrivacyInfo.xcprivacy */; };
@@ -21,10 +23,12 @@
 		13B07F961A680F5B00A75B9A /* vibecode.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = vibecode.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = vibecode/Images.xcassets; sourceTree = "<group>"; };
 		13B07FB61A68108700A75B9A /* Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = Info.plist; path = vibecode/Info.plist; sourceTree = "<group>"; };
+		4D4E5A8ED426784AF879EB98 /* PDFShareManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; name = PDFShareManager.swift; path = vibecode/PDFShareManager.swift; sourceTree = "<group>"; };
 		5C8CCE231ECDF465D656C926 /* Pods-vibecode.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-vibecode.release.xcconfig"; path = "Target Support Files/Pods-vibecode/Pods-vibecode.release.xcconfig"; sourceTree = "<group>"; };
 		75E95B020898EDE0ABCC8C25 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; includeInIndex = 1; name = PrivacyInfo.xcprivacy; path = vibecode/PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		A3AC1AA7AAEEC3433BB2CCFB /* Pods-vibecode.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-vibecode.debug.xcconfig"; path = "Target Support Files/Pods-vibecode/Pods-vibecode.debug.xcconfig"; sourceTree = "<group>"; };
 		AA286B85B6C04FC6940260E9 /* SplashScreen.storyboard */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = file.storyboard; name = SplashScreen.storyboard; path = vibecode/SplashScreen.storyboard; sourceTree = "<group>"; };
+		AFDDAB4A539E401D1A5004A8 /* PDFShareManager.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; name = PDFShareManager.m; path = vibecode/PDFShareManager.m; sourceTree = "<group>"; };
 		BB2F792C24A3F905000567C9 /* Expo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = Expo.plist; sourceTree = "<group>"; };
 		C54CEAAB69A61A7AB56EAE1B /* ExpoModulesProvider.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; name = ExpoModulesProvider.swift; path = "Pods/Target Support Files/Pods-vibecode/ExpoModulesProvider.swift"; sourceTree = "<group>"; };
 		ED297162215061F000B7C4FE /* JavaScriptCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = JavaScriptCore.framework; path = System/Library/Frameworks/JavaScriptCore.framework; sourceTree = SDKROOT; };
@@ -344,6 +348,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4C784CC2118227B10696A30F /* PDFShareManager.swift in Sources */,
+				2732771ABC7F8FA2CBAEC7AB /* PDFShareManager.m in Sources */,
 				F11748422D0307B40044C1D9 /* AppDelegate.swift in Sources */,
 				5D0FCEA6B493B7A5AF7DDD40 /* ExpoModulesProvider.swift in Sources */,
 			);
