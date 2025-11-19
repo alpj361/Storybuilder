@@ -7,7 +7,7 @@ import * as Print from 'expo-print';
 import * as FileSystem from 'expo-file-system';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as Sharing from 'expo-sharing';
-import { Platform } from 'react-native';
+import { Platform, InteractionManager } from 'react-native';
 import { StoryboardProject, StoryboardPanel, Character } from '../types/storyboard';
 import { ExportOptions, PDFLayout, PDFExportResult } from '../types/export';
 
@@ -578,10 +578,20 @@ class PDFExportService {
       });
 
       console.log('[PDFExportService] Using expo-sharing...');
-      await Sharing.shareAsync(newPath, {
-        UTI: 'com.adobe.pdf',
-        mimeType: 'application/pdf',
-        dialogTitle: 'Share PDF'
+      
+      // Wrap in InteractionManager to ensure UI is ready
+      await new Promise<void>((resolve, reject) => {
+        InteractionManager.runAfterInteractions(async () => {
+          try {
+            // Removing UTI/mimeType to let iOS infer type, which can prevent freezing
+            await Sharing.shareAsync(newPath, {
+              dialogTitle: 'Share PDF'
+            });
+            resolve();
+          } catch (e) {
+            reject(e);
+          }
+        });
       });
       
       console.log('[PDFExportService] Share completed');
