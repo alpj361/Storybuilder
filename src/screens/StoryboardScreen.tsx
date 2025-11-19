@@ -832,9 +832,15 @@ export default function StoryboardScreen({
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
         
-        // Close modal after sharing is done
-        console.log('[StoryboardScreen] Closing modal...');
-        setShowExportModal(false);
+        // We do NOT close the modal automatically here.
+        // If we close it while the Share Sheet is potentially still animating or active,
+        // it causes the "frozen UI" issue on iOS.
+        // Instead, we let the user close it manually or just leave it open.
+        // Or we could show a success alert which requires interaction.
+        
+        Alert.alert("Success", "PDF exported successfully!", [
+          { text: "OK", onPress: () => setShowExportModal(false) }
+        ]);
       } catch (shareError: any) {
         console.error('[StoryboardScreen] Share failed:', shareError);
 
