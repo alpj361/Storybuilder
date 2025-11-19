@@ -731,9 +731,10 @@ export default function StoryboardScreen({
         setCurrentProject(architecturalProject);
       }
     } else {
-      if (!currentProject || currentProject.projectType === ProjectType.ARCHITECTURAL) {
+      // For storyboard mode, only show STORYBOARD projects (exclude ARCHITECTURAL and MINIWORLD)
+      if (!currentProject || currentProject.projectType === ProjectType.ARCHITECTURAL || currentProject.projectType === ProjectType.MINIWORLD) {
         const storyboardProject = [...projects]
-          .filter(project => project.projectType !== ProjectType.ARCHITECTURAL)
+          .filter(project => project.projectType === ProjectType.STORYBOARD)
           .pop();
 
         if (storyboardProject && storyboardProject.id !== currentProject?.id) {
@@ -748,7 +749,8 @@ export default function StoryboardScreen({
     if (isArchitectural) {
       return currentProject.projectType === ProjectType.ARCHITECTURAL ? currentProject : null;
     }
-    return currentProject.projectType === ProjectType.ARCHITECTURAL ? null : currentProject;
+    // For storyboard mode, only show STORYBOARD projects (not ARCHITECTURAL or MINIWORLD)
+    return currentProject.projectType === ProjectType.STORYBOARD ? currentProject : null;
   }, [currentProject, isArchitectural]);
 
   const handleNewProject = () => {
