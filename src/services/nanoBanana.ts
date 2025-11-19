@@ -7,9 +7,21 @@
  */
 
 import Replicate from 'replicate';
-import Constants from 'expo-constants';
 
-const REPLICATE_API_KEY = Constants.expoConfig?.extra?.REPLICATE_API_TOKEN || '';
+// Get Replicate API key
+const getReplicateKey = () => {
+  const key = process.env.EXPO_PUBLIC_REPLICATE_API_KEY;
+  console.log('[NanoBanana] Replicate API Key check:', {
+    exists: !!key,
+    prefix: key?.substring(0, 10)
+  });
+
+  if (!key) {
+    throw new Error('EXPO_PUBLIC_REPLICATE_API_KEY environment variable is not set');
+  }
+
+  return key;
+};
 
 /**
  * Edit an existing image using NanoBanana
@@ -25,13 +37,9 @@ export async function editImageWithNanoBanana(
   console.log('[NanoBanana] Prompt:', editPrompt);
   console.log('[NanoBanana] Image size:', imageBase64.length, 'characters');
 
-  if (!REPLICATE_API_KEY) {
-    throw new Error('Replicate API key not found');
-  }
-
   try {
     const replicate = new Replicate({
-      auth: REPLICATE_API_KEY,
+      auth: getReplicateKey(),
     });
 
     console.log('[NanoBanana] Calling Replicate API...');
@@ -100,7 +108,8 @@ export async function editImageWithNanoBanana(
  * Check if NanoBanana service is available
  */
 export function isNanoBananaAvailable(): boolean {
-  const available = !!REPLICATE_API_KEY;
+  const key = process.env.EXPO_PUBLIC_REPLICATE_API_KEY;
+  const available = !!key;
   console.log('[NanoBanana] Service available:', available);
   return available;
 }
