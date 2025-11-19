@@ -10,11 +10,11 @@ import Foundation
 import UIKit
 
 @objc(PDFShareManager)
-class PDFShareManager: NSObject {
+public class PDFShareManager: NSObject {
 
   // Main queue requirement for UI operations
   @objc
-  static func requiresMainQueueSetup() -> Bool {
+  public static func requiresMainQueueSetup() -> Bool {
     return true
   }
 
@@ -22,7 +22,7 @@ class PDFShareManager: NSObject {
   /// This implementation waits for all view controller transitions to complete
   /// and presents from the root view controller to avoid window hierarchy issues
   @objc
-  func sharePDF(_ fileURL: String,
+  public func sharePDF(_ fileURL: String,
                 resolver resolve: @escaping RCTPromiseResolveBlock,
                 rejecter reject: @escaping RCTPromiseRejectBlock) {
 
