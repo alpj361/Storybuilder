@@ -59,26 +59,41 @@ export async function editImageWithNanoBanana(
       { input }
     ) as any;
 
-    console.log('[NanoBanana] API call completed');
-    console.log('[NanoBanana] Output type:', typeof output);
+    console.log('[NanoBanana] Generation completed');
+    console.log('[NanoBanana] Output type:', Array.isArray(output) ? 'array' : typeof output);
 
-    // Get the URL from the output
+    // Debug: log output structure
+    if (output && typeof output === 'object') {
+      console.log('[NanoBanana] Output keys:', Object.keys(output));
+      console.log('[NanoBanana] Has url property:', 'url' in output);
+      console.log('[NanoBanana] url type:', typeof output.url);
+    }
+
+    // Get the image URL from output (following Seedream4 pattern)
     let imageUrl: string;
 
-    if (typeof output === 'string') {
-      imageUrl = output;
+    if (Array.isArray(output)) {
+      // If it's an array, get the first element
+      console.log('[NanoBanana] Output is array, length:', output.length);
+      imageUrl = typeof output[0].url === 'function' ? output[0].url() : output[0];
     } else if (output && typeof output.url === 'function') {
+      // If it's an object with url() method
+      console.log('[NanoBanana] Calling output.url()');
       imageUrl = output.url();
-    } else if (Array.isArray(output) && output.length > 0) {
-      imageUrl = output[0];
-    } else if (output && output.url) {
+    } else if (typeof output === 'string') {
+      // If it's already a string URL
+      console.log('[NanoBanana] Output is string');
+      imageUrl = output;
+    } else if (output && typeof output === 'object' && output.url) {
+      // If url is a property (not a function)
+      console.log('[NanoBanana] Using output.url property');
       imageUrl = output.url;
     } else {
-      console.error('[NanoBanana] Unexpected output format:', output);
+      console.error('[NanoBanana] Unexpected output format:', JSON.stringify(output, null, 2));
       throw new Error('Unexpected output format from NanoBanana');
     }
 
-    console.log('[NanoBanana] Image URL obtained:', imageUrl.substring(0, 100));
+    console.log('[NanoBanana] Image URL:', typeof imageUrl === 'string' ? imageUrl.substring(0, 100) : imageUrl);
 
     // Convert URL to base64
     console.log('[NanoBanana] Converting edited image to base64...');
