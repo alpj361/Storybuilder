@@ -5,9 +5,9 @@ import { useStoryboardStore } from "../state/storyboardStore";
 import { Character, Location } from "../types/storyboard";
 // import { CharacterEditModal } from "./CharacterEditModal"; // Temporarily disabled - imports CharacterLibraryModal
 import CharacterTag from "./CharacterTag";
-import { LocationEditModal } from "./LocationEditModal";
+// import { LocationEditModal } from "./LocationEditModal"; // Temporarily disabled for debugging
 import LocationTag from "./LocationTag";
-import LocationLibraryModal from "./LocationLibraryModal";
+// import LocationLibraryModal from "./LocationLibraryModal"; // Temporarily disabled for debugging
 // import CharacterLibraryModal from "./CharacterLibraryModal"; // Temporarily disabled for debugging
 
 interface MiniWorldInputModalProps {
@@ -87,17 +87,23 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
 
   // Location management handlers
   const handleAddLocation = () => {
-    setEditingLocation(null);
-    setShowLocationEditModal(true);
+    // Temporarily disabled for debugging
+    Alert.alert("Location Edit", "Location editing temporarily disabled for debugging");
+    // setEditingLocation(null);
+    // setShowLocationEditModal(true);
   };
 
   const handleSelectFromLibrary = () => {
-    setShowLocationLibraryModal(true);
+    // Temporarily disabled for debugging
+    Alert.alert("Location Library", "Location library temporarily disabled for debugging");
+    // setShowLocationLibraryModal(true);
   };
 
   const handleEditLocation = (location: Location) => {
-    setEditingLocation(location);
-    setShowLocationEditModal(true);
+    // Temporarily disabled for debugging
+    Alert.alert("Location Edit", "Location editing temporarily disabled for debugging");
+    // setEditingLocation(location);
+    // setShowLocationEditModal(true);
   };
 
   const handleSaveLocation = (location: Location) => {
@@ -404,7 +410,8 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
         onSelectCharacter={handleCharacterFromLibrarySelected}
       /> */}
 
-      <LocationEditModal
+      {/* Temporarily disabled for debugging */}
+      {/* <LocationEditModal
         visible={showLocationEditModal}
         onClose={() => {
           setShowLocationEditModal(false);
@@ -412,13 +419,14 @@ export function MiniWorldInputModal({ visible, onClose }: MiniWorldInputModalPro
         }}
         location={editingLocation}
         onSave={handleSaveLocation}
-      />
+      /> */}
 
-      <LocationLibraryModal
+      {/* Temporarily disabled for debugging */}
+      {/* <LocationLibraryModal
         visible={showLocationLibraryModal}
         onClose={() => setShowLocationLibraryModal(false)}
         onSelectLocation={handleSelectLocationFromLibrary}
-      />
+      /> */}
     </Modal>
   );
 }
