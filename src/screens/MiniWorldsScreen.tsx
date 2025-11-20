@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert, ActivityIndicator } from "react-native";
+import React, { useState, useMemo } from "react";
+import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useStoryboardStore } from "../state/storyboardStore";
+import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
   ProjectType,
   Character,
@@ -28,11 +28,10 @@ const MiniWorldsScreen = () => {
   const [currentPanelIdea, setCurrentPanelIdea] = useState("");
   const [selectedImageForEdit, setSelectedImageForEdit] = useState<string | null>(null);
   const [editingPanel, setEditingPanel] = useState<any>(null);
-  const [isInitialized, setIsInitialized] = useState(false);
 
-  // Use individual selectors to avoid infinite loops (object selector creates new object every render)
-  const currentProject = useStoryboardStore(state => state.currentProject);
-  const projects = useStoryboardStore(state => state.projects);
+  // Use helper hooks exactly like StoryboardScreen
+  const currentProject = useCurrentProject();
+  const projects = useProjects();
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
   const deleteProject = useStoryboardStore(state => state.deleteProject);
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
@@ -40,28 +39,6 @@ const MiniWorldsScreen = () => {
   const editPanelImage = useStoryboardStore(state => state.editPanelImage);
   const undoPanelImageEdit = useStoryboardStore(state => state.undoPanelImageEdit);
   const isGenerating = useStoryboardStore(state => state.isGenerating);
-
-  // Wait for store rehydration and navigation context to be ready
-  useEffect(() => {
-    // Use a small delay to ensure navigation context is available after store rehydration
-    const timer = setTimeout(() => {
-      setIsInitialized(true);
-    }, 100); // Small delay to let navigation context initialize
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Show loading screen until store and navigation are ready
-  if (!isInitialized) {
-    return (
-      <SafeAreaView className="flex-1 bg-gray-100">
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#6366F1" />
-          <Text className="mt-4 text-gray-600">Loading MiniWorlds...</Text>
-        </View>
-      </SafeAreaView>
-    );
-  }
 
   // Memoize computed values to prevent unnecessary recalculations
   const miniWorldProjects = useMemo(() =>
