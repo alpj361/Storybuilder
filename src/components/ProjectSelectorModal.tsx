@@ -78,8 +78,9 @@ export function ProjectSelectorModal({
     toggleFavorite(project.id);
   };
 
-  const projectTypeLabel = currentProjectType === ProjectType.ARCHITECTURAL
-    ? 'Architectural'
+  const projectTypeLabel =
+    currentProjectType === ProjectType.ARCHITECTURAL ? 'Architectural'
+    : currentProjectType === ProjectType.MINIWORLD ? 'MiniWorld'
     : 'Storyboard';
 
   return (
