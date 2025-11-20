@@ -132,23 +132,30 @@ export function MiniWorldInputModal({
     }
 
     setIsGenerating(true);
+
+    // Store the values before closing
+    const inputValue = input.trim();
+    const selectedCharacters = characters.length > 0 ? characters : undefined;
+    const selectedLocations = locations.length > 0 ? locations : undefined;
+
+    // Clear state immediately
+    setInput("");
+    setCharacters([]);
+    setLocations([]);
+
     try {
+      // Close modal FIRST to avoid navigation context conflicts
+      onClose();
+
+      // Wait for modal close animation to complete
+      await new Promise(resolve => setTimeout(resolve, 300));
+
+      // NOW create the project (modal is fully closed, no conflicts)
       await createMiniWorldProject(
-        input.trim(),
-        characters.length > 0 ? characters : undefined,
-        locations.length > 0 ? locations : undefined
+        inputValue,
+        selectedCharacters,
+        selectedLocations
       );
-
-      // Clear state
-      setInput("");
-      setCharacters([]);
-      setLocations([]);
-
-      // Close modal after a brief delay to allow state updates to settle
-      // This prevents navigation context errors during modal dismissal
-      setTimeout(() => {
-        onClose();
-      }, 50);
     } catch (err) {
       Alert.alert("Error", "Failed to generate MiniWorld");
     } finally {
