@@ -22,7 +22,16 @@ import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 const MiniWorldsScreen = () => {
   const navigation = useNavigation();
   const [isReady, setIsReady] = useState(false);
-  
+  const [showInputModal, setShowInputModal] = useState(false);
+  const [showProjectSelector, setShowProjectSelector] = useState(false);
+  const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
+  const [showImageEditModal, setShowImageEditModal] = useState(false);
+  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
+  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [currentPanelIdea, setCurrentPanelIdea] = useState("");
+  const [selectedImageForEdit, setSelectedImageForEdit] = useState<string | null>(null);
+  const [editingPanel, setEditingPanel] = useState<any>(null);
+
   // Get all store values at once to avoid multiple re-renders
   const {
     currentProject,
@@ -62,16 +71,6 @@ const MiniWorldsScreen = () => {
       </View>
     );
   }
-
-  const [showInputModal, setShowInputModal] = useState(false);
-  const [showProjectSelector, setShowProjectSelector] = useState(false);
-  const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
-  const [showImageEditModal, setShowImageEditModal] = useState(false);
-  const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
-  const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
-  const [currentPanelIdea, setCurrentPanelIdea] = useState("");
-  const [selectedImageForEdit, setSelectedImageForEdit] = useState<string | null>(null);
-  const [editingPanel, setEditingPanel] = useState<any>(null);
 
   // Filter only MiniWorld projects
   const miniWorldProjects = projects.filter(p => p.projectType === ProjectType.MINIWORLD);
