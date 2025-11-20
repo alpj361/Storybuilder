@@ -17,17 +17,9 @@ import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
-console.log('[MiniWorldsScreen] Module loaded, all imports completed');
-
 const MiniWorldsScreen = () => {
-  console.log('[MiniWorldsScreen] Component function called');
-
   const [showInputModal, setShowInputModal] = useState(false);
-  console.log('[MiniWorldsScreen] showInputModal state initialized');
-
   const [showProjectSelector, setShowProjectSelector] = useState(false);
-  console.log('[MiniWorldsScreen] showProjectSelector state initialized');
-
   const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
   const [showImageEditModal, setShowImageEditModal] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
@@ -36,18 +28,9 @@ const MiniWorldsScreen = () => {
   const [selectedImageForEdit, setSelectedImageForEdit] = useState<string | null>(null);
   const [editingPanel, setEditingPanel] = useState<any>(null);
 
-  console.log('[MiniWorldsScreen] All useState hooks initialized');
-
   // Use helper hooks exactly like StoryboardScreen
-  console.log('[MiniWorldsScreen] About to call useCurrentProject');
   const currentProject = useCurrentProject();
-  console.log('[MiniWorldsScreen] useCurrentProject completed');
-
-  console.log('[MiniWorldsScreen] About to call useProjects');
   const projects = useProjects();
-  console.log('[MiniWorldsScreen] useProjects completed');
-
-  console.log('[MiniWorldsScreen] About to call useStoryboardStore hooks');
   const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
   const deleteProject = useStoryboardStore(state => state.deleteProject);
   const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);

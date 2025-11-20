@@ -40,7 +40,6 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 function App() {
   const [isNavigationReady, setIsNavigationReady] = useState(false);
-  const [isNavContainerReady, setIsNavContainerReady] = useState(false);
 
   useEffect(() => {
     const prepare = async () => {
@@ -64,7 +63,6 @@ function App() {
     prepare();
   }, []);
 
-  // First check: app resources loaded
   if (!isNavigationReady) {
     return null;
   }
@@ -72,47 +70,38 @@ function App() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer onReady={() => {
-          console.log('[App] NavigationContainer is ready');
-          setIsNavContainerReady(true);
-        }}>
-          {isNavContainerReady ? (
-            <Tab.Navigator
-              screenOptions={({ route }) => ({
-                headerShown: false,
-                tabBarActiveTintColor: "#6366F1",
-                tabBarInactiveTintColor: "#9CA3AF",
-                tabBarStyle: {
-                  paddingBottom: 8,
-                  paddingTop: 8,
-                  height: 60,
-                },
-                tabBarLabelStyle: {
-                  fontSize: 12,
-                  fontWeight: '600',
-                },
-                tabBarIcon: ({ color, size }) => {
-                  let iconName: string;
-                  if (route.name === "Storyboard") {
-                    iconName = "images-outline";
-                  } else if (route.name === "MiniWorlds") {
-                    iconName = "cube-outline";
-                  } else {
-                    iconName = "construct-outline";
-                  }
-                  return <Ionicons name={iconName as any} size={size} color={color} />;
+        <NavigationContainer>
+          <Tab.Navigator
+            screenOptions={({ route }) => ({
+              headerShown: false,
+              tabBarActiveTintColor: "#6366F1",
+              tabBarInactiveTintColor: "#9CA3AF",
+              tabBarStyle: {
+                paddingBottom: 8,
+                paddingTop: 8,
+                height: 60,
+              },
+              tabBarLabelStyle: {
+                fontSize: 12,
+                fontWeight: '600',
+              },
+              tabBarIcon: ({ color, size }) => {
+                let iconName: string;
+                if (route.name === "Storyboard") {
+                  iconName = "images-outline";
+                } else if (route.name === "MiniWorlds") {
+                  iconName = "cube-outline";
+                } else {
+                  iconName = "construct-outline";
                 }
-              })}
-            >
-              <Tab.Screen name="Storyboard" component={StoryboardScreen} />
-              <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
-              {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
-            </Tab.Navigator>
-          ) : (
-            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-              <Text>Loading...</Text>
-            </View>
-          )}
+                return <Ionicons name={iconName as any} size={size} color={color} />;
+              }
+            })}
+          >
+            <Tab.Screen name="Storyboard" component={StoryboardScreen} />
+            <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
+            {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
+          </Tab.Navigator>
         </NavigationContainer>
         <StatusBar style="auto" />
       </SafeAreaProvider>
