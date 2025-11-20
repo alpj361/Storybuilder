@@ -484,3 +484,5 @@ const MiniWorldsScreen = () => {
     </SafeAreaView>
   );
 }
+
+export default React.memo(MiniWorldsScreen);
