@@ -387,11 +387,12 @@ export default function MiniWorldsScreen() {
       <ProjectSelectorModal
         visible={showProjectSelector}
         onClose={() => setShowProjectSelector(false)}
-        projects={miniWorldProjects}
-        currentProjectId={activeMiniWorld?.id}
+        currentProjectType={ProjectType.MINIWORLD}
         onSelectProject={(project) => {
           setCurrentProject(project);
-          setShowProjectSelector(false);
+        }}
+        onCreateNew={() => {
+          setShowInputModal(true);
         }}
       />
 
