@@ -107,6 +107,8 @@ function App() {
   );
 }
 
+export default App;
+
 /*
   Código de Tab Navigator guardado para uso futuro con Arquitectura:
 
