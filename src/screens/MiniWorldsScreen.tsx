@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
@@ -29,46 +29,47 @@ const MiniWorldsScreen = () => {
   const [selectedImageForEdit, setSelectedImageForEdit] = useState<string | null>(null);
   const [editingPanel, setEditingPanel] = useState<any>(null);
 
-  // Get all store values at once to avoid multiple re-renders
-  const {
-    currentProject,
-    projects,
-    setCurrentProject,
-    deleteProject,
-    generatePanelImage,
-    regeneratePanelPromptFromIdea,
-    editPanelImage,
-    undoPanelImageEdit,
-    isGenerating
-  } = useStoryboardStore(state => ({
-    currentProject: state.currentProject,
-    projects: state.projects,
-    setCurrentProject: state.setCurrentProject,
-    deleteProject: state.deleteProject,
-    generatePanelImage: state.generatePanelImage,
-    regeneratePanelPromptFromIdea: state.regeneratePanelPromptFromIdea,
-    editPanelImage: state.editPanelImage,
-    undoPanelImageEdit: state.undoPanelImageEdit,
-    isGenerating: state.isGenerating
-  }));
+  // Use individual selectors to avoid infinite loops (object selector creates new object every render)
+  const currentProject = useStoryboardStore(state => state.currentProject);
+  const projects = useStoryboardStore(state => state.projects);
+  const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
+  const deleteProject = useStoryboardStore(state => state.deleteProject);
+  const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
+  const regeneratePanelPromptFromIdea = useStoryboardStore(state => state.regeneratePanelPromptFromIdea);
+  const editPanelImage = useStoryboardStore(state => state.editPanelImage);
+  const undoPanelImageEdit = useStoryboardStore(state => state.undoPanelImageEdit);
+  const isGenerating = useStoryboardStore(state => state.isGenerating);
 
 
-  // Filter only MiniWorld projects
-  const miniWorldProjects = projects.filter(p => p.projectType === ProjectType.MINIWORLD);
+  // Memoize computed values to prevent unnecessary recalculations
+  const miniWorldProjects = useMemo(() =>
+    projects.filter(p => p.projectType === ProjectType.MINIWORLD),
+    [projects]
+  );
 
-  // Only show currentProject if it's a MiniWorld, otherwise show empty state
-  const activeMiniWorld = currentProject?.projectType === ProjectType.MINIWORLD ? currentProject : null;
+  const activeMiniWorld = useMemo(() =>
+    currentProject?.projectType === ProjectType.MINIWORLD ? currentProject : null,
+    [currentProject]
+  );
 
-  // Get the single panel from active MiniWorld project
-  const panel = activeMiniWorld?.panels[0] || null;
+  const panel = useMemo(() =>
+    activeMiniWorld?.panels[0] || null,
+    [activeMiniWorld]
+  );
 
-  const panelCharacters = activeMiniWorld?.characters.filter(char =>
-    panel?.prompt.characters.includes(char.id)
-  ) || [];
+  const panelCharacters = useMemo(() =>
+    activeMiniWorld?.characters.filter(char =>
+      panel?.prompt.characters.includes(char.id)
+    ) || [],
+    [activeMiniWorld?.characters, panel?.prompt.characters]
+  );
 
-  const panelLocations = activeMiniWorld?.locations?.filter(loc =>
-    panel?.prompt.locations?.includes(loc.id)
-  ) || [];
+  const panelLocations = useMemo(() =>
+    activeMiniWorld?.locations?.filter(loc =>
+      panel?.prompt.locations?.includes(loc.id)
+    ) || [],
+    [activeMiniWorld?.locations, panel?.prompt.locations]
+  );
 
   const handleGenerateImage = async () => {
     if (!panel) return;
