@@ -36,7 +36,7 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 */
 
-const App = () => {
+function App() {
   const [isNavigationReady, setIsNavigationReady] = useState(false);
 
   useEffect(() => {
