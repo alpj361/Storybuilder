@@ -1,8 +1,7 @@
-import React, { useCallback, useState } from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useFocusEffect } from "@react-navigation/native";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
   ProjectType,
@@ -39,33 +38,17 @@ export default function MiniWorldsScreen() {
   // Filter only MiniWorld projects
   const miniWorldProjects = projects.filter(p => p.projectType === ProjectType.MINIWORLD);
 
-  // Ensure currentProject is always a MiniWorld when this screen is FOCUSED
-  // Using useFocusEffect instead of useEffect prevents conflicts with StoryboardScreen
-  useFocusEffect(
-    useCallback(() => {
-      if (projects.length === 0) return;
+  // Only show currentProject if it's a MiniWorld, otherwise show empty state
+  const activeMiniWorld = currentProject?.projectType === ProjectType.MINIWORLD ? currentProject : null;
 
-      // If currentProject is not a MiniWorld, switch to most recent MiniWorld
-      if (!currentProject || currentProject.projectType !== ProjectType.MINIWORLD) {
-        const latestMiniWorld = [...projects]
-          .filter(p => p.projectType === ProjectType.MINIWORLD)
-          .pop();
+  // Get the single panel from active MiniWorld project
+  const panel = activeMiniWorld?.panels[0] || null;
 
-        if (latestMiniWorld && latestMiniWorld.id !== currentProject?.id) {
-          setCurrentProject(latestMiniWorld);
-        }
-      }
-    }, [currentProject?.id, currentProject?.projectType, projects, setCurrentProject])
-  );
-
-  // Get the single panel from current MiniWorld project
-  const panel = currentProject?.projectType === ProjectType.MINIWORLD ? currentProject.panels[0] : null;
-
-  const panelCharacters = currentProject?.characters.filter(char =>
+  const panelCharacters = activeMiniWorld?.characters.filter(char =>
     panel?.prompt.characters.includes(char.id)
   ) || [];
 
-  const panelLocations = currentProject?.locations?.filter(loc =>
+  const panelLocations = activeMiniWorld?.locations?.filter(loc =>
     panel?.prompt.locations?.includes(loc.id)
   ) || [];
 
@@ -119,20 +102,20 @@ export default function MiniWorldsScreen() {
   };
 
   const handleDeleteProject = () => {
-    if (!currentProject) return;
+    if (!activeMiniWorld) return;
 
     Alert.alert(
       "Delete MiniWorld",
-      `Are you sure you want to delete "${currentProject.title}"?`,
+      `Are you sure you want to delete "${activeMiniWorld.title}"?`,
       [
         { text: "Cancel", style: "cancel" },
         {
           text: "Delete",
           style: "destructive",
           onPress: () => {
-            deleteProject(currentProject.id);
+            deleteProject(activeMiniWorld.id);
             // Set to first available MiniWorld project or null
-            const remainingProjects = miniWorldProjects.filter(p => p.id !== currentProject.id);
+            const remainingProjects = miniWorldProjects.filter(p => p.id !== activeMiniWorld.id);
             setCurrentProject(remainingProjects[0] || null);
           }
         }
@@ -162,7 +145,7 @@ export default function MiniWorldsScreen() {
             >
               <View className="flex-row items-center justify-between">
                 <Text className="text-sm text-indigo-900 font-bold flex-1">
-                  {currentProject?.title || "No Project Selected"}
+                  {activeMiniWorld?.title || "No Project Selected"}
                 </Text>
                 <Ionicons name="chevron-down" size={20} color="#6366F1" />
               </View>
@@ -176,7 +159,7 @@ export default function MiniWorldsScreen() {
             >
               <Ionicons name="add-circle-outline" size={26} color="#6366F1" />
             </Pressable>
-            {currentProject && (
+            {activeMiniWorld && (
               <Pressable
                 onPress={handleDeleteProject}
                 className="p-2 rounded-full active:bg-gray-100"
@@ -190,7 +173,7 @@ export default function MiniWorldsScreen() {
       </View>
 
       <ScrollView className="flex-1 px-4 py-5">
-        {!currentProject || !panel ? (
+        {!activeMiniWorld || !panel ? (
           // Empty State
           <View className="flex-1 items-center py-20">
             <View className="bg-indigo-100 rounded-full p-8 mb-6">
@@ -214,8 +197,8 @@ export default function MiniWorldsScreen() {
           <View>
             {/* Project Info Card */}
             <View className="mb-5 p-5 bg-white rounded-xl border border-gray-200 shadow-sm">
-              <Text className="text-base font-bold text-gray-800 mb-2">{currentProject.title}</Text>
-              <Text className="text-sm text-gray-600 mb-4">{currentProject.description}</Text>
+              <Text className="text-base font-bold text-gray-800 mb-2">{activeMiniWorld.title}</Text>
+              <Text className="text-sm text-gray-600 mb-4">{activeMiniWorld.description}</Text>
 
               {/* Characters and Locations */}
               {(panelCharacters.length > 0 || panelLocations.length > 0) && (
@@ -393,7 +376,7 @@ export default function MiniWorldsScreen() {
         visible={showProjectSelector}
         onClose={() => setShowProjectSelector(false)}
         projects={miniWorldProjects}
-        currentProjectId={currentProject?.id}
+        currentProjectId={activeMiniWorld?.id}
         onSelectProject={(project) => {
           setCurrentProject(project);
           setShowProjectSelector(false);
