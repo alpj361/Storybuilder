@@ -67,10 +67,12 @@ function App() {
     return null;
   }
 
+  console.log('[App] 🚀 About to render NavigationContainer and Tab.Navigator');
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
+        <NavigationContainer onReady={() => console.log('[App] ✅ NavigationContainer ready')}>
           <Tab.Navigator
             initialRouteName="Storyboard"
             screenOptions={({ route }) => ({
