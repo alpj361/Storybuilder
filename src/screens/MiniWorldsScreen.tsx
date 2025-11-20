@@ -1,9 +1,8 @@
-import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert, ActivityIndicator } from "react-native";
+import React, { useState } from "react";
+import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useStoryboardStore } from "../state/storyboardStore";
-import { useNavigation } from "@react-navigation/native";
 import {
   ProjectType,
   Character,
@@ -20,8 +19,6 @@ import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
 const MiniWorldsScreen = () => {
-  const navigation = useNavigation();
-  const [isReady, setIsReady] = useState(false);
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
@@ -55,22 +52,6 @@ const MiniWorldsScreen = () => {
     isGenerating: state.isGenerating
   }));
 
-  useEffect(() => {
-    const unsubscribe = navigation.addListener('focus', () => {
-      // This will run when the screen comes into focus
-      setIsReady(true);
-    });
-
-    return unsubscribe;
-  }, [navigation]);
-
-  if (!isReady) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-        <ActivityIndicator size="large" color="#6366F1" />
-      </View>
-    );
-  }
 
   // Filter only MiniWorld projects
   const miniWorldProjects = projects.filter(p => p.projectType === ProjectType.MINIWORLD);
