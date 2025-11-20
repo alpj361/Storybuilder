@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, Pressable, Image, Alert, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
+import { useStoryboardStore } from "../state/storyboardStore";
+import { useNavigation } from "@react-navigation/native";
 import {
   ProjectType,
   Character,
@@ -18,16 +19,49 @@ import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
-export default function MiniWorldsScreen() {
-  const currentProject = useCurrentProject();
-  const projects = useProjects();
-  const setCurrentProject = useStoryboardStore(state => state.setCurrentProject);
-  const deleteProject = useStoryboardStore(state => state.deleteProject);
-  const generatePanelImage = useStoryboardStore(state => state.generatePanelImage);
-  const regeneratePanelPromptFromIdea = useStoryboardStore(state => state.regeneratePanelPromptFromIdea);
-  const editPanelImage = useStoryboardStore(state => state.editPanelImage);
-  const undoPanelImageEdit = useStoryboardStore(state => state.undoPanelImageEdit);
-  const isGenerating = useStoryboardStore(state => state.isGenerating);
+const MiniWorldsScreen = () => {
+  const navigation = useNavigation();
+  const [isReady, setIsReady] = useState(false);
+  
+  // Get all store values at once to avoid multiple re-renders
+  const {
+    currentProject,
+    projects,
+    setCurrentProject,
+    deleteProject,
+    generatePanelImage,
+    regeneratePanelPromptFromIdea,
+    editPanelImage,
+    undoPanelImageEdit,
+    isGenerating
+  } = useStoryboardStore(state => ({
+    currentProject: state.currentProject,
+    projects: state.projects,
+    setCurrentProject: state.setCurrentProject,
+    deleteProject: state.deleteProject,
+    generatePanelImage: state.generatePanelImage,
+    regeneratePanelPromptFromIdea: state.regeneratePanelPromptFromIdea,
+    editPanelImage: state.editPanelImage,
+    undoPanelImageEdit: state.undoPanelImageEdit,
+    isGenerating: state.isGenerating
+  }));
+
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', () => {
+      // This will run when the screen comes into focus
+      setIsReady(true);
+    });
+
+    return unsubscribe;
+  }, [navigation]);
+
+  if (!isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color="#6366F1" />
+      </View>
+    );
+  }
 
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
@@ -35,6 +69,9 @@ export default function MiniWorldsScreen() {
   const [showImageEditModal, setShowImageEditModal] = useState(false);
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(null);
   const [selectedLocation, setSelectedLocation] = useState<Location | null>(null);
+  const [currentPanelIdea, setCurrentPanelIdea] = useState("");
+  const [selectedImageForEdit, setSelectedImageForEdit] = useState<string | null>(null);
+  const [editingPanel, setEditingPanel] = useState<any>(null);
 
   // Filter only MiniWorld projects
   const miniWorldProjects = projects.filter(p => p.projectType === ProjectType.MINIWORLD);
@@ -286,9 +323,8 @@ export default function MiniWorldsScreen() {
               <Pressable
                 onPress={handleGenerateImage}
                 disabled={panel.isGenerating}
-                className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-                  panel.isGenerating ? 'bg-gray-200 border border-gray-300' : 'bg-indigo-600'
-                }`}
+                className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating ? 'bg-gray-200 border border-gray-300' : 'bg-indigo-600'
+                  }`}
                 style={{ minHeight: 48 }}
               >
                 <Ionicons
@@ -296,9 +332,8 @@ export default function MiniWorldsScreen() {
                   size={20}
                   color={panel.isGenerating ? "#9CA3AF" : "#FFFFFF"}
                 />
-                <Text className={`text-base font-bold ml-2 ${
-                  panel.isGenerating ? 'text-gray-500' : 'text-white'
-                }`}>
+                <Text className={`text-base font-bold ml-2 ${panel.isGenerating ? 'text-gray-500' : 'text-white'
+                  }`}>
                   {panel.generatedImageUrl ? "Regenerate Image" : "Generate Image"}
                 </Text>
               </Pressable>
@@ -307,15 +342,13 @@ export default function MiniWorldsScreen() {
               <Pressable
                 onPress={() => setShowIdeaEditModal(true)}
                 disabled={panel.isGenerating}
-                className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-                  panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-blue-300'
-                }`}
+                className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-blue-300'
+                  }`}
                 style={{ minHeight: 44 }}
               >
                 <Ionicons name="create-outline" size={18} color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"} />
-                <Text className={`text-sm font-semibold ml-2 ${
-                  panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
-                }`}>
+                <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
+                  }`}>
                   Edit Idea
                 </Text>
               </Pressable>
@@ -325,9 +358,8 @@ export default function MiniWorldsScreen() {
                 <Pressable
                   onPress={() => setShowImageEditModal(true)}
                   disabled={panel.isGenerating || panel.isEditing}
-                  className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-                    panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-orange-300'
-                  }`}
+                  className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-orange-300'
+                    }`}
                   style={{ minHeight: 44 }}
                 >
                   <Ionicons
@@ -335,9 +367,8 @@ export default function MiniWorldsScreen() {
                     size={18}
                     color={panel.isGenerating || panel.isEditing ? "#9CA3AF" : "#ea580c"}
                   />
-                  <Text className={`text-sm font-semibold ml-2 ${
-                    panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-orange-600'
-                  }`}>
+                  <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-orange-600'
+                    }`}>
                     {panel.isEditing ? 'Editing...' : 'Edit Image'}
                   </Text>
                 </Pressable>
@@ -348,9 +379,8 @@ export default function MiniWorldsScreen() {
                 <Pressable
                   onPress={handleUndoImageEdit}
                   disabled={panel.isGenerating || panel.isEditing}
-                  className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-                    panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-gray-300'
-                  }`}
+                  className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-gray-300'
+                    }`}
                   style={{ minHeight: 44 }}
                 >
                   <Ionicons
@@ -358,9 +388,8 @@ export default function MiniWorldsScreen() {
                     size={18}
                     color={panel.isGenerating || panel.isEditing ? "#9CA3AF" : "#6b7280"}
                   />
-                  <Text className={`text-sm font-semibold ml-2 ${
-                    panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-gray-600'
-                  }`}>
+                  <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-gray-600'
+                    }`}>
                     Undo Edit
                   </Text>
                 </Pressable>
@@ -400,21 +429,40 @@ export default function MiniWorldsScreen() {
         />
       )}
 
-      {panel && showIdeaEditModal && (
+      {editingPanel && showIdeaEditModal && (
         <PanelIdeaEditModal
-          visible={true}
+          visible={showIdeaEditModal}
           onClose={() => setShowIdeaEditModal(false)}
-          currentIdea={panel.prompt.sceneDescription || panel.prompt.action}
-          onSave={handleEditIdea}
+          currentIdea={currentPanelIdea}
+          onSave={async (newIdea: string) => {
+            if (editingPanel) {
+              try {
+                await regeneratePanelPromptFromIdea(editingPanel.id, newIdea);
+                setShowIdeaEditModal(false);
+              } catch (error) {
+                console.error('Failed to save panel idea:', error);
+              }
+            }
+          }}
+          panelNumber={editingPanel?.panelNumber || 1}
         />
       )}
 
-      {panel && showImageEditModal && (
+      {editingPanel && showImageEditModal && selectedImageForEdit && (
         <ImageEditModal
-          visible={true}
+          visible={showImageEditModal}
           onClose={() => setShowImageEditModal(false)}
-          imageUrl={panel.generatedImageUrl || ''}
-          onEdit={handleEditImage}
+          onSubmit={async (editPrompt: string) => {
+            if (editingPanel) {
+              try {
+                await editPanelImage(editingPanel.id, editPrompt);
+                setShowImageEditModal(false);
+              } catch (error) {
+                console.error('Failed to edit image:', error);
+              }
+            }
+          }}
+          isProcessing={isGenerating}
         />
       )}
 

@@ -2,7 +2,7 @@ import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,11 +36,34 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 */
 
-export default function App() {
+const App = () => {
+  const [isNavigationReady, setIsNavigationReady] = useState(false);
+
   useEffect(() => {
-    // Hide splash screen once app is ready
-    SplashScreen.hideAsync();
+    const prepare = async () => {
+      try {
+        // Keep the splash screen visible while we fetch resources
+        await SplashScreen.preventAutoHideAsync();
+        
+        // Any async operations can go here
+        
+        // Artificially delay for 500ms to ensure everything is loaded
+        await new Promise(resolve => setTimeout(resolve, 500));
+      } catch (e) {
+        console.warn(e);
+      } finally {
+        // Tell the application to render
+        setIsNavigationReady(true);
+        await SplashScreen.hideAsync();
+      }
+    };
+
+    prepare();
   }, []);
+
+  if (!isNavigationReady) {
+    return null; // Or a splash screen component
+  }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
