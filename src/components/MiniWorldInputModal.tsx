@@ -139,11 +139,16 @@ export function MiniWorldInputModal({
         locations.length > 0 ? locations : undefined
       );
 
-      // Clear and close
+      // Clear state
       setInput("");
       setCharacters([]);
       setLocations([]);
-      onClose();
+
+      // Close modal after a brief delay to allow state updates to settle
+      // This prevents navigation context errors during modal dismissal
+      setTimeout(() => {
+        onClose();
+      }, 50);
     } catch (err) {
       Alert.alert("Error", "Failed to generate MiniWorld");
     } finally {
