@@ -27,6 +27,7 @@ export default function MiniWorldsScreen() {
   const regeneratePanelPromptFromIdea = useStoryboardStore(state => state.regeneratePanelPromptFromIdea);
   const editPanelImage = useStoryboardStore(state => state.editPanelImage);
   const undoPanelImageEdit = useStoryboardStore(state => state.undoPanelImageEdit);
+  const isGenerating = useStoryboardStore(state => state.isGenerating);
 
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
@@ -173,7 +174,18 @@ export default function MiniWorldsScreen() {
       </View>
 
       <ScrollView className="flex-1 px-4 py-5">
-        {!activeMiniWorld || !panel ? (
+        {isGenerating && !activeMiniWorld ? (
+          // Creating MiniWorld State
+          <View className="flex-1 items-center justify-center py-20">
+            <View className="bg-indigo-500 rounded-full p-8 mb-6">
+              <Ionicons name="hourglass" size={80} color="#FFFFFF" />
+            </View>
+            <Text className="text-2xl font-bold text-gray-900 mb-2">Creating Your MiniWorld...</Text>
+            <Text className="text-base text-gray-600 text-center px-8">
+              Generating your isometric diorama scene
+            </Text>
+          </View>
+        ) : !activeMiniWorld || !panel ? (
           // Empty State
           <View className="flex-1 items-center py-20">
             <View className="bg-indigo-100 rounded-full p-8 mb-6">
