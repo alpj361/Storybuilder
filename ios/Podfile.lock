@@ -23,7 +23,7 @@ PODS:
     - ExpoModulesCore
   - EXNotifications (0.31.4):
     - ExpoModulesCore
-  - Expo (53.0.23):
+  - Expo (53.0.24):
     - DoubleConversion
     - ExpoModulesCore
     - glog
@@ -376,6 +376,8 @@ PODS:
     - ReactCommon/turbomodule/core
     - Yoga
   - ExpoNetwork (7.1.5):
+    - ExpoModulesCore
+  - ExpoPrint (14.1.4):
     - ExpoModulesCore
   - ExpoSecureStore (14.2.4):
     - ExpoModulesCore
@@ -2975,6 +2977,7 @@ DEPENDENCIES:
   - ExpoMediaLibrary (from `../node_modules/expo-media-library/ios`)
   - ExpoModulesCore (from `../node_modules/expo-modules-core`)
   - ExpoNetwork (from `../node_modules/expo-network/ios`)
+  - ExpoPrint (from `../node_modules/expo-print/ios`)
   - ExpoSecureStore (from `../node_modules/expo-secure-store/ios`)
   - ExpoSensors (from `../node_modules/expo-sensors/ios`)
   - ExpoSharing (from `../node_modules/expo-sharing/ios`)
@@ -3193,6 +3196,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/expo-modules-core"
   ExpoNetwork:
     :path: "../node_modules/expo-network/ios"
+  ExpoPrint:
+    :path: "../node_modules/expo-print/ios"
   ExpoSecureStore:
     :path: "../node_modules/expo-secure-store/ios"
   ExpoSensors:
@@ -3429,7 +3434,7 @@ SPEC CHECKSUMS:
   EXJSONUtils: 1d3e4590438c3ee593684186007028a14b3686cd
   EXManifests: 691a779b04e4f2c96da46fb9bef4f86174fefcb5
   EXNotifications: be5e949edf1d60b70e77178b81aa505298fadd07
-  Expo: dd7f49380001a55ea776f905f8b3c1c540160b09
+  Expo: d68c92f4bee50a21f0f0d7d2481dd6dbbd51e82b
   expo-dev-client: 9b1e78baf0dd87b005f035d180bbb07c05917fad
   expo-dev-launcher: 35dc0269b5fc1f628abc00e08e5a969e7809eff4
   expo-dev-menu: 0771fa9c5c405e07aa15e55a699b8a4a984ea77a
@@ -3463,6 +3468,7 @@ SPEC CHECKSUMS:
   ExpoMediaLibrary: 0daf5e811e00daa47690f5da2989e71ff7de56e0
   ExpoModulesCore: 00a1b5c73248465bd0b93f59f8538c4573dac579
   ExpoNetwork: 92cac43c13a2d9e9c1470ec8804836574ff34068
+  ExpoPrint: b278f5d9ac844f4b1f65dd06183970602e09bc8b
   ExpoSecureStore: 3f1b632d6d40bcc62b4983ef9199cd079592a50a
   ExpoSensors: 38ae3a55b484410a7976fa3ff78ea80339252e75
   ExpoSharing: b0377be82430d07398c6a4cd60b5a15696accbd3

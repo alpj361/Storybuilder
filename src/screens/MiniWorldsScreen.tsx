@@ -1,6 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
@@ -180,7 +179,7 @@ function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-100">
+    <View className="flex-1 bg-gray-100">
       {/* Header */}
       <View className="bg-white border-b border-gray-200 px-5 py-4">
         <View className="flex-row justify-between items-center">
@@ -487,7 +486,7 @@ function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
           location={selectedLocation}
         />
       )}
-    </SafeAreaView>
+    </View>
   );
 }
 

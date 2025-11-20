@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import MiniWorldsScreen from './MiniWorldsScreen';
 
 /**
  * Wrapper component that ensures navigation context is available
  * before rendering the actual MiniWorldsScreen
+ * Also provides SafeAreaView wrapping that was removed from MiniWorldsScreen
  */
 export default function MiniWorldsScreenWrapper() {
     const [isNavigationReady, setIsNavigationReady] = useState(false);
@@ -32,5 +34,9 @@ export default function MiniWorldsScreenWrapper() {
         );
     }
 
-    return <MiniWorldsScreen />;
+    return (
+        <SafeAreaView style={{ flex: 1 }}>
+            <MiniWorldsScreen />
+        </SafeAreaView>
+    );
 }
