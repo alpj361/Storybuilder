@@ -1,7 +1,8 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
   ProjectType,
@@ -19,6 +20,9 @@ import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
 const MiniWorldsScreen = () => {
+  const navigation = useNavigation();
+  console.log("[MiniWorldsScreen] Rendering, navigation:", !!navigation);
+
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
@@ -469,4 +473,4 @@ const MiniWorldsScreen = () => {
   );
 }
 
-export default React.memo(MiniWorldsScreen);
+export default MiniWorldsScreen;
