@@ -149,6 +149,14 @@ const MiniWorldsScreen = () => {
     setSelectedLocation(location);
   };
 
+  const handleSelectProject = (project: any) => {
+    setCurrentProject(project);
+  };
+
+  const handleCreateNewFromSelector = () => {
+    setShowInputModal(true);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-gray-100">
       {/* Header */}
@@ -400,12 +408,8 @@ const MiniWorldsScreen = () => {
           visible={true}
           onClose={() => setShowProjectSelector(false)}
           currentProjectType={ProjectType.MINIWORLD}
-          onSelectProject={(project) => {
-            setCurrentProject(project);
-          }}
-          onCreateNew={() => {
-            setShowInputModal(true);
-          }}
+          onSelectProject={handleSelectProject}
+          onCreateNew={handleCreateNewFromSelector}
         />
       )}
 
