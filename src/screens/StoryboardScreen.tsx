@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert, Modal, InteractionManager } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
@@ -717,37 +716,7 @@ export default function StoryboardScreen({
       .sort((a, b) => a - b);
   };
 
-  // Adjust current project based on mode only when this screen is FOCUSED
-  // Using useFocusEffect instead of useEffect prevents conflicts with MiniWorldsScreen
-  useFocusEffect(
-    useCallback(() => {
-      if (projects.length === 0) return;
-
-      if (isArchitectural) {
-        if (currentProject?.projectType === ProjectType.ARCHITECTURAL) return;
-
-        const architecturalProject = [...projects]
-          .filter(project => project.projectType === ProjectType.ARCHITECTURAL)
-          .pop();
-
-        if (architecturalProject && architecturalProject.id !== currentProject?.id) {
-          setCurrentProject(architecturalProject);
-        }
-      } else {
-        // For storyboard mode, only show STORYBOARD projects (exclude ARCHITECTURAL and MINIWORLD)
-        if (!currentProject || currentProject.projectType === ProjectType.ARCHITECTURAL || currentProject.projectType === ProjectType.MINIWORLD) {
-          const storyboardProject = [...projects]
-            .filter(project => project.projectType === ProjectType.STORYBOARD)
-            .pop();
-
-          if (storyboardProject && storyboardProject.id !== currentProject?.id) {
-            setCurrentProject(storyboardProject);
-          }
-        }
-      }
-    }, [isArchitectural, currentProject?.id, currentProject?.projectType, projects, setCurrentProject])
-  );
-
+  // Only show currentProject if it matches the current mode, otherwise show empty state
   const activeProject = useMemo(() => {
     if (!currentProject) return null;
     if (isArchitectural) {
