@@ -3,6 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
+import { View, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
@@ -36,17 +37,19 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 */
 
+
 function App() {
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [isNavContainerReady, setIsNavContainerReady] = useState(false);
 
   useEffect(() => {
     const prepare = async () => {
       try {
         // Keep the splash screen visible while we fetch resources
         await SplashScreen.preventAutoHideAsync();
-        
+
         // Any async operations can go here
-        
+
         // Artificially delay for 500ms to ensure everything is loaded
         await new Promise(resolve => setTimeout(resolve, 500));
       } catch (e) {
@@ -61,45 +64,55 @@ function App() {
     prepare();
   }, []);
 
+  // First check: app resources loaded
   if (!isNavigationReady) {
-    return null; // Or a splash screen component
+    return null;
   }
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <Tab.Navigator
-            screenOptions={({ route }) => ({
-              headerShown: false,
-              tabBarActiveTintColor: "#6366F1",
-              tabBarInactiveTintColor: "#9CA3AF",
-              tabBarStyle: {
-                paddingBottom: 8,
-                paddingTop: 8,
-                height: 60,
-              },
-              tabBarLabelStyle: {
-                fontSize: 12,
-                fontWeight: '600',
-              },
-              tabBarIcon: ({ color, size }) => {
-                let iconName: string;
-                if (route.name === "Storyboard") {
-                  iconName = "images-outline";
-                } else if (route.name === "MiniWorlds") {
-                  iconName = "cube-outline";
-                } else {
-                  iconName = "construct-outline";
+        <NavigationContainer onReady={() => {
+          console.log('[App] NavigationContainer is ready');
+          setIsNavContainerReady(true);
+        }}>
+          {isNavContainerReady ? (
+            <Tab.Navigator
+              screenOptions={({ route }) => ({
+                headerShown: false,
+                tabBarActiveTintColor: "#6366F1",
+                tabBarInactiveTintColor: "#9CA3AF",
+                tabBarStyle: {
+                  paddingBottom: 8,
+                  paddingTop: 8,
+                  height: 60,
+                },
+                tabBarLabelStyle: {
+                  fontSize: 12,
+                  fontWeight: '600',
+                },
+                tabBarIcon: ({ color, size }) => {
+                  let iconName: string;
+                  if (route.name === "Storyboard") {
+                    iconName = "images-outline";
+                  } else if (route.name === "MiniWorlds") {
+                    iconName = "cube-outline";
+                  } else {
+                    iconName = "construct-outline";
+                  }
+                  return <Ionicons name={iconName as any} size={size} color={color} />;
                 }
-                return <Ionicons name={iconName as any} size={size} color={color} />;
-              }
-            })}
-          >
-            <Tab.Screen name="Storyboard" component={StoryboardScreen} />
-            <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
-            {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
-          </Tab.Navigator>
+              })}
+            >
+              <Tab.Screen name="Storyboard" component={StoryboardScreen} />
+              <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
+              {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
+            </Tab.Navigator>
+          ) : (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+              <Text>Loading...</Text>
+            </View>
+          )}
         </NavigationContainer>
         <StatusBar style="auto" />
       </SafeAreaProvider>
