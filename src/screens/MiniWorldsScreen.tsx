@@ -378,40 +378,44 @@ export default function MiniWorldsScreen() {
         )}
       </ScrollView>
 
-      {/* Modals */}
-      <MiniWorldInputModal
-        visible={showInputModal}
-        onClose={() => setShowInputModal(false)}
-      />
+      {/* Modals - Only render when needed to avoid navigation context issues */}
+      {showInputModal && (
+        <MiniWorldInputModal
+          visible={true}
+          onClose={() => setShowInputModal(false)}
+        />
+      )}
 
-      <ProjectSelectorModal
-        visible={showProjectSelector}
-        onClose={() => setShowProjectSelector(false)}
-        currentProjectType={ProjectType.MINIWORLD}
-        onSelectProject={(project) => {
-          setCurrentProject(project);
-        }}
-        onCreateNew={() => {
-          setShowInputModal(true);
-        }}
-      />
+      {showProjectSelector && (
+        <ProjectSelectorModal
+          visible={true}
+          onClose={() => setShowProjectSelector(false)}
+          currentProjectType={ProjectType.MINIWORLD}
+          onSelectProject={(project) => {
+            setCurrentProject(project);
+          }}
+          onCreateNew={() => {
+            setShowInputModal(true);
+          }}
+        />
+      )}
 
-      {panel && (
-        <>
-          <PanelIdeaEditModal
-            visible={showIdeaEditModal}
-            onClose={() => setShowIdeaEditModal(false)}
-            currentIdea={panel.prompt.sceneDescription || panel.prompt.action}
-            onSave={handleEditIdea}
-          />
+      {panel && showIdeaEditModal && (
+        <PanelIdeaEditModal
+          visible={true}
+          onClose={() => setShowIdeaEditModal(false)}
+          currentIdea={panel.prompt.sceneDescription || panel.prompt.action}
+          onSave={handleEditIdea}
+        />
+      )}
 
-          <ImageEditModal
-            visible={showImageEditModal}
-            onClose={() => setShowImageEditModal(false)}
-            imageUrl={panel.generatedImageUrl || ''}
-            onEdit={handleEditImage}
-          />
-        </>
+      {panel && showImageEditModal && (
+        <ImageEditModal
+          visible={true}
+          onClose={() => setShowImageEditModal(false)}
+          imageUrl={panel.generatedImageUrl || ''}
+          onEdit={handleEditImage}
+        />
       )}
 
       {selectedCharacter && (
