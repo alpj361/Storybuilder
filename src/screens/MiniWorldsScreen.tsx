@@ -18,7 +18,7 @@ import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
-const MiniWorldsScreen = () => {
+export default function MiniWorldsScreen() {
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
@@ -468,5 +468,3 @@ const MiniWorldsScreen = () => {
     </SafeAreaView>
   );
 }
-
-export default MiniWorldsScreen;
