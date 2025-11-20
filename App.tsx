@@ -72,6 +72,7 @@ function App() {
       <SafeAreaProvider>
         <NavigationContainer>
           <Tab.Navigator
+            initialRouteName="Storyboard"
             screenOptions={({ route }) => ({
               headerShown: false,
               tabBarActiveTintColor: "#6366F1",
@@ -99,7 +100,11 @@ function App() {
             })}
           >
             <Tab.Screen name="Storyboard" component={StoryboardScreen} />
-            <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
+            <Tab.Screen
+              name="MiniWorlds"
+              component={MiniWorldsScreen}
+              options={{ lazy: true }}
+            />
             {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
           </Tab.Navigator>
         </NavigationContainer>
