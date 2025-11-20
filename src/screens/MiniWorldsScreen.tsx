@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
   ProjectType,
@@ -38,21 +39,24 @@ export default function MiniWorldsScreen() {
   // Filter only MiniWorld projects
   const miniWorldProjects = projects.filter(p => p.projectType === ProjectType.MINIWORLD);
 
-  // Ensure currentProject is always a MiniWorld when on this screen
-  useEffect(() => {
-    if (projects.length === 0) return;
+  // Ensure currentProject is always a MiniWorld when this screen is FOCUSED
+  // Using useFocusEffect instead of useEffect prevents conflicts with StoryboardScreen
+  useFocusEffect(
+    useCallback(() => {
+      if (projects.length === 0) return;
 
-    // If currentProject is not a MiniWorld, switch to most recent MiniWorld
-    if (!currentProject || currentProject.projectType !== ProjectType.MINIWORLD) {
-      const latestMiniWorld = [...projects]
-        .filter(p => p.projectType === ProjectType.MINIWORLD)
-        .pop();
+      // If currentProject is not a MiniWorld, switch to most recent MiniWorld
+      if (!currentProject || currentProject.projectType !== ProjectType.MINIWORLD) {
+        const latestMiniWorld = [...projects]
+          .filter(p => p.projectType === ProjectType.MINIWORLD)
+          .pop();
 
-      if (latestMiniWorld && latestMiniWorld.id !== currentProject?.id) {
-        setCurrentProject(latestMiniWorld);
+        if (latestMiniWorld && latestMiniWorld.id !== currentProject?.id) {
+          setCurrentProject(latestMiniWorld);
+        }
       }
-    }
-  }, [currentProject?.id, currentProject?.projectType, projects, setCurrentProject]);
+    }, [currentProject?.id, currentProject?.projectType, projects, setCurrentProject])
+  );
 
   // Get the single panel from current MiniWorld project
   const panel = currentProject?.projectType === ProjectType.MINIWORLD ? currentProject.panels[0] : null;
