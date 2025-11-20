@@ -24,7 +24,7 @@ interface MiniWorldsScreenProps {
   // Empty for now, but following same pattern as StoryboardScreen
 }
 
-export default function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
+function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
   console.log('[MiniWorldsScreen] 🔵 Component function called');
 
   console.log('[MiniWorldsScreen] 📍 About to initialize state hooks...');
@@ -490,3 +490,6 @@ export default function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
     </SafeAreaView>
   );
 }
+
+// Wrap with React.memo to prevent unnecessary re-renders
+export default React.memo(MiniWorldsScreen);
