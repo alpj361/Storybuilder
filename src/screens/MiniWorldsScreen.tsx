@@ -2,7 +2,6 @@ import React, { useState, useMemo, useEffect } from "react";
 import { View, Text, ScrollView, Pressable, Image, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { useNavigation } from "@react-navigation/native";
 import { useCurrentProject, useProjects, useStoryboardStore } from "../state/storyboardStore";
 import {
   ProjectType,
@@ -20,8 +19,6 @@ import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
 const MiniWorldsScreen = () => {
-  const navigation = useNavigation();
-  console.log("[MiniWorldsScreen] Rendering, navigation:", !!navigation);
 
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
@@ -400,14 +397,14 @@ const MiniWorldsScreen = () => {
       </ScrollView>
 
       {/* Modals - Only render when needed to avoid navigation context issues */}
-      {/* {showInputModal && (
+      {showInputModal && (
         <MiniWorldInputModal
           visible={true}
           onClose={() => setShowInputModal(false)}
         />
-      )} */}
+      )}
 
-      {/* {showProjectSelector && (
+      {showProjectSelector && (
         <ProjectSelectorModal
           visible={true}
           onClose={() => setShowProjectSelector(false)}
@@ -415,9 +412,9 @@ const MiniWorldsScreen = () => {
           onSelectProject={handleSelectProject}
           onCreateNew={handleCreateNewFromSelector}
         />
-      )} */}
+      )}
 
-      {/* {editingPanel && showIdeaEditModal && (
+      {editingPanel && showIdeaEditModal && (
         <PanelIdeaEditModal
           visible={showIdeaEditModal}
           onClose={() => setShowIdeaEditModal(false)}
@@ -434,9 +431,9 @@ const MiniWorldsScreen = () => {
           }}
           panelNumber={editingPanel?.panelNumber || 1}
         />
-      )} */}
+      )}
 
-      {/* {editingPanel && showImageEditModal && selectedImageForEdit && (
+      {editingPanel && showImageEditModal && selectedImageForEdit && (
         <ImageEditModal
           visible={showImageEditModal}
           onClose={() => setShowImageEditModal(false)}
@@ -452,23 +449,23 @@ const MiniWorldsScreen = () => {
           }}
           isProcessing={isGenerating}
         />
-      )} */}
+      )}
 
-      {/* {selectedCharacter && (
+      {selectedCharacter && (
         <CharacterDetailsModal
           visible={true}
           onClose={() => setSelectedCharacter(null)}
           character={selectedCharacter}
         />
-      )} */}
+      )}
 
-      {/* {selectedLocation && (
+      {selectedLocation && (
         <LocationDetailsModal
           visible={true}
           onClose={() => setSelectedLocation(null)}
           location={selectedLocation}
         />
-      )} */}
+      )}
     </SafeAreaView>
   );
 }
