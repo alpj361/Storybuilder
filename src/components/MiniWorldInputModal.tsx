@@ -490,36 +490,42 @@ export function MiniWorldInputModal({
       </View>
 
       {/* Character Edit Modal */}
-      <CharacterEditModal
-        visible={showCharacterEditModal}
-        onClose={() => {
-          setShowCharacterEditModal(false);
-          setEditingCharacter(null);
-        }}
-        character={editingCharacter}
-        onSave={handleSaveCharacter}
-        mode={editingCharacter ? "edit" : "create"}
-      />
+      {showCharacterEditModal && (
+        <CharacterEditModal
+          visible={showCharacterEditModal}
+          onClose={() => {
+            setShowCharacterEditModal(false);
+            setEditingCharacter(null);
+          }}
+          character={editingCharacter}
+          onSave={handleSaveCharacter}
+          mode={editingCharacter ? "edit" : "create"}
+        />
+      )}
 
       {/* Location Edit Modal */}
-      <LocationEditModal
-        visible={showLocationEditModal}
-        onClose={() => {
-          setShowLocationEditModal(false);
-          setEditingLocation(null);
-        }}
-        location={editingLocation}
-        onSave={handleSaveLocation}
-        mode={editingLocation ? "edit" : "create"}
-      />
+      {showLocationEditModal && (
+        <LocationEditModal
+          visible={showLocationEditModal}
+          onClose={() => {
+            setShowLocationEditModal(false);
+            setEditingLocation(null);
+          }}
+          location={editingLocation}
+          onSave={handleSaveLocation}
+          mode={editingLocation ? "edit" : "create"}
+        />
+      )}
 
       {/* Location Library Modal */}
-      <LocationLibraryModal
-        visible={showLocationLibraryModal}
-        onClose={() => setShowLocationLibraryModal(false)}
-        onSelectLocation={handleSelectLocationFromLibrary}
-        onEditLocation={handleEditLocation}
-      />
+      {showLocationLibraryModal && (
+        <LocationLibraryModal
+          visible={showLocationLibraryModal}
+          onClose={() => setShowLocationLibraryModal(false)}
+          onSelectLocation={handleSelectLocationFromLibrary}
+          onEditLocation={handleEditLocation}
+        />
+      )}
     </Modal>
   );
 }
