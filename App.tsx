@@ -8,7 +8,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import StoryboardScreen from "./src/screens/StoryboardScreen";
-import MiniWorldsScreenWrapper from "./src/screens/MiniWorldsScreenWrapper";
+import MiniWorldsScreen from "./src/screens/MiniWorldsScreen";
 // import ArchitecturalScreen from "./src/screens/ArchitecturalScreen"; // Comentado para uso futuro
 
 // Keep the splash screen visible while we load fonts
@@ -102,8 +102,7 @@ function App() {
             <Tab.Screen name="Storyboard" component={StoryboardScreen} />
             <Tab.Screen
               name="MiniWorlds"
-              component={MiniWorldsScreenWrapper}
-              options={{ lazy: true }}
+              component={MiniWorldsScreen}
             />
             {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
           </Tab.Navigator>

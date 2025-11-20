@@ -18,7 +18,11 @@ import { ImageEditModal } from "../components/ImageEditModal";
 import { ProjectSelectorModal } from "../components/ProjectSelectorModal";
 import PanelIdeaEditModal from "../components/PanelIdeaEditModal";
 
-export default function MiniWorldsScreen() {
+interface MiniWorldsScreenProps {
+  // Empty for now, but following same pattern as StoryboardScreen
+}
+
+export default function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
   const [showInputModal, setShowInputModal] = useState(false);
   const [showProjectSelector, setShowProjectSelector] = useState(false);
   const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
