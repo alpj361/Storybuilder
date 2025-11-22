@@ -1,3 +1,8 @@
+// 🔧 FIX: Disable native screen optimization BEFORE any navigation imports
+import { enableScreens } from 'react-native-screens';
+enableScreens(false);
+
+// Now safe to import navigation
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -74,9 +79,10 @@ function App() {
       <SafeAreaProvider>
         <NavigationContainer onReady={() => console.log('[App] ✅ NavigationContainer ready')}>
           <Tab.Navigator
-            initialRouteName="Storyboard"
+            initialRouteName="MiniWorlds"
             screenOptions={({ route }) => ({
               headerShown: false,
+              unmountOnBlur: true, // Keep this for isolation
               tabBarActiveTintColor: "#6366F1",
               tabBarInactiveTintColor: "#9CA3AF",
               tabBarStyle: {
@@ -102,11 +108,7 @@ function App() {
             })}
           >
             <Tab.Screen name="Storyboard" component={StoryboardScreen} />
-            <Tab.Screen
-              name="MiniWorlds"
-              component={MiniWorldsScreen}
-            />
-            {/* <Tab.Screen name="Arquitectural" component={ArchitecturalScreen} /> */}
+            <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
           </Tab.Navigator>
         </NavigationContainer>
         <StatusBar style="auto" />

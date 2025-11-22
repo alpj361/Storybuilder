@@ -80,8 +80,8 @@ export function ProjectSelectorModal({
 
   const projectTypeLabel =
     currentProjectType === ProjectType.ARCHITECTURAL ? 'Architectural'
-    : currentProjectType === ProjectType.MINIWORLD ? 'MiniWorld'
-    : 'Storyboard';
+      : currentProjectType === ProjectType.MINIWORLD ? 'MiniWorld'
+        : 'Storyboard';
 
   return (
     <Modal
@@ -147,9 +147,8 @@ export function ProjectSelectorModal({
                   <Pressable
                     key={project.id}
                     onPress={() => handleProjectPress(project)}
-                    className={`bg-white rounded-lg border mb-3 p-4 ${
-                      isActive ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
-                    }`}
+                    className={`bg-white rounded-lg border mb-3 p-4 ${isActive ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                      }`}
                   >
                     {/* Header Row */}
                     <View className="flex-row items-start justify-between mb-2">
@@ -161,9 +160,8 @@ export function ProjectSelectorModal({
                             </View>
                           )}
                           <Text
-                            className={`text-base font-semibold flex-1 ${
-                              isActive ? 'text-blue-900' : 'text-gray-900'
-                            }`}
+                            className={`text-base font-semibold flex-1 ${isActive ? 'text-blue-900' : 'text-gray-900'
+                              }`}
                             numberOfLines={1}
                           >
                             {project.title}
@@ -201,9 +199,8 @@ export function ProjectSelectorModal({
                     {/* Description */}
                     {project.description && (
                       <Text
-                        className={`text-sm mb-2 ${
-                          isActive ? 'text-blue-700' : 'text-gray-600'
-                        }`}
+                        className={`text-sm mb-2 ${isActive ? 'text-blue-700' : 'text-gray-600'
+                          }`}
                         numberOfLines={2}
                       >
                         {project.description}
@@ -219,9 +216,8 @@ export function ProjectSelectorModal({
                           color={isActive ? '#3B82F6' : '#6B7280'}
                         />
                         <Text
-                          className={`text-xs ml-1 ${
-                            isActive ? 'text-blue-700' : 'text-gray-600'
-                          }`}
+                          className={`text-xs ml-1 ${isActive ? 'text-blue-700' : 'text-gray-600'
+                            }`}
                         >
                           {panelCount} {panelCount === 1 ? 'panel' : 'panels'}
                         </Text>
@@ -234,9 +230,8 @@ export function ProjectSelectorModal({
                             color={isActive ? '#3B82F6' : '#6B7280'}
                           />
                           <Text
-                            className={`text-xs ml-1 ${
-                              isActive ? 'text-blue-700' : 'text-gray-600'
-                            }`}
+                            className={`text-xs ml-1 ${isActive ? 'text-blue-700' : 'text-gray-600'
+                              }`}
                           >
                             {characterCount} {characterCount === 1 ? 'character' : 'characters'}
                           </Text>
@@ -250,14 +245,12 @@ export function ProjectSelectorModal({
                         {project.tags.slice(0, 3).map((tag, index) => (
                           <View
                             key={index}
-                            className={`px-2 py-1 rounded-full mr-1 mb-1 ${
-                              isActive ? 'bg-blue-200' : 'bg-gray-100'
-                            }`}
+                            className={`px-2 py-1 rounded-full mr-1 mb-1 ${isActive ? 'bg-blue-200' : 'bg-gray-100'
+                              }`}
                           >
                             <Text
-                              className={`text-xs ${
-                                isActive ? 'text-blue-900' : 'text-gray-600'
-                              }`}
+                              className={`text-xs ${isActive ? 'text-blue-900' : 'text-gray-600'
+                                }`}
                             >
                               {tag}
                             </Text>
@@ -265,14 +258,12 @@ export function ProjectSelectorModal({
                         ))}
                         {project.tags.length > 3 && (
                           <View
-                            className={`px-2 py-1 rounded-full ${
-                              isActive ? 'bg-blue-200' : 'bg-gray-100'
-                            }`}
+                            className={`px-2 py-1 rounded-full ${isActive ? 'bg-blue-200' : 'bg-gray-100'
+                              }`}
                           >
                             <Text
-                              className={`text-xs ${
-                                isActive ? 'text-blue-900' : 'text-gray-600'
-                              }`}
+                              className={`text-xs ${isActive ? 'text-blue-900' : 'text-gray-600'
+                                }`}
                             >
                               +{project.tags.length - 3}
                             </Text>
@@ -283,9 +274,8 @@ export function ProjectSelectorModal({
 
                     {/* Date */}
                     <Text
-                      className={`text-xs ${
-                        isActive ? 'text-blue-600' : 'text-gray-500'
-                      }`}
+                      className={`text-xs ${isActive ? 'text-blue-600' : 'text-gray-500'
+                        }`}
                     >
                       {project.lastOpenedAt
                         ? `Opened ${format(new Date(project.lastOpenedAt), 'MMM d, yyyy')}`
