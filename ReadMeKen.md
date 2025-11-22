@@ -115,3 +115,30 @@ When adding navigation, use View not SafeAreaView in screens since App.tsx alrea
 ### Common mistakes to avoid
 - Double safe area handling causes white space above tabs
 - Place StatusBar before TabNavigator, not inside screens
+
+## Mistake 6: Environment Variables in Cloud Builds
+
+When using cloud build services (like EAS Build) or Expo Development Client, standard `.env` files are often ignored or fail to load correctly into the native build process.
+
+### The Solution: `env.json`
+Instead of relying on `dotenv` or `expo-constants` to read from `.env` or system environment variables:
+
+1. Create a `env.json` file in the root directory with your keys:
+   ```json
+   {
+     "EXPO_PUBLIC_SUPABASE_URL": "...",
+     "EXPO_PUBLIC_SUPABASE_ANON_KEY": "..."
+   }
+   ```
+2. Import this JSON file directly in your code (`app.config.js`, `supabaseClient.ts`, etc.):
+   ```javascript
+   // app.config.js
+   const env = require('./env.json');
+   
+   // supabaseClient.ts
+   // @ts-ignore
+   import env from '../../env.json';
+   ```
+3. This guarantees the variables are bundled with the source code and available in ALL environments (local, cloud, preview, production).
+
+**Do not try to fix `.env` loading issues by adding more packages. Use the JSON approach.**

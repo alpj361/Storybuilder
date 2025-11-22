@@ -147,7 +147,9 @@ export default function SignupScreen({ onNavigateToLogin, onClose }: SignupScree
                                 onChangeText={setPassword}
                                 secureTextEntry
                                 autoComplete="off"
-                                textContentType="none"
+                                textContentType="oneTimeCode"
+                                autoCorrect={false}
+                                spellCheck={false}
                             />
                         </View>
 
@@ -172,7 +174,9 @@ export default function SignupScreen({ onNavigateToLogin, onClose }: SignupScree
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry
                                 autoComplete="off"
-                                textContentType="none"
+                                textContentType="oneTimeCode"
+                                autoCorrect={false}
+                                spellCheck={false}
                             />
                         </View>
 
