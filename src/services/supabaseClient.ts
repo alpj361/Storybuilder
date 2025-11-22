@@ -2,9 +2,12 @@ import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
+// @ts-ignore
+import env from '../../env.json';
 
-const supabaseUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+// Try to get config from multiple sources for maximum robustness
+const supabaseUrl = env.EXPO_PUBLIC_SUPABASE_URL || Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = env.EXPO_PUBLIC_SUPABASE_ANON_KEY || Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
 console.log('[supabaseClient] Supabase URL:', supabaseUrl ? 'Found' : 'Missing');
 console.log('[supabaseClient] Supabase Key:', supabaseAnonKey ? 'Found' : 'Missing');
@@ -12,7 +15,7 @@ console.log('[supabaseClient] Supabase Key:', supabaseAnonKey ? 'Found' : 'Missi
 if (!supabaseUrl || !supabaseAnonKey) {
     console.error('[supabaseClient] Missing Supabase credentials!');
     console.error('[supabaseClient] Available extra keys:', Object.keys(Constants.expoConfig?.extra || {}));
-    throw new Error('Missing Supabase environment variables. Check app.config.js');
+    throw new Error('Missing Supabase environment variables. Check env.json');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
