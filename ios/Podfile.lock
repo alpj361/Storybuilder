@@ -1837,7 +1837,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-keyboard-controller (1.17.4):
+  - react-native-keyboard-controller (1.19.6):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1852,7 +1852,7 @@ PODS:
     - React-hermes
     - React-ImageManager
     - React-jsi
-    - react-native-keyboard-controller/common (= 1.17.4)
+    - react-native-keyboard-controller/common (= 1.19.6)
     - React-NativeModulesApple
     - React-RCTFabric
     - React-renderercss
@@ -1862,7 +1862,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-keyboard-controller/common (1.17.4):
+  - react-native-keyboard-controller/common (1.19.6):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -1912,7 +1912,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - react-native-mmkv (3.2.0):
+  - react-native-mmkv (3.3.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2532,7 +2532,7 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNCClipboard (1.16.2):
+  - RNCClipboard (1.16.3):
     - DoubleConversion
     - glog
     - hermes-engine
@@ -2913,16 +2913,16 @@ PODS:
     - SDWebImage/Core (~> 5.17)
   - SocketRocket (0.7.1)
   - UMAppLoader (5.1.3)
-  - VisionCamera (4.6.4):
-    - VisionCamera/Core (= 4.6.4)
-    - VisionCamera/FrameProcessors (= 4.6.4)
-    - VisionCamera/React (= 4.6.4)
-  - VisionCamera/Core (4.6.4)
-  - VisionCamera/FrameProcessors (4.6.4):
+  - VisionCamera (4.7.3):
+    - VisionCamera/Core (= 4.7.3)
+    - VisionCamera/FrameProcessors (= 4.7.3)
+    - VisionCamera/React (= 4.7.3)
+  - VisionCamera/Core (4.7.3)
+  - VisionCamera/FrameProcessors (4.7.3):
     - React
     - React-callinvoker
     - react-native-worklets-core
-  - VisionCamera/React (4.6.4):
+  - VisionCamera/React (4.7.3):
     - React-Core
     - VisionCamera/FrameProcessors
   - Yoga (0.0.0)
@@ -3526,10 +3526,10 @@ SPEC CHECKSUMS:
   react-native-get-random-values: d16467cf726c618e9c7a8c3c39c31faa2244bbba
   react-native-ios-context-menu: 58804cdc253f80878284abe55ac5a050d4cde96a
   react-native-ios-utilities: b3cf760d44fcc8220fdc0fe832beec7453483962
-  react-native-keyboard-controller: 0617eae6fa22bc7ae111e3747498248e8fe719e0
+  react-native-keyboard-controller: 297af7bcea386268fbddb95560fcdbd600520ffa
   react-native-maps: 9febd31278b35cd21e4fad2cf6fa708993be5dab
   react-native-menu: e16cf47d02def17ff9d576f25402322d32f5ff46
-  react-native-mmkv: d3cc73d2554fafa20dc5b86386359034d1faf8ff
+  react-native-mmkv: 9dc23f655bbf1f984e84887f43b5299ffa2ceb07
   react-native-netinfo: cec9c4e86083cb5b6aba0e0711f563e2fbbff187
   react-native-pager-view: f238ed7fb53458bd03366944a33686f067c83e9a
   react-native-safe-area-context: 562163222d999b79a51577eda2ea8ad2c32b4d06
@@ -3571,7 +3571,7 @@ SPEC CHECKSUMS:
   ReactCodegen: 06cf663b23a161f42a2e14087269753f422885c0
   ReactCommon: 44c86ec3ace664c0f33b7a2ac89aced8304ef25e
   RNCAsyncStorage: 39c42c1e478e1f5166d1db52b5055e090e85ad66
-  RNCClipboard: 37de6995ef72dc869422879e51a46a520d3f08b3
+  RNCClipboard: ea6045252d5c0753cf17f62290f647dc0096f6ac
   RNCMaskedView: ae521efb1c6c2b183ae0f8479487db03c826184c
   RNCPicker: e43c792aa6a990f94a252aa73556da2dfa9a5c05
   RNDateTimePicker: a4ad049fdd568755003c479beac3bdea742ac4d0
@@ -3586,7 +3586,7 @@ SPEC CHECKSUMS:
   SDWebImageWebPCoder: e38c0a70396191361d60c092933e22c20d5b1380
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   UMAppLoader: 55159b69750129faa7a51c493cb8ea55a7b64eb9
-  VisionCamera: 52b101a7fa0a70ff455163c5a121d8dfe9871ab7
+  VisionCamera: 0044a94f7489f19e19d5938e97dfc36f4784af3c
   Yoga: dc7c21200195acacb62fa920c588e7c2106de45e
   ZXingObjC: 8898711ab495761b2dbbdec76d90164a6d7e14c5
 

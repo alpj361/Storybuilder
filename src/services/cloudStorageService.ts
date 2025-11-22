@@ -23,8 +23,12 @@ export const cloudStorageService = {
                 user_input: project.userInput || null,
                 project_type: project.projectType as string,
                 project_data: project, // Store full project as JSON
-                created_at: project.createdAt.toISOString(),
-                updated_at: project.updatedAt.toISOString(),
+                created_at: project.createdAt instanceof Date
+                    ? project.createdAt.toISOString()
+                    : new Date(project.createdAt).toISOString(),
+                updated_at: project.updatedAt instanceof Date
+                    ? project.updatedAt.toISOString()
+                    : new Date(project.updatedAt).toISOString(),
             };
 
             const { error } = await supabase

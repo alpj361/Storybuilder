@@ -1,12 +1,18 @@
 import 'react-native-url-polyfill/auto';
 import { createClient } from '@supabase/supabase-js';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_URL;
+const supabaseAnonKey = Constants.expoConfig?.extra?.EXPO_PUBLIC_SUPABASE_ANON_KEY;
+
+console.log('[supabaseClient] Supabase URL:', supabaseUrl ? 'Found' : 'Missing');
+console.log('[supabaseClient] Supabase Key:', supabaseAnonKey ? 'Found' : 'Missing');
 
 if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables');
+    console.error('[supabaseClient] Missing Supabase credentials!');
+    console.error('[supabaseClient] Available extra keys:', Object.keys(Constants.expoConfig?.extra || {}));
+    throw new Error('Missing Supabase environment variables. Check app.config.js');
 }
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {

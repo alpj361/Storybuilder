@@ -57,9 +57,22 @@ export default function SignupScreen({ onNavigateToLogin, onClose }: SignupScree
         const result = await signUp(email, password);
         setIsLoading(false);
 
+        console.log('[SignupScreen] Signup result:', result);
+
         if (result.success) {
-            Alert.alert('Success', 'Account created! You are now signed in.');
+            if (result.error) {
+                // Email confirmation required case
+                Alert.alert(
+                    'Account Created',
+                    result.error,
+                    [{ text: 'OK', onPress: onNavigateToLogin }]
+                );
+            } else {
+                // Auto-login case
+                Alert.alert('Success', 'Account created! You are now signed in.');
+            }
         } else {
+            console.error('[SignupScreen] Signup error:', result.error);
             Alert.alert('Signup Failed', result.error || 'Please try again');
         }
     };
@@ -133,7 +146,8 @@ export default function SignupScreen({ onNavigateToLogin, onClose }: SignupScree
                                 value={password}
                                 onChangeText={setPassword}
                                 secureTextEntry
-                                autoComplete="password"
+                                autoComplete="off"
+                                textContentType="none"
                             />
                         </View>
 
@@ -157,7 +171,8 @@ export default function SignupScreen({ onNavigateToLogin, onClose }: SignupScree
                                 value={confirmPassword}
                                 onChangeText={setConfirmPassword}
                                 secureTextEntry
-                                autoComplete="password"
+                                autoComplete="off"
+                                textContentType="none"
                             />
                         </View>
 

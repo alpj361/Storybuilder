@@ -49,14 +49,20 @@ export const useAuthStore = create<AuthState>()(
                 set({ isLoading: true });
                 const result = await authService.signUp(email, password);
 
-                if (result.success && result.user && result.session) {
-                    set({
-                        user: result.user,
-                        session: result.session,
-                        isAuthenticated: true,
-                        isLoading: false,
-                    });
-                    return { success: true };
+                if (result.success) {
+                    if (result.session) {
+                        // Auto-login if session is provided
+                        set({
+                            user: result.user || null,
+                            session: result.session,
+                            isAuthenticated: true,
+                            isLoading: false,
+                        });
+                    } else {
+                        // Signup successful but no session (email confirmation likely required)
+                        set({ isLoading: false });
+                    }
+                    return { success: true, error: result.session ? undefined : 'Please check your email to confirm your account.' };
                 } else {
                     set({ isLoading: false });
                     return { success: false, error: result.error };
