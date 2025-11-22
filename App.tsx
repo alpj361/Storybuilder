@@ -8,12 +8,18 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect, useState } from 'react';
-import { View, Text } from 'react-native';
+import { Alert } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import StoryboardScreen from "./src/screens/StoryboardScreen";
 import MiniWorldsScreen from "./src/screens/MiniWorldsScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import MigrationModal from "./src/components/MigrationModal";
+import { useAuthStore } from "./src/state/authStore";
+import { useStoryboardStore } from "./src/state/storyboardStore";
+import { cloudStorageService } from "./src/services/cloudStorageService";
 // import ArchitecturalScreen from "./src/screens/ArchitecturalScreen"; // Comentado para uso futuro
 
 // Keep the splash screen visible while we load fonts
@@ -45,6 +51,13 @@ const openai_api_key = Constants.expoConfig.extra.apikey;
 
 function App() {
   const [isNavigationReady, setIsNavigationReady] = useState(false);
+  const [showMigrationModal, setShowMigrationModal] = useState(false);
+  const [isMigrating, setIsMigrating] = useState(false);
+
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const checkSession = useAuthStore((state) => state.checkSession);
+  const user = useAuthStore((state) => state.user);
+  const projects = useStoryboardStore((state) => state.projects);
 
   useEffect(() => {
     const prepare = async () => {
@@ -52,7 +65,8 @@ function App() {
         // Keep the splash screen visible while we fetch resources
         await SplashScreen.preventAutoHideAsync();
 
-        // Any async operations can go here
+        // Check if user has existing session (silent, no blocking)
+        await checkSession();
 
         // Artificially delay for 500ms to ensure everything is loaded
         await new Promise(resolve => setTimeout(resolve, 500));
@@ -67,6 +81,91 @@ function App() {
 
     prepare();
   }, []);
+
+  // Show migration modal after successful login if user has local projects
+  useEffect(() => {
+    const checkMigrationStatus = async () => {
+      if (isAuthenticated && user && !showMigrationModal) {
+        // Download projects from cloud first
+        console.log('[App] User authenticated, downloading cloud projects...');
+        const cloudProjects = await cloudStorageService.downloadProjects(user.id);
+
+        if (cloudProjects.length > 0) {
+          console.log(`[App] Found ${cloudProjects.length} projects in cloud`);
+
+          // Merge cloud projects with local projects
+          const localProjects = projects;
+          const localProjectIds = new Set(localProjects.map(p => p.id));
+
+          // Add cloud projects that don't exist locally
+          const newCloudProjects = cloudProjects.filter(cp => !localProjectIds.has(cp.id));
+
+          if (newCloudProjects.length > 0) {
+            console.log(`[App] Restoring ${newCloudProjects.length} projects from cloud`);
+            // Add cloud projects to local store
+            const setProjects = useStoryboardStore.getState().projects;
+            useStoryboardStore.setState({
+              projects: [...localProjects, ...newCloudProjects]
+            });
+
+            Alert.alert(
+              'Projects Restored',
+              `Successfully restored ${newCloudProjects.length} project(s) from cloud!`
+            );
+          }
+        }
+
+        // Check if we should show migration modal for local-only projects
+        const hasShownMigration = await AsyncStorage.getItem(`migration-shown-${user.id}`);
+
+        if (hasShownMigration !== 'true' && projects.length > 0) {
+          setShowMigrationModal(true);
+        }
+      }
+    };
+
+    checkMigrationStatus();
+  }, [isAuthenticated, user]);
+
+  const handleMigration = async () => {
+    if (!user) return;
+
+    setIsMigrating(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const project of projects) {
+      const result = await cloudStorageService.uploadProject(project, user.id);
+      if (result.success) {
+        successCount++;
+      } else {
+        errorCount++;
+      }
+    }
+
+    setIsMigrating(false);
+    setShowMigrationModal(false);
+
+    // Mark that we've shown the migration modal for this user
+    await AsyncStorage.setItem(`migration-shown-${user.id}`, 'true');
+
+    if (errorCount === 0) {
+      Alert.alert('Migration Complete', `Successfully synced ${successCount} project(s) to cloud!`);
+    } else {
+      Alert.alert(
+        'Partial Migration',
+        `Synced ${successCount} project(s). ${errorCount} failed. You can try again from the Profile tab.`
+      );
+    }
+  };
+
+  const handleSkipMigration = async () => {
+    setShowMigrationModal(false);
+    // Mark that we've shown the migration modal for this user
+    if (user) {
+      await AsyncStorage.setItem(`migration-shown-${user.id}`, 'true');
+    }
+  };
 
   if (!isNavigationReady) {
     return null;
@@ -100,6 +199,8 @@ function App() {
                   iconName = "images-outline";
                 } else if (route.name === "MiniWorlds") {
                   iconName = "cube-outline";
+                } else if (route.name === "Profile") {
+                  iconName = "person-outline";
                 } else {
                   iconName = "construct-outline";
                 }
@@ -109,8 +210,19 @@ function App() {
           >
             <Tab.Screen name="Storyboard" component={StoryboardScreen} />
             <Tab.Screen name="MiniWorlds" component={MiniWorldsScreen} />
+            <Tab.Screen name="Profile" component={ProfileScreen} />
           </Tab.Navigator>
         </NavigationContainer>
+
+        {/* Migration Modal - shows after login if user has local projects */}
+        <MigrationModal
+          visible={showMigrationModal}
+          projectCount={projects.length}
+          onMigrate={handleMigration}
+          onSkip={handleSkipMigration}
+          isLoading={isMigrating}
+        />
+
         <StatusBar style="auto" />
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -118,6 +230,7 @@ function App() {
 }
 
 export default App;
+
 
 /*
   Código de Tab Navigator guardado para uso futuro con Arquitectura:
