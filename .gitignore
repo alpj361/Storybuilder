@@ -39,17 +39,17 @@ simulator.log
 simulation.log
 
 # Logs
-*.log
-.gitignore
-.env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
-.env.development
-.env.test
-.env.production
-.env.development.local
-.env.test.local
-.env.production.local
+#*.log
+#.gitignore
+#.env
+#.env.local
+#.env.development.local
+#.env.test.local
+#.env.production.local
+#.env.development
+#.env.test
+#.env.production
+#.env.development.local
+#.env.test.local
+#.env.production.local
 
