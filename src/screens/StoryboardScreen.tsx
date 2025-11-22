@@ -68,7 +68,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   const [showIdeaEditModal, setShowIdeaEditModal] = useState(false);
   const [showQualitySelector, setShowQualitySelector] = useState(false);
   const [selectedQuality, setSelectedQuality] = useState<GenerationQuality>(GenerationQuality.STANDARD);
-  
+
   if (!panel) {
     return (
       <View className="bg-white border border-gray-300 rounded-xl p-4 min-h-[220px] shadow-sm">
@@ -105,7 +105,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
   const panelScale = panel.prompt.scale || architecturalMetadata?.scale;
   const panelDetail = panel.prompt.detailLevel;
 
-  const scene = currentProject?.scenes.find(s => s.id === panel.prompt.sceneId) || 
+  const scene = currentProject?.scenes.find(s => s.id === panel.prompt.sceneId) ||
     currentProject?.scenes[0];
 
   const handleGenerateImage = async () => {
@@ -175,9 +175,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             }
           }}
           disabled={panel.isGenerating}
-          className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-            panel.isGenerating ? 'bg-gray-200 border border-gray-300' : 'bg-gradient-to-r from-purple-600 to-purple-500 shadow-md'
-          }`}
+          className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating ? 'bg-gray-200 border border-gray-300' : 'bg-gradient-to-r from-purple-600 to-purple-500 shadow-md'
+            }`}
           style={{
             minHeight: 48,
             backgroundColor: panel.isGenerating ? undefined : '#9333ea'
@@ -188,9 +187,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             size={18}
             color={panel.isGenerating ? "#9CA3AF" : "#FFFFFF"}
           />
-          <Text className={`text-base font-bold ml-2 ${
-            panel.isGenerating ? 'text-gray-500' : 'text-white'
-          }`}>
+          <Text className={`text-base font-bold ml-2 ${panel.isGenerating ? 'text-gray-500' : 'text-white'
+            }`}>
             {panel.generatedImageUrl ? "Regenerate Image" : "Generate Image"}
           </Text>
         </Pressable>
@@ -199,9 +197,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
         <Pressable
           onPress={() => setShowIdeaEditModal(true)}
           disabled={panel.isGenerating}
-          className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-            panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-blue-300'
-          }`}
+          className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-blue-300'
+            }`}
           style={{ minHeight: 44 }}
         >
           <Ionicons
@@ -209,9 +206,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             size={18}
             color={panel.isGenerating ? "#9CA3AF" : "#3B82F6"}
           />
-          <Text className={`text-sm font-semibold ml-2 ${
-            panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
-          }`}>
+          <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating ? 'text-gray-400' : 'text-blue-600'
+            }`}>
             Edit Panel Idea
           </Text>
         </Pressable>
@@ -221,9 +217,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           <Pressable
             onPress={() => onEditImage(panel.id)}
             disabled={panel.isGenerating || panel.isEditing}
-            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-              panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-orange-300'
-            }`}
+            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-orange-300'
+              }`}
             style={{ minHeight: 44 }}
           >
             <Ionicons
@@ -231,9 +226,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
               size={18}
               color={panel.isGenerating || panel.isEditing ? "#9CA3AF" : "#ea580c"}
             />
-            <Text className={`text-sm font-semibold ml-2 ${
-              panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-orange-600'
-            }`}>
+            <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-orange-600'
+              }`}>
               {panel.isEditing ? 'Editing...' : 'Edit Image'}
             </Text>
           </Pressable>
@@ -244,9 +238,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           <Pressable
             onPress={() => onUndoImageEdit(panel.id)}
             disabled={panel.isGenerating || panel.isEditing}
-            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-              panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-gray-300'
-            }`}
+            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating || panel.isEditing ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-gray-300'
+              }`}
             style={{ minHeight: 44 }}
           >
             <Ionicons
@@ -254,9 +247,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
               size={18}
               color={panel.isGenerating || panel.isEditing ? "#9CA3AF" : "#6b7280"}
             />
-            <Text className={`text-sm font-semibold ml-2 ${
-              panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-gray-600'
-            }`}>
+            <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating || panel.isEditing ? 'text-gray-400' : 'text-gray-600'
+              }`}>
               Undo Edit
             </Text>
           </Pressable>
@@ -267,9 +259,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           <Pressable
             onPress={() => onManageTags(panel.id)}
             disabled={panel.isGenerating}
-            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${
-              panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-purple-300'
-            }`}
+            className={`px-4 py-3 rounded-lg flex-row items-center justify-center ${panel.isGenerating ? 'bg-gray-100 border border-gray-200' : 'bg-white border-2 border-purple-300'
+              }`}
             style={{ minHeight: 44 }}
           >
             <Ionicons
@@ -277,15 +268,14 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
               size={18}
               color={panel.isGenerating ? "#9CA3AF" : "#9333ea"}
             />
-            <Text className={`text-sm font-semibold ml-2 ${
-              panel.isGenerating ? 'text-gray-400' : 'text-purple-600'
-            }`}>
+            <Text className={`text-sm font-semibold ml-2 ${panel.isGenerating ? 'text-gray-400' : 'text-purple-600'
+              }`}>
               Manage Tags
             </Text>
           </Pressable>
         )}
       </View>
-      
+
       {/* Tags */}
       {isArchitectural ? (
         <View className="flex-row flex-wrap mb-4" style={{ gap: 6 }}>
@@ -328,7 +318,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           )}
         </>
       )}
-      
+
       {/* Drawing Area */}
       <View className="bg-gray-50 rounded-lg border-2 border-dashed border-gray-300 overflow-hidden relative">
         {panel.isGenerating ? (
@@ -347,11 +337,10 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
             <View className="flex-row mb-4" style={{ gap: 10 }}>
               <Pressable
                 onPress={() => setSelectedQuality(GenerationQuality.STANDARD)}
-                className={`flex-1 p-3 rounded-lg border-2 ${
-                  selectedQuality === GenerationQuality.STANDARD
-                    ? 'bg-blue-50 border-blue-500'
-                    : 'bg-white border-gray-300'
-                }`}
+                className={`flex-1 p-3 rounded-lg border-2 ${selectedQuality === GenerationQuality.STANDARD
+                  ? 'bg-blue-50 border-blue-500'
+                  : 'bg-white border-gray-300'
+                  }`}
                 style={{ minHeight: 60 }}
               >
                 <View className="items-center">
@@ -361,26 +350,23 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
                       size={18}
                       color={selectedQuality === GenerationQuality.STANDARD ? '#3b82f6' : '#9ca3af'}
                     />
-                    <Text className={`text-base font-bold ml-1.5 ${
-                      selectedQuality === GenerationQuality.STANDARD ? 'text-blue-700' : 'text-gray-600'
-                    }`}>
+                    <Text className={`text-base font-bold ml-1.5 ${selectedQuality === GenerationQuality.STANDARD ? 'text-blue-700' : 'text-gray-600'
+                      }`}>
                       Standard
                     </Text>
                   </View>
-                  <Text className={`text-sm ${
-                    selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
-                  }`}>
+                  <Text className={`text-sm ${selectedQuality === GenerationQuality.STANDARD ? 'text-blue-600' : 'text-gray-500'
+                    }`}>
                     Stable Diffusion
                   </Text>
                 </View>
               </Pressable>
               <Pressable
                 onPress={() => setSelectedQuality(GenerationQuality.HIGH)}
-                className={`flex-1 p-3 rounded-lg border-2 ${
-                  selectedQuality === GenerationQuality.HIGH
-                    ? 'bg-purple-50 border-purple-500'
-                    : 'bg-white border-gray-300'
-                }`}
+                className={`flex-1 p-3 rounded-lg border-2 ${selectedQuality === GenerationQuality.HIGH
+                  ? 'bg-purple-50 border-purple-500'
+                  : 'bg-white border-gray-300'
+                  }`}
                 style={{ minHeight: 60 }}
               >
                 <View className="items-center">
@@ -390,15 +376,13 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
                       size={18}
                       color={selectedQuality === GenerationQuality.HIGH ? '#9333ea' : '#9ca3af'}
                     />
-                    <Text className={`text-base font-bold ml-1.5 ${
-                      selectedQuality === GenerationQuality.HIGH ? 'text-purple-700' : 'text-gray-600'
-                    }`}>
+                    <Text className={`text-base font-bold ml-1.5 ${selectedQuality === GenerationQuality.HIGH ? 'text-purple-700' : 'text-gray-600'
+                      }`}>
                       High
                     </Text>
                   </View>
-                  <Text className={`text-sm ${
-                    selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
-                  }`}>
+                  <Text className={`text-sm ${selectedQuality === GenerationQuality.HIGH ? 'text-purple-600' : 'text-gray-500'
+                    }`}>
                     Seeddream 4
                   </Text>
                 </View>
@@ -453,8 +437,8 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
       {panel.generatedImageUrl && (
         <Modal visible={isImageExpanded} animationType="fade" transparent onRequestClose={() => setIsImageExpanded(false)}>
           <View className="flex-1 bg-black/95">
-            <Pressable 
-              onPress={() => setIsImageExpanded(false)} 
+            <Pressable
+              onPress={() => setIsImageExpanded(false)}
               className="absolute top-12 right-6 z-10 bg-black/80 rounded-full p-3"
               style={{ minHeight: 48, minWidth: 48 }}
             >
@@ -476,7 +460,7 @@ const StoryboardPanel: React.FC<StoryboardPanelProps> = ({ panel, panelNumber, m
           </View>
         </Modal>
       )}
-      
+
       {/* Prompt Preview */}
       {scene && (
         <View className="mt-4">
@@ -804,16 +788,16 @@ export default function StoryboardScreen({
       // The share sheet must be presented from a stable view hierarchy
       console.log('[StoryboardScreen] Closing export modal before sharing...');
       setShowExportModal(false);
-      
+
       // Wait for modal to fully dismiss before presenting share sheet
       // This prevents the share sheet from freezing
       await waitForModalDismissal();
-      
+
       console.log('[StoryboardScreen] Opening share sheet...');
       try {
         await pdfExportService.sharePDF(result.uri);
         console.log('[StoryboardScreen] Share completed successfully');
-        
+
         // Don't show alert immediately - it can interfere with share sheet
         // The share sheet will handle user interaction, and we can show
         // a subtle success message if needed (but not an Alert that blocks)
@@ -829,8 +813,8 @@ export default function StoryboardScreen({
           isTimeout
             ? "Share sheet timed out. Please try again."
             : isModuleMissing
-            ? "Native share module not available. Please rebuild the app."
-            : "Failed to open share sheet. Please try again.",
+              ? "Native share module not available. Please rebuild the app."
+              : "Failed to open share sheet. Please try again.",
           [{ text: "OK" }]
         );
       }
@@ -897,7 +881,7 @@ export default function StoryboardScreen({
               <Ionicons name="add-circle-outline" size={26} color="#3B82F6" />
             </Pressable>
             {activeProject && (
-              <Pressable 
+              <Pressable
                 onPress={handleClearProject}
                 className="p-2 rounded-full active:bg-gray-100"
                 style={{ minHeight: 44, minWidth: 44, alignItems: 'center', justifyContent: 'center' }}
@@ -1067,9 +1051,9 @@ export default function StoryboardScreen({
         <View className="flex-1 mb-5">
           <View className="flex-row flex-wrap" style={{ gap: 12 }}>
             {displayPanels.map((panel: StoryboardPanelType | undefined, idx: number) => (
-              <View 
-                key={panel ? panel.id : `placeholder-${idx}`} 
-                style={{ width: 'calc(50% - 6px)' }}
+              <View
+                key={panel ? panel.id : `placeholder-${idx}`}
+                style={{ width: '48%' }}
               >
                 <StoryboardPanel
                   panel={panel}
@@ -1086,18 +1070,18 @@ export default function StoryboardScreen({
             ))}
           </View>
         </View>
-        
+
         {/* Generate/Add More Panels Button */}
-        <Pressable 
+        <Pressable
           onPress={handleNewProject}
           className="mb-6 p-5 bg-white rounded-xl border-2 border-dashed border-gray-300 shadow-sm active:bg-gray-50"
           style={{ minHeight: 60 }}
         >
           <View className="flex-row justify-center items-center">
-            <Ionicons 
-              name={activeProject ? "refresh" : "add"} 
-              size={24} 
-              color="#3B82F6" 
+            <Ionicons
+              name={activeProject ? "refresh" : "add"}
+              size={24}
+              color="#3B82F6"
             />
             <Text className="ml-3 text-blue-600 font-bold text-base">
               {buttonLabel}
