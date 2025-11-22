@@ -1,0 +1,28 @@
+{
+    "cli": {
+        "version": ">= 12.5.1"
+    },
+    "build": {
+        "development": {
+            "developmentClient": true,
+            "distribution": "internal",
+            "env": {
+                "EXPO_PUBLIC_SUPABASE_URL": "https://jtveufvwnabazfgwphjc.supabase.co",
+                "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0dmV1ZnZ3bmFiYXpmZ3dwaGpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NzYwMzEsImV4cCI6MjA2OTM1MjAzMX0.eUYIU-2w9CXOnOuf2KFf6y2aDvrCP8v8O7x_4-aAFL8"
+            }
+        },
+        "preview": {
+            "distribution": "internal",
+            "env": {
+                "EXPO_PUBLIC_SUPABASE_URL": "https://jtveufvwnabazfgwphjc.supabase.co",
+                "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0dmV1ZnZ3bmFiYXpmZ3dwaGpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NzYwMzEsImV4cCI6MjA2OTM1MjAzMX0.eUYIU-2w9CXOnOuf2KFf6y2aDvrCP8v8O7x_4-aAFL8"
+            }
+        },
+        "production": {
+            "env": {
+                "EXPO_PUBLIC_SUPABASE_URL": "https://jtveufvwnabazfgwphjc.supabase.co",
+                "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp0dmV1ZnZ3bmFiYXpmZ3dwaGpjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTM3NzYwMzEsImV4cCI6MjA2OTM1MjAzMX0.eUYIU-2w9CXOnOuf2KFf6y2aDvrCP8v8O7x_4-aAFL8"
+            }
+        }
+    }
+}
