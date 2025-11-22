@@ -1,16 +1,8 @@
-// Load environment variables from .env file
-const dotenv = require('dotenv');
-const path = require('path');
+// Load environment variables from env.json
+// This is a robust fallback for when .env is not loaded correctly (e.g. in EAS Build)
+const env = require('./env.json');
 
-// Explicitly load .env file with path
-const result = dotenv.config({ path: path.resolve(__dirname, '.env') });
-
-if (result.error) {
-  console.error('Error loading .env file:', result.error);
-} else {
-  console.log('✅ Loaded .env file successfully');
-  console.log('Available env vars:', Object.keys(result.parsed || {}).length);
-}
+console.log('✅ Loaded env.json successfully');
 
 module.exports = ({ config }) => {
   return {
@@ -42,10 +34,10 @@ module.exports = ({ config }) => {
     ],
     // Pass environment variables to the app at runtime
     extra: {
-      EXPO_PUBLIC_OPENAI_API_KEY: process.env.EXPO_PUBLIC_OPENAI_API_KEY,
-      EXPO_PUBLIC_REPLICATE_API_KEY: process.env.EXPO_PUBLIC_REPLICATE_API_KEY,
-      EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
-      EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
+      EXPO_PUBLIC_OPENAI_API_KEY: env.EXPO_PUBLIC_OPENAI_API_KEY,
+      EXPO_PUBLIC_REPLICATE_API_KEY: env.EXPO_PUBLIC_REPLICATE_API_KEY,
+      EXPO_PUBLIC_SUPABASE_URL: env.EXPO_PUBLIC_SUPABASE_URL,
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     }
   };
 };
