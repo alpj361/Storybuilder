@@ -1,9 +1,20 @@
 // Load environment variables from .env file
-// This is required for Expo to access EXPO_PUBLIC_* variables at runtime
-require('dotenv').config();
+const dotenv = require('dotenv');
+const path = require('path');
 
-module.exports = {
-  expo: {
+// Explicitly load .env file with path
+const result = dotenv.config({ path: path.resolve(__dirname, '.env') });
+
+if (result.error) {
+  console.error('Error loading .env file:', result.error);
+} else {
+  console.log('✅ Loaded .env file successfully');
+  console.log('Available env vars:', Object.keys(result.parsed || {}).length);
+}
+
+module.exports = ({ config }) => {
+  return {
+    ...config,
     name: "vibecode",
     slug: "vibecode",
     scheme: "vibecode",
@@ -36,5 +47,5 @@ module.exports = {
       EXPO_PUBLIC_SUPABASE_URL: process.env.EXPO_PUBLIC_SUPABASE_URL,
       EXPO_PUBLIC_SUPABASE_ANON_KEY: process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
     }
-  }
+  };
 };
