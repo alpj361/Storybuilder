@@ -297,8 +297,28 @@ export default function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
                   color={selectedQuality === GenerationQuality.STANDARD ? '#3B82F6' : '#9CA3AF'}
                 />
                 <View className="ml-3 flex-1">
-                  <Text className="text-base font-bold text-gray-900">NanoBanana</Text>
-                  <Text className="text-sm text-gray-600">Stable Diffusion (Fast)</Text>
+                  <Text className="text-base font-bold text-gray-900">Standard</Text>
+                  <Text className="text-sm text-gray-600">Seedream 4</Text>
+                </View>
+              </View>
+            </Pressable>
+
+            <Pressable
+              onPress={() => setSelectedQuality(GenerationQuality.STANDARD_PLUS)}
+              className={`p-4 rounded-xl mb-3 border-2 ${selectedQuality === GenerationQuality.STANDARD_PLUS
+                  ? 'bg-yellow-50 border-yellow-500'
+                  : 'bg-gray-50 border-gray-200'
+                }`}
+            >
+              <View className="flex-row items-center">
+                <Ionicons
+                  name={selectedQuality === GenerationQuality.STANDARD_PLUS ? 'radio-button-on' : 'radio-button-off'}
+                  size={24}
+                  color={selectedQuality === GenerationQuality.STANDARD_PLUS ? '#EAB308' : '#9CA3AF'}
+                />
+                <View className="ml-3 flex-1">
+                  <Text className="text-base font-bold text-gray-900">Standard+</Text>
+                  <Text className="text-sm text-gray-600">NanoBanana</Text>
                 </View>
               </View>
             </Pressable>
@@ -317,8 +337,8 @@ export default function MiniWorldsScreen({ }: MiniWorldsScreenProps = {}) {
                   color={selectedQuality === GenerationQuality.HIGH ? '#9333EA' : '#9CA3AF'}
                 />
                 <View className="ml-3 flex-1">
-                  <Text className="text-base font-bold text-gray-900">Seeddream</Text>
-                  <Text className="text-sm text-gray-600">Seeddream 4 (High Quality)</Text>
+                  <Text className="text-base font-bold text-gray-900">High</Text>
+                  <Text className="text-sm text-gray-600">NanoBanana Pro</Text>
                 </View>
               </View>
             </Pressable>

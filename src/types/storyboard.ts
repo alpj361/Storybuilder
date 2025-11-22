@@ -50,6 +50,7 @@ export type UnitSystem = "metric" | "imperial";
 // Generation quality tiers for storyboard panels
 export enum GenerationQuality {
   STANDARD = "standard", // Gama baja - Stable Diffusion SDXL
+  STANDARD_PLUS = "standard_plus", // Gama media - NanoBanana
   HIGH = "high"          // Gama alta - Seeddream 4
 }
 
@@ -86,7 +87,7 @@ export interface ArchitecturalMetadata {
 
 export enum CompositionType {
   EXTREME_WIDE = "extreme_wide",
-  WIDE_SHOT = "wide_shot", 
+  WIDE_SHOT = "wide_shot",
   MEDIUM_SHOT = "medium_shot",
   CLOSE_UP = "close_up",
   EXTREME_CLOSE_UP = "extreme_close_up",
@@ -97,7 +98,7 @@ export enum CompositionType {
 
 export enum PanelType {
   ESTABLISHING = "establishing",
-  CHARACTER_INTRO = "character_intro", 
+  CHARACTER_INTRO = "character_intro",
   ACTION = "action",
   DIALOGUE = "dialogue",
   REACTION = "reaction",

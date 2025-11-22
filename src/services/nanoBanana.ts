@@ -120,6 +120,144 @@ export async function editImageWithNanoBanana(
 }
 
 /**
+ * Generate a new image using NanoBanana
+ * @param prompt - Text description for the image
+ * @returns Promise with the generated image URL
+ */
+export async function generateImageWithNanoBanana(
+  prompt: string
+): Promise<string> {
+  console.log('[NanoBanana] Starting image generation...');
+  console.log('[NanoBanana] Prompt:', prompt);
+
+  try {
+    const replicate = new Replicate({
+      auth: getReplicateKey(),
+    });
+
+    console.log('[NanoBanana] Calling Replicate API for generation...');
+
+    const input = {
+      prompt: prompt,
+      num_inference_steps: 30, // Standard default
+      guidance_scale: 7.5
+    };
+
+    const output = await replicate.run(
+      'google/nano-banana',
+      { input }
+    ) as any;
+
+    console.log('[NanoBanana] Generation completed');
+
+    // Handle output (same logic as edit)
+    let imageUrl: string;
+
+    if (Array.isArray(output)) {
+      imageUrl = typeof output[0].url === 'function' ? output[0].url() : output[0];
+    } else if (output && typeof output.url === 'function') {
+      imageUrl = output.url();
+    } else if (typeof output === 'string') {
+      imageUrl = output;
+    } else if (output && typeof output === 'object' && output.url) {
+      imageUrl = output.url;
+    } else {
+      throw new Error('Unexpected output format from NanoBanana');
+    }
+
+    console.log('[NanoBanana] Image URL:', typeof imageUrl === 'string' ? imageUrl.substring(0, 100) : imageUrl);
+
+    // Convert URL to base64
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    return base64;
+  } catch (error) {
+    console.error('[NanoBanana] Error generating image:', error);
+    throw error;
+  }
+}
+
+/**
+ * Generate a new image using NanoBanana Pro
+ * @param prompt - Text description for the image
+ * @returns Promise with the generated image URL
+ */
+export async function generateImageWithNanoBananaPro(
+  prompt: string
+): Promise<string> {
+  console.log('[NanoBanana] Starting Pro image generation...');
+  console.log('[NanoBanana] Prompt:', prompt);
+
+  try {
+    const replicate = new Replicate({
+      auth: getReplicateKey(),
+    });
+
+    console.log('[NanoBanana] Calling Replicate API for Pro generation...');
+
+    const input = {
+      prompt: prompt,
+      aspect_ratio: "4:3",
+      output_format: "png"
+    };
+
+    const output = await replicate.run(
+      'google/nano-banana-pro',
+      { input }
+    ) as any;
+
+    console.log('[NanoBanana] Pro Generation completed');
+
+    // Handle output
+    let imageUrl: string;
+
+    if (Array.isArray(output)) {
+      imageUrl = typeof output[0].url === 'function' ? output[0].url() : output[0];
+    } else if (output && typeof output.url === 'function') {
+      imageUrl = output.url();
+    } else if (typeof output === 'string') {
+      imageUrl = output;
+    } else if (output && typeof output === 'object' && output.url) {
+      imageUrl = output.url;
+    } else {
+      throw new Error('Unexpected output format from NanoBanana Pro');
+    }
+
+    console.log('[NanoBanana] Pro Image URL:', typeof imageUrl === 'string' ? imageUrl.substring(0, 100) : imageUrl);
+
+    // Convert URL to base64
+    const response = await fetch(imageUrl);
+    const blob = await response.blob();
+
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result);
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(blob);
+    });
+
+    return base64;
+  } catch (error) {
+    console.error('[NanoBanana] Error generating Pro image:', error);
+    throw error;
+  }
+}
+
+/**
  * Check if NanoBanana service is available
  */
 export function isNanoBananaAvailable(): boolean {

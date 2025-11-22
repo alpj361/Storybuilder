@@ -1495,9 +1495,9 @@ export const useStoryboardStore = create<StoryboardState>()(
           get().updatePanel(panelId, updatedPanel);
           set({ isGenerating: false });
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : "Failed to regenerate panel",
-            isGenerating: false 
+            isGenerating: false
           });
         }
       },
@@ -1554,15 +1554,15 @@ export const useStoryboardStore = create<StoryboardState>()(
 
           set({
             currentProject: updatedProject,
-            projects: state.projects.map(p => 
+            projects: state.projects.map(p =>
               p.id === updatedProject.id ? updatedProject : p
             ),
             isGenerating: false
           });
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : "Failed to regenerate panels",
-            isGenerating: false 
+            isGenerating: false
           });
         }
       },
@@ -1605,11 +1605,43 @@ export const useStoryboardStore = create<StoryboardState>()(
 
           // Generate image using visual identity if available, otherwise standard text-to-image
           const { generateStoryboardPanelWithVisualIdentity } = await import('../api/stable-diffusion');
-          const imageUrl = await generateStoryboardPanelWithVisualIdentity(
-            panel.prompt.generatedPrompt,
-            panelCharacters,
-            qualityTier // Pass quality tier (standard/high)
-          );
+
+          let imageUrl: string;
+
+          // Special handling for MiniWorlds 3-tier system
+          if (currentProject.projectType === ProjectType.MINIWORLD) {
+            if (qualityTier === GenerationQuality.STANDARD) {
+              // Standard -> Seeddream 4
+              console.log("[storyboardStore] Using Seeddream 4 for MiniWorld Standard");
+              const { generateWithSeedream } = await import('../api/seedream');
+              // Pass prompt in options to satisfy interface, though function uses first arg
+              imageUrl = await generateWithSeedream(panel.prompt.generatedPrompt, {
+                prompt: panel.prompt.generatedPrompt,
+                aspectRatio: '4:3'
+              });
+            } else if (qualityTier === GenerationQuality.STANDARD_PLUS) {
+              // Standard+ -> NanoBanana
+              console.log("[storyboardStore] Using NanoBanana for MiniWorld Standard+");
+              const { generateImageWithNanoBanana } = await import('../services/nanoBanana');
+              imageUrl = await generateImageWithNanoBanana(panel.prompt.generatedPrompt);
+            } else if (qualityTier === GenerationQuality.HIGH) {
+              // High -> NanoBanana Pro
+              console.log("[storyboardStore] Using NanoBanana Pro for MiniWorld High");
+              const { generateImageWithNanoBananaPro } = await import('../services/nanoBanana');
+              imageUrl = await generateImageWithNanoBananaPro(panel.prompt.generatedPrompt);
+            } else {
+              // Fallback to Standard+ (NanoBanana)
+              const { generateImageWithNanoBanana } = await import('../services/nanoBanana');
+              imageUrl = await generateImageWithNanoBanana(panel.prompt.generatedPrompt);
+            }
+          } else {
+            // Storyboard logic (Standard=Stable, High=Seeddream)
+            imageUrl = await generateStoryboardPanelWithVisualIdentity(
+              panel.prompt.generatedPrompt,
+              panelCharacters,
+              qualityTier // Pass quality tier (standard/high)
+            );
+          }
 
           console.log("[storyboardStore] Received image URL, length:", imageUrl.length);
 
@@ -1701,7 +1733,7 @@ export const useStoryboardStore = create<StoryboardState>()(
 
           set({
             currentProject: updatedProject,
-            projects: state.projects.map(p => 
+            projects: state.projects.map(p =>
               p.id === updatedProject.id ? updatedProject : p
             ),
             isGenerating: false
@@ -1710,14 +1742,14 @@ export const useStoryboardStore = create<StoryboardState>()(
           // Check for any errors
           const errors = results.filter(r => r.error).map(r => r.error);
           if (errors.length > 0) {
-            set({ 
+            set({
               error: `Failed to generate ${errors.length} panel images`
             });
           }
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : "Failed to generate panel images",
-            isGenerating: false 
+            isGenerating: false
           });
         }
       },
@@ -1867,15 +1899,15 @@ export const useStoryboardStore = create<StoryboardState>()(
               : p
           );
 
-          set({ 
+          set({
             projects: updatedProjects,
             currentProject: { ...state.currentProject, updatedAt: new Date() },
-            isLoading: false 
+            isLoading: false
           });
         } catch (error) {
-          set({ 
+          set({
             error: error instanceof Error ? error.message : "Failed to save project",
-            isLoading: false 
+            isLoading: false
           });
         }
       },
