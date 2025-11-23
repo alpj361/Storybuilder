@@ -23,56 +23,82 @@ const MAX_CONTEXT_LENGTH = 2000; // Maximum characters for context history
 /**
  * Build character description with HIGH FIDELITY in form (anatomy, features)
  * but LOW FIDELITY in texture (no rendering details)
+ *
+ * OPTIMIZED ORDER: Visual importance (face → hair → eyes → body → clothing)
  */
 function buildCharacterSection(character: Character): string {
-  const appearance = character.appearance;
+  const app = character.appearance;
   const parts: string[] = [];
 
-  // "Based on" reference (most important for AI)
-  if (appearance.basedOn) {
-    parts.push(`based on ${appearance.basedOn}`);
+  // NON-HUMANS: Species first (critical identifier)
+  if (app.characterType && app.characterType !== 'human') {
+    if (app.species) {
+      parts.push(app.species);
+    } else {
+      parts.push(app.characterType);
+    }
   }
 
-  // Anatomical descriptors for FORM FIDELITY
-  // Face structure (critical for likeness)
-  if (appearance.faceShape) parts.push(`${appearance.faceShape} face`);
+  // 1. ESTRUCTURA FACIAL (CRÍTICO para reconocimiento)
+  if (app.faceShape) parts.push(`rostro ${app.faceShape}`);
+  if (app.cheekbones) parts.push(app.cheekbones);
+  if (app.jawline) parts.push(app.jawline);
 
-  // Hair shape (not texture)
-  if (appearance.hair) {
-    parts.push(`${appearance.hair} hair`);
+  // 2. CABELLO (segundo elemento visual más prominente)
+  if (app.hair) parts.push(app.hair);
+
+  // 3. OJOS (forma + color juntos para coherencia)
+  if (app.eyeShape && app.eyeColor) {
+    parts.push(`ojos ${app.eyeColor} ${app.eyeShape}`);
+  } else if (app.eyeColor) {
+    parts.push(`ojos ${app.eyeColor}`);
+  } else if (app.eyeShape) {
+    parts.push(`ojos ${app.eyeShape}`);
   }
 
-  // Facial features (shape, not detail)
-  if (appearance.eyeShape && appearance.eyeColor) {
-    parts.push(`${appearance.eyeShape} ${appearance.eyeColor} eyes`);
-  } else if (appearance.eyeColor) {
-    parts.push(`${appearance.eyeColor} eyes`);
+  // 4. OTROS RASGOS FACIALES
+  if (app.eyebrows) parts.push(app.eyebrows);
+  if (app.nose) parts.push(app.nose);
+  if (app.mouth) parts.push(app.mouth);
+
+  // 5. RASGOS DISTINTIVOS (muy importantes para identidad)
+  if (app.distinctiveFeatures && app.distinctiveFeatures.length > 0) {
+    parts.push(...app.distinctiveFeatures);
   }
 
-  // Distinctive features (glasses, facial hair, etc.)
-  if (appearance.distinctiveFeatures && appearance.distinctiveFeatures.length > 0) {
-    parts.push(appearance.distinctiveFeatures.join(', '));
+  // 6. PROPORCIONES CORPORALES
+  if (app.build) parts.push(`complexión ${app.build}`);
+  if (app.shoulderWidth) parts.push(app.shoulderWidth);
+  if (app.posture) parts.push(app.posture);
+  if (app.height) parts.push(app.height);
+
+  // 7. PIEL (tono sin textura)
+  if (app.skinTone) parts.push(`piel ${app.skinTone}`);
+
+  // NON-HUMANS: Características específicas
+  if (app.characterType !== 'human') {
+    if (app.coloration) parts.push(app.coloration);
+    if (app.bodyType) parts.push(app.bodyType);
+    if (app.texture) parts.push(app.texture);
+    if (app.features && app.features.length > 0) {
+      parts.push(...app.features);
+    }
+    if (app.size) parts.push(app.size);
   }
 
-  // Build and proportions
-  if (appearance.build) parts.push(`${appearance.build} build`);
-  if (appearance.size) parts.push(appearance.size);
+  // 8. VESTIMENTA (último, forma sin texturas)
+  if (app.clothing) parts.push(`viste ${app.clothing}`);
 
-  // Type/species (for non-humans)
-  if (appearance.species) {
-    parts.push(appearance.species);
-  } else if (appearance.characterType && appearance.characterType !== 'human') {
-    parts.push(appearance.characterType);
-  }
+  // 9. EDAD Y EXPRESIÓN (contexto adicional)
+  const ageGender: string[] = [];
+  if (app.age) ageGender.push(app.age);
+  if (app.gender) ageGender.push(app.gender);
+  if (ageGender.length > 0) parts.push(ageGender.join(' '));
 
-  // Skin tone (form, not texture)
-  if (appearance.skinTone) parts.push(appearance.skinTone);
+  if (app.defaultExpression) parts.push(app.defaultExpression);
 
-  // Coloration (for non-humans - important for silhouette)
-  if (appearance.coloration) parts.push(appearance.coloration);
-
-  // Clothing (shape, not fabric detail)
-  if (appearance.clothing) parts.push(`wearing ${appearance.clothing}`);
+  // "Based on" reference (si existe, ayuda al modelo)
+  if (app.basedOn) parts.push(`basado en ${app.basedOn}`);
 
   return parts.join(', ');
 }
@@ -182,34 +208,46 @@ export async function generateStructuredPrompt(options: {
       ? buildContextHistory(options.previousPanels)
       : '';
 
-    // Create GPT prompt - HIGH FIDELITY in FORM, LOW FIDELITY in TEXTURE
-    const systemPrompt = `You are a storyboard artist. Create prompts for rough pencil sketches with HIGH FIDELITY in FORM (character likeness, landmark recognition) but LOW FIDELITY in TEXTURE (no rendering, no detail).
+    // Create GPT prompt - STRUCTURE: Subject + Environment + Style + Quality
+    const systemPrompt = `Eres un artista técnico de storyboards. Genera prompts CONCISOS siguiendo esta estructura obligatoria:
 
-Output format (STYLE goes FIRST):
+[SUJETO] + [ENTORNO] + [ESTILO] + [CALIDAD]
 
-STYLE: Rough black-and-white pencil storyboard sketch. Loose gestural line art, no color, no shading, minimal detail, hand-drawn animation pre-visualization look. Clear silhouettes, simplified backgrounds. Avoid realism.
+FORMATO Y REGLAS:
 
-SHOT: [shot type and angle - e.g. "medium shot, eye-level"]
+1. SUJETO (Personajes):
+   - Nombre del personaje
+   - Rasgos anatómicos clave: forma de rostro, estructura ósea, proporciones
+   - Cabello: color específico, textura, longitud
+   - Ojos: color exacto y forma
+   - Vestimenta: formas y siluetas (NO texturas)
+   - Acción: UN verbo en gerundio, máximo una frase corta
 
-CHARACTERS: [anatomical fidelity - face structure, hair shape, distinctive features, build, clothing. NO texture words like "smooth skin" or "detailed fabric"]
+2. ENTORNO (Ubicación):
+   - Nombre del lugar
+   - Si es lugar real: agregar "simplificado" + elementos clave como "silueta" o "contorno"
+   - Si es ficticio: descripción breve con "simplificado"
+   - Iluminación básica: día/noche/crepúsculo
 
-ACTION: [what the character is doing - one sentence]
+3. ESTILO (Técnica de dibujo):
+   - SIEMPRE: "Boceto a lápiz negro" o "Boceto a grafito"
+   - SIEMPRE: "líneas gestuales sueltas"
+   - SIEMPRE: "sin sombreado, sin color"
 
-LOCATION: [For real places: "Simplified [place name]" with key landmarks as "outline" or "silhouette". For fictional: brief description with "simplified" prefix]
+4. CALIDAD (Fidelidad):
+   - "Alta fidelidad en proporciones faciales y anatomía"
+   - "Entorno simplificado y minimalista"
 
-COMPOSITION: [character position, background indication - e.g. "characters centered, background lightly indicated"]
+LÍMITE CRÍTICO: Máximo 60-80 palabras. Evita listas largas y descripciones excesivas.
 
-ATMOSPHERE: [mood, lighting - very brief]
+VOCABULARIO PERMITIDO:
+✓ Usar: "simplificado", "contorno", "silueta", "gestual", "suelto", "minimalista"
+✗ NUNCA: "realista", "detallado", "texturizado", "renderizado", "fotográfico"
 
-NOTES: Keep sketch rough; emphasize character likeness and facial proportions. Background should resemble real location but stay minimalistic and sketched.
+EJEMPLO CORRECTO (76 palabras):
+"Elena, rostro ovalado con pómulos altos, cabello castaño oscuro ondulado hasta hombros, ojos verdes almendrados, vestido azul marino forma A, mirando por la ventana. Sala parisina simplificada con contorno de ventana arqueada y sillón indicado. Boceto a lápiz negro, líneas gestuales sueltas, sin sombreado ni color. Alta fidelidad en proporciones faciales, entorno minimalista."
 
-CRITICAL RULES:
-- HIGH fidelity in CHARACTER ANATOMY (face shape, features) but NO rendering
-- HIGH fidelity in LOCATION LANDMARKS (recognizable) but as SIMPLIFIED OUTLINES
-- Use words: "simplified", "outline", "silhouette", "rough", "suggested", "indicated"
-- NEVER use: "realistic", "detailed", "textured", "rendered", "photographic"
-- Characters must be anatomically recognizable but sketch-style
-- Locations must be landmark-recognizable but minimalistic`;
+SALIDA: Genera SOLO el prompt optimizado, sin secciones ni etiquetas.`;
 
     const userPrompt = `${contextHistory}Panel #${options.panelNumber}:
 
@@ -252,7 +290,7 @@ Create a BRIEF prompt. Keep it MINIMAL and SKETCHY.`;
 }
 
 /**
- * Fallback prompt generation if GPT fails - HIGH FIDELITY FORM, LOW FIDELITY TEXTURE
+ * Fallback prompt generation if GPT fails - OPTIMIZED STRUCTURE
  */
 function generateFallbackPrompt(options: {
   panelNumber: number;
@@ -264,29 +302,18 @@ function generateFallbackPrompt(options: {
 }): string {
   // Build character descriptions with anatomy focus
   const characterDescs = options.characters.map(char => {
-    return `${char.name}: ${buildCharacterSection(char)}`;
+    return `${char.name}, ${buildCharacterSection(char)}`;
   }).join('. ');
 
   // Build location with simplified approach
   const locationDesc = options.locations && options.locations.length > 0
     ? buildLocationSection(options.locations)
-    : `Simplified ${options.location}`;
+    : `${options.location} simplificado`;
 
-  return `STYLE: Rough black-and-white pencil storyboard sketch. Loose gestural line art, no color, no shading, minimal detail, hand-drawn animation pre-visualization look. Clear silhouettes, simplified backgrounds. Avoid realism.
+  const action = options.action || options.sceneDescription;
 
-SHOT: Medium shot, eye-level
-
-CHARACTERS: ${characterDescs}
-
-ACTION: ${options.action || options.sceneDescription}
-
-LOCATION: ${locationDesc}
-
-COMPOSITION: Characters centered, background lightly indicated as loose pencil outlines
-
-ATMOSPHERE: Neutral lighting
-
-NOTES: Keep sketch rough; emphasize character likeness and facial proportions. Background should stay minimalistic and sketched.`;
+  // STRUCTURE: Subject + Environment + Style + Quality
+  return `${characterDescs}, ${action}. ${locationDesc}. Boceto a lápiz negro, líneas gestuales sueltas, sin sombreado ni color. Alta fidelidad en proporciones faciales y anatomía, entorno minimalista.`;
 }
 
 /**
@@ -317,38 +344,47 @@ export async function generateMiniWorldPrompt(options: {
       ? buildLocationSection(options.locations)
       : options.location;
 
-    // Create GPT prompt for MiniWorld style
-    const systemPrompt = `You are a 3D diorama artist. Create prompts for isometric miniature world scenes with:
-- ISOMETRIC/DIORAMA perspective: Slightly elevated angle, clean lines, small contained "open box" presentation
-- WARM SOFT COLORS: Pastel palette, earth tones, soft warm diffuse lighting, no harsh shadows
-- SIMPLIFIED BUT REALISTIC: Moderate detail level, not hyper-realistic, stylized miniature aesthetic
-- COZY ATMOSPHERE: Calm, well-balanced, harmonious composition
-- MATERIALS: Soft textures, light wood, discrete fabric details, miniature-like accessories
+    // Create GPT prompt for MiniWorld style - CONCISE STRUCTURE
+    const systemPrompt = `Eres un diseñador de dioramas isométricos. Genera prompts CONCISOS siguiendo esta estructura:
 
-Output format (STYLE goes FIRST):
+[ENTORNO] + [ELEMENTOS] + [PALETA] + [ESTILO ISOMÉTRICO]
 
-STYLE: Isometric diorama, miniature world aesthetic. Pastel and warm earth tone color palette. Soft diffuse lighting, no harsh shadows. Moderate detail level - realistic but stylized like a small exhibition piece or miniature set. Clean angles, slightly elevated perspective.
+FORMATO Y REGLAS:
 
-LOCATION: [The main setting - simplified but with enough detail to feel real and cozy]
+1. ENTORNO (Espacio principal):
+   - Tipo de espacio: interior/exterior
+   - Dimensión: pequeño/mediano
+   - Ángulo OBLIGATORIO: "vista isométrica 45°" o "perspectiva elevada 30°"
 
-CHARACTERS: [If present - natural proportions, smooth movement, simple but expressive, integrated into environment]
+2. ELEMENTOS (Objetos y personajes):
+   - Mobiliario principal: 3-5 piezas clave con material y forma
+   - Accesorios decorativos: plantas, libros, objetos (máximo 5)
+   - Personajes (si aplica): posición y acción simple en UNA frase
 
-OBJECTS: [Furniture, plants, accessories - stylized, miniature-like, each with purpose, well-ordered]
+3. PALETA DE COLOR (CRÍTICO - especificar tonos exactos):
+   - 3-4 colores principales
+   - Usar nombres específicos: "beige arena", "verde salvia", "terracota", "azul pastel"
+   - SIEMPRE tonos cálidos, pasteles o tierra
 
-COMPOSITION: [Small contained world, "open box" presentation showing a cut section, clean edges, no ceiling visible]
+4. ILUMINACIÓN:
+   - "Luz difusa cenital" o "luz cálida lateral"
+   - SIEMPRE: "sin sombras duras"
 
-ATMOSPHERE: [Cozy, calm, warm, well-balanced, habitable feeling]
+5. ESTILO TÉCNICO:
+   - "Diorama isométrico miniatura"
+   - "Detalle moderado, no hiperrealista"
+   - "Bordes limpios, corte limpio sin techo"
 
-LIGHTING: [Soft warm diffuse light, well-balanced, creates inviting atmosphere]
+LÍMITE CRÍTICO: Máximo 70-90 palabras. Evita descripciones largas.
 
-CRITICAL RULES:
-- ALWAYS use isometric or slightly elevated perspective
-- ALWAYS use soft, warm, pastel color palette
-- Keep detail level moderate - not too simple, not hyper-realistic
-- Everything should feel like part of a miniature exhibition piece
-- Composition must feel contained, harmonious, and purposeful
-- No harsh shadows or dramatic lighting
-- Environment should feel cozy and habitable`;
+VOCABULARIO PERMITIDO:
+✓ Usar: "isométrico", "miniatura", "pastel", "cálido", "difuso", "contenido", "ordenado"
+✗ NUNCA: "realista fotográfico", "sombras dramáticas", "iluminación intensa", "saturado"
+
+EJEMPLO CORRECTO (82 palabras):
+"Cafetería pequeña, vista isométrica 45°. Barra de madera nogal con cafetera vintage plateada, dos mesas redondas con sillas, estante con plantas en macetas, piso damero. Paleta: nogal cálido, azul pastel, terracota, blanco cremoso. Luz difusa cenital sin sombras duras. Diorama isométrico miniatura, detalle moderado, bordes limpios con corte limpio mostrando interior sin techo."
+
+SALIDA: Genera SOLO el prompt optimizado, sin secciones ni etiquetas.`;
 
     const userPrompt = `Create a MiniWorld scene:
 
@@ -385,7 +421,7 @@ Create a CONCISE prompt for this isometric miniature diorama.`;
 }
 
 /**
- * Fallback MiniWorld prompt generation if GPT fails
+ * Fallback MiniWorld prompt generation if GPT fails - OPTIMIZED STRUCTURE
  */
 function generateFallbackMiniWorldPrompt(options: {
   location: string;
@@ -393,25 +429,18 @@ function generateFallbackMiniWorldPrompt(options: {
   locations?: Location[];
   sceneDescription: string;
 }): string {
-  const characterDescs = options.characters && options.characters.length > 0
-    ? options.characters.map(char => `${char.name}: ${buildCharacterSection(char)}`).join('. ')
-    : '';
-
   const locationDesc = options.locations && options.locations.length > 0
     ? buildLocationSection(options.locations)
     : options.location;
 
-  return `STYLE: Isometric diorama, miniature world aesthetic. Pastel and warm earth tone color palette. Soft diffuse lighting, no harsh shadows. Moderate detail level - realistic but stylized like a small exhibition piece or miniature set. Clean angles, slightly elevated perspective.
+  const characterDescs = options.characters && options.characters.length > 0
+    ? options.characters.map(char => `${char.name}, ${buildCharacterSection(char)}`).join('. ')
+    : '';
 
-LOCATION: ${locationDesc}
+  // STRUCTURE: Environment + Elements + Palette + Isometric Style
+  const basePrompt = `${locationDesc}, vista isométrica 45°. ${options.sceneDescription}.`;
+  const charactersPrompt = characterDescs ? ` ${characterDescs}.` : '';
+  const stylePrompt = ` Paleta cálida pastel con tonos tierra. Luz difusa cenital sin sombras duras. Diorama isométrico miniatura, detalle moderado, bordes limpios con corte limpio sin techo.`;
 
-${characterDescs ? `CHARACTERS: ${characterDescs}` : 'CHARACTERS: None'}
-
-SCENE: ${options.sceneDescription}
-
-COMPOSITION: Small contained world, "open box" presentation showing a cut section, clean edges, no ceiling visible. Everything well-ordered and harmonious.
-
-ATMOSPHERE: Cozy, calm, warm, well-balanced, habitable feeling
-
-LIGHTING: Soft warm diffuse light, well-balanced, creates inviting atmosphere`;
+  return basePrompt + charactersPrompt + stylePrompt;
 }

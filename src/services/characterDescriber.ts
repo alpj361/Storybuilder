@@ -33,49 +33,109 @@ const replicate = new Replicate({
  * @returns Detailed character appearance description
  */
 /**
- * Create the detailed character description prompt
+ * Create the detailed character description prompt with anatomical precision
  */
-const getDescriptionPrompt = () => `You are helping a storyboard artist create fictional character descriptions for illustration purposes. Analyze this reference image and provide a DETAILED physical description suitable for drawing/sketching this character consistently across multiple panels.
+const getDescriptionPrompt = () => `You are an anatomical artist helping create detailed character descriptions for AI image generation. Analyze this reference image with PRECISION, focusing on anatomical structure, proportions, and distinctive features.
 
 CRITICAL: DO NOT ASSUME THIS IS A HUMAN. First identify what type of character this is, then describe accordingly.
 
 STEP 1 - IDENTIFY CHARACTER TYPE (MANDATORY):
-Start your response with the character type using this EXACT format:
+Start your response with this EXACT format:
 CHARACTER_TYPE: [human | creature | robot | animal | alien | hybrid | other]
-SPECIES: [specific species if applicable, e.g., "dragon", "wolf", "android", "alien being"]
+SPECIES: [specific species if applicable]
 
-Examples:
-- If it's a dragon: "CHARACTER_TYPE: creature | SPECIES: dragon"
-- If it's a wolf: "CHARACTER_TYPE: animal | SPECIES: wolf"
-- If it's a robot: "CHARACTER_TYPE: robot | SPECIES: android"
-- If it's a human: "CHARACTER_TYPE: human | SPECIES: N/A"
-- If it's an alien: "CHARACTER_TYPE: alien | SPECIES: extraterrestrial being"
+STEP 2 - DESCRIBE WITH ANATOMICAL PRECISION:
 
-STEP 2 - DESCRIBE BASED ON CHARACTER TYPE:
+FOR HUMANS - Focus on MEASURABLE, TECHNICAL details:
 
-FOR HUMANS:
-1. FACIAL FEATURES: Face shape, eyes (size, shape, color), eyebrows, nose, mouth, jaw/chin, cheekbones
-2. HAIR: Color, length, texture, style
-3. BODY & BUILD: Height, build, shoulder width, posture
-4. SKIN: Skin tone and texture
-5. CLOTHING & STYLE: Primary clothing, colors, accessories
-6. DISTINCTIVE FEATURES: Glasses, facial hair, scars, tattoos, etc.
-7. AGE & EXPRESSION: Age range, gender, default expression
+1. ESTRUCTURA CRANEAL Y FACIAL (CRÍTICO para fidelidad):
+   - Forma de cráneo: proporción largo/ancho, frente alta/baja, occipital prominente/plano
+   - Estructura ósea facial: pómulos (altos/bajos/anchos/prominentes), arco superciliar (pronunciado/suave)
+   - Mandíbula: angular/redondeada/cuadrada/en V, mentón (puntiagudo/redondeado/hendido)
+   - Proporciones faciales: distancia entre ojos (amplia/normal/estrecha), proporción nariz-boca
 
-FOR NON-HUMANS (creatures, robots, animals, aliens):
-1. BODY TYPE: Quadruped, bipedal, serpentine, humanoid, etc.
-2. SIZE: Massive, large, human-sized, small, tiny
-3. TEXTURE/SURFACE: Scales, fur, feathers, metallic plating, smooth skin, etc.
-4. COLORATION: Primary colors, patterns, accents (e.g., "crimson scales with golden accents")
-5. DISTINCTIVE FEATURES: Wings, horns, tail, claws, multiple limbs, antennae, etc.
-6. BUILD: Muscular, slender, bulky, sleek, etc.
-7. AGE & IMPRESSION: Young, adult, ancient; menacing, majestic, friendly, etc.
+2. RASGOS ÉTNICOS Y CARACTERÍSTICAS DISTINTIVAS:
+   - OJOS: Forma exacta (almendrados/redondos/rasgados), inclinación (hacia arriba/horizontal/hacia abajo),
+     pliegue palpebral (monolid/doble pliegue/hooded), epicanto (presente/ausente),
+     color ESPECÍFICO (no solo "marrón", sino "marrón ámbar con anillo oscuro" o "verde oliva con motas doradas")
+   - NARIZ: Puente nasal (alto/bajo/ancho/estrecho), punta (redondeada/puntiaguda/bulbosa),
+     fosas nasales (anchas/estrechas/hacia arriba/hacia abajo), dorso (recto/convexo/cóncavo)
+   - BOCA: Grosor labial (fino/medio/grueso, especificar labio superior vs inferior),
+     arco de cupido (pronunciado/suave/ausente), comisuras (hacia arriba/neutro/hacia abajo),
+     ancho boca relativo a nariz
 
-Output format: Start with CHARACTER_TYPE and SPECIES on the first line, then provide a detailed comma-separated description optimized for AI image generation.
+3. CABELLO - DETALLES TÉCNICOS PRECISOS:
+   - Color EXACTO con especificidad: no "rubio", sino "rubio ceniza con raíces más oscuras" o "castaño chocolate con reflejos cobrizos"
+   - Textura según escala: Tipo 1 (liso), 2 (ondulado), 3 (rizado), 4 (coily/afro)
+   - Grosor individual del cabello: fino/medio/grueso
+   - Densidad: baja/media/alta densidad
+   - Línea de nacimiento: recta/en pico de viuda/redondeada/retrocedida/irregular
+   - Longitud específica: a la oreja/hombros/mitad espalda/cintura
+   - Patrón de crecimiento y volumen
 
-Example for dragon: "CHARACTER_TYPE: creature | SPECIES: dragon | Massive quadruped dragon, crimson scales with golden accents along spine, large leathery wings folded at sides, long serpentine neck, fierce yellow eyes with slit pupils, rows of sharp ivory horns along head and back, powerful muscular build, long spiked tail, smoke wisps from nostrils, ancient and majestic presence"
+4. PROPORCIONES CORPORALES:
+   - Altura relativa: bajo/promedio/alto (con contexto si es visible)
+   - Complexión: ectomorfo (delgado)/mesomorfo (atlético)/endomorfo (robusto)
+   - Ratio hombros-caderas: hombros anchos/promedio/estrechos relativos a caderas
+   - Longitud de cuello: corto/promedio/largo y delgado/grueso
+   - Estructura de hombros: caídos/rectos/elevados
+   - Postura habitual: erguida/encorvada/inclinada/relajada
 
-Example for human: "CHARACTER_TYPE: human | SPECIES: N/A | Angular face with strong jawline, almond-shaped dark brown eyes, thick arched eyebrows, straight nose, full lips, high cheekbones, 20s female, long straight black hair parted center, slim athletic build, tan skin, wearing cream knit sweater, confident expression"`;
+5. TONO Y CARACTERÍSTICAS DE PIEL:
+   - Tono ESPECÍFICO usando descriptores técnicos: porcelana/marfil/beige/oliva/caramelo/bronze/ébano/etc.
+   - Subtono: cálido/frío/neutro
+   - NO describir textura, solo color y características visibles (pecas/lunares/marcas)
+
+6. VESTIMENTA (forma, NO textura):
+   - Silueta de la ropa: ajustada/holgada/estructurada
+   - Colores específicos
+   - Elementos distintivos visibles
+
+7. EDAD, GÉNERO Y EXPRESIÓN:
+   - Rango de edad específico (ej: "principios de 20s", "mediados de 40s")
+   - Género aparente
+   - Expresión facial dominante
+
+FOR NON-HUMANS (creatures, robots, animals, aliens) - TECHNICAL PRECISION:
+
+1. MORFOLOGÍA CORPORAL:
+   - Tipo de locomoción: cuadrúpedo/bípedo/serpentino/volador/acuático
+   - Proporciones: cabeza-cuerpo, extremidades-torso
+   - Simetría: bilateral/radial/asimétrico
+
+2. ESCALA Y DIMENSIONES:
+   - Tamaño: masivo/grande/tamaño humano/pequeño/diminuto
+   - Proporciones relativas si hay contexto
+
+3. SUPERFICIE Y RECUBRIMIENTO:
+   - Tipo: escamas/pelaje/plumas/placa metálica/piel lisa/exoesqueleto/cristalino
+   - Patrón: uniforme/irregular/en placas/segmentado
+
+4. COLORACIÓN PRECISA:
+   - Color primario ESPECÍFICO: no "rojo", sino "rojo carmesí" o "escarlata"
+   - Patrones: sólido/degradado/manchas/rayas/moteado
+   - Acentos: ubicación y color específico
+
+5. CARACTERÍSTICAS ANATÓMICAS DISTINTIVAS:
+   - Apéndices: alas (membranosas/emplumadas), cuernos (curvos/rectos/espirales),
+     cola (larga/corta/prensil/espinosa), garras, colmillos, antenas
+   - Ubicación exacta y forma
+
+6. COMPLEXIÓN Y MUSCULATURA:
+   - Musculoso/esbelto/robusto/delgado/voluminoso
+
+7. IMPRESIÓN Y EDAD:
+   - Joven/adulto/anciano
+   - Presencia: amenazante/majestuoso/amigable/misterioso
+
+OUTPUT FORMAT:
+CHARACTER_TYPE: [type] | SPECIES: [species] | [Comma-separated technical description focusing on anatomical precision]
+
+EXAMPLE (Human):
+"CHARACTER_TYPE: human | SPECIES: N/A | Cráneo dolicocéfalo con frente amplia, pómulos altos y prominentes, mandíbula angular con mentón definido, arco superciliar marcado, distancia entre ojos amplia. Ojos almendrados con inclinación hacia arriba, doble pliegue palpebral, color marrón oscuro casi negro con anillo limbal pronunciado. Nariz con puente alto y estrecho, punta redondeada, fosas nasales estrechas. Labios medianos con arco de cupido pronunciado. Cabello negro azabache tipo 1A (liso), textura fina, alta densidad, línea de nacimiento en pico de viuda, longitud hasta hombros. Complexión mesomorfa atlética, hombros anchos relativos a caderas, cuello largo, postura erguida. Tono de piel oliva con subtono cálido. Viste camisa blanca ajustada. Principios de 30s, masculino, expresión neutra concentrada"
+
+EXAMPLE (Creature):
+"CHARACTER_TYPE: creature | SPECIES: dragon | Morfología cuadrúpeda con alas, cabeza grande relativa al cuerpo serpentino. Escamas hexagonales uniformes, color carmesí intenso en dorso con degradado a escarlata en vientre, acentos dorados metálicos a lo largo de la espina dorsal formando cresta continua. Alas membranosas con estructura ósea visible, envergadura el doble del largo corporal. Cuernos curvos hacia atrás en pares (4 total) emergiendo del occipital. Ojos reptilianos con pupila vertical, iris amarillo dorado. Hocico alargado con fosas nasales prominentes expulsando humo. Cola larga y muscular con espinas óseas en tercio final. Complexión muscular poderosa. Adulto, presencia majestuosa e imponente"`;
 
 export async function describeCharacterFromImage(
   imageBase64: string
