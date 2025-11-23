@@ -21,7 +21,7 @@ export const cloudStorageService = {
                 title: project.title,
                 description: project.description || null,
                 user_input: project.userInput || null,
-                project_type: project.projectType as string,
+                project_type: (project.projectType || 'storyboard') as string,
                 project_data: project, // Store full project as JSON
                 created_at: project.createdAt instanceof Date
                     ? project.createdAt.toISOString()
