@@ -2,11 +2,14 @@
  * Stable Diffusion API service for storyboard image generation
  * Uses the provided API key for generating draft/rough sketch style images
  * Supports both text-to-image and image-to-image generation
+ *
+ * Now optimized with technical parameters from imageGenerationParams.ts
  */
 
 import * as FileSystem from 'expo-file-system';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { GenerationQuality } from '../types/storyboard';
+import { STORYBOARD_PARAMS, getImageGenerationParams } from '../config/imageGenerationParams';
 
 const STABLE_DIFFUSION_TEXT_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/text-to-image";
 const STABLE_DIFFUSION_IMAGE_TO_IMAGE_URL = "https://api.stability.ai/v1/generation/stable-diffusion-xl-1024-v1-0/image-to-image";
@@ -42,30 +45,52 @@ export async function generateStoryboardImage(
 ): Promise<string> {
   const apiKey = "sk-vPIMZInP8snQecyXCCwYwyOuB4h5zE8lUfA31zNGbAojuD6P";
 
+  // Use optimized parameters from config
+  const optimizedParams = STORYBOARD_PARAMS;
+
   // Default options optimized for storyboard/draft style
   const defaultOptions: StableDiffusionOptions = {
-    width: 1024,
-    height: 1024,
-    steps: 30,
-    cfg_scale: 7,
+    width: optimizedParams.width,
+    height: optimizedParams.height,
+    steps: optimizedParams.steps, // Optimized: 25 steps (prevents over-rendering)
+    cfg_scale: optimizedParams.cfg_scale, // Optimized: 7 (moderate guidance)
     samples: 1,
     style_preset: "line-art", // Perfect for draft/rough sketch style
     ...options
   };
 
-  console.log("[StableDiffusion] Generating image with:", {
-    prompt: prompt,
-    options: defaultOptions
+  console.log("[StableDiffusion] Generating image with OPTIMIZED PARAMS:", {
+    prompt: prompt.substring(0, 100) + '...',
+    steps: defaultOptions.steps,
+    cfg_scale: defaultOptions.cfg_scale,
+    dimensions: `${defaultOptions.width}x${defaultOptions.height}`
   });
 
+  // Build text prompts with negative prompt support
+  const textPrompts = [
+    {
+      text: prompt,
+      weight: 1
+    }
+  ];
+
+  // Add negative prompt to avoid unwanted elements
+  if (optimizedParams.negative_prompt) {
+    textPrompts.push({
+      text: optimizedParams.negative_prompt,
+      weight: -1 // Negative weight to avoid these elements
+    });
+    console.log("[StableDiffusion] Using negative prompt:", optimizedParams.negative_prompt);
+  }
+
   const requestBody = {
-    text_prompts: [
-      {
-        text: prompt,
-        weight: 1
-      }
-    ],
-    ...defaultOptions
+    text_prompts: textPrompts,
+    width: defaultOptions.width,
+    height: defaultOptions.height,
+    steps: defaultOptions.steps,
+    cfg_scale: defaultOptions.cfg_scale,
+    samples: defaultOptions.samples,
+    style_preset: defaultOptions.style_preset
   };
 
   console.log("[StableDiffusion] Request body:", JSON.stringify(requestBody, null, 2));
@@ -134,14 +159,15 @@ export async function generateDraftStoryboardImage(
     return result;
   }
 
-  // Otherwise use standard text-to-image
-  console.log("[generateDraftStoryboardImage] Using text-to-image mode");
+  // Otherwise use standard text-to-image with optimized parameters
+  console.log("[generateDraftStoryboardImage] Using text-to-image mode with OPTIMIZED PARAMS");
+  const optimizedParams = STORYBOARD_PARAMS;
   const result = await generateStoryboardImage(prompt, {
     style_preset: "line-art",
-    steps: 30, // Increased for better quality
-    cfg_scale: 7, // Good balance for creative but coherent results
-    width: 1024,
-    height: 1024
+    steps: optimizedParams.steps, // Optimized: 25 steps
+    cfg_scale: optimizedParams.cfg_scale, // Optimized: 7
+    width: optimizedParams.width,
+    height: optimizedParams.height
   });
 
   console.log("[generateDraftStoryboardImage] Returning result, length:", result.length);
@@ -191,14 +217,22 @@ export async function generateImageWithReference(
     const approximateFileSize = (base64Data.length * 3) / 4;
     console.log("[StableDiffusion img2img] Approximate file size:", Math.round(approximateFileSize / 1024), "KB");
 
+    // Use optimized parameters from config
+    const optimizedParams = STORYBOARD_PARAMS;
+
     // Default options optimized for img2img with character reference
     const defaultOptions: StableDiffusionOptions = {
-      steps: 30,
-      cfg_scale: 7,
+      steps: optimizedParams.steps, // Optimized: 25 steps
+      cfg_scale: optimizedParams.cfg_scale, // Optimized: 7
       samples: 1,
       style_preset: "line-art", // Match storyboard style
       ...options
     };
+
+    console.log("[StableDiffusion img2img] Using OPTIMIZED PARAMS:", {
+      steps: defaultOptions.steps,
+      cfg_scale: defaultOptions.cfg_scale
+    });
 
     // Build FormData for multipart/form-data request
     const formData = new FormData();
@@ -214,6 +248,14 @@ export async function generateImageWithReference(
     formData.append('init_image', imageFile);
     formData.append('text_prompts[0][text]', prompt);
     formData.append('text_prompts[0][weight]', '1');
+
+    // Add negative prompt if available
+    if (optimizedParams.negative_prompt) {
+      formData.append('text_prompts[1][text]', optimizedParams.negative_prompt);
+      formData.append('text_prompts[1][weight]', '-1');
+      console.log("[StableDiffusion img2img] Using negative prompt");
+    }
+
     formData.append('image_strength', imageStrength.toString());
     formData.append('init_image_mode', 'IMAGE_STRENGTH');
 
@@ -316,13 +358,21 @@ export async function generateCharacterPortrait(
 
   console.log("[generateCharacterPortrait] Full prompt:", prompt);
 
+  // Use optimized parameters with slight adjustments for portrait quality
+  const optimizedParams = STORYBOARD_PARAMS;
+
   // Generate using text-to-image with portrait-optimized settings
   const portraitImage = await generateStoryboardImage(prompt, {
     style_preset: "line-art",
-    steps: 35, // Slightly higher quality for character portraits
-    cfg_scale: 7.5, // Slightly higher to follow prompt more closely
+    steps: Math.min(optimizedParams.steps + 5, 30), // Slightly higher for portraits (max 30)
+    cfg_scale: optimizedParams.cfg_scale + 0.5, // Slightly higher to follow prompt more closely
     width: 1024,
     height: 1024
+  });
+
+  console.log("[generateCharacterPortrait] Using OPTIMIZED PORTRAIT PARAMS:", {
+    steps: Math.min(optimizedParams.steps + 5, 30),
+    cfg_scale: optimizedParams.cfg_scale + 0.5
   });
 
   console.log("[generateCharacterPortrait] Portrait generated successfully");

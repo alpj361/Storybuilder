@@ -1,10 +1,13 @@
 /**
  * Seeddream 4 API Service
  * High-quality image generation using ByteDance's Seeddream 4 model via Replicate
- * Used as "Gama Alta" option for storyboard panel generation
+ * Used as "Gama Alta" option for storyboard panel generation and MiniWorld projects
+ *
+ * Now optimized with negative prompts from imageGenerationParams.ts
  */
 
 import Replicate from 'replicate';
+import { MINIWORLD_PARAMS } from '../config/imageGenerationParams';
 
 // Seeddream 4 model identifier
 export const SEEDREAM_4_MODEL = "bytedance/seedream-4";
@@ -32,24 +35,35 @@ export interface SeedreamOptions {
  * Generate a storyboard panel image using Seeddream 4 (High Quality)
  * @param prompt - The structured 6-section prompt for the panel
  * @param options - Additional generation options
+ * @param projectType - Type of project (storyboard or miniworld) for negative prompt selection
  * @returns Base64 encoded image data
  */
 export async function generateWithSeedream(
   prompt: string,
-  options: SeedreamOptions = {}
+  options: SeedreamOptions = {},
+  projectType: 'storyboard' | 'miniworld' = 'storyboard'
 ): Promise<string> {
   console.log('[Seedream4] Generating high-quality image...');
+  console.log('[Seedream4] Project type:', projectType);
   console.log('[Seedream4] Prompt length:', prompt.length);
   console.log('[Seedream4] Aspect ratio:', options.aspectRatio || '4:3');
 
+  // Add negative prompt guidance for MiniWorld projects
+  let enhancedPrompt = prompt;
+  if (projectType === 'miniworld') {
+    const negativePrompt = MINIWORLD_PARAMS.negative_prompt;
+    enhancedPrompt = `${prompt}. AVOID: ${negativePrompt}`;
+    console.log('[Seedream4] Using MINIWORLD negative prompt to avoid:', negativePrompt);
+  }
+
   try {
     const input = {
-      prompt: prompt,
+      prompt: enhancedPrompt,
       aspect_ratio: options.aspectRatio || '4:3',
       ...(options.seed && { seed: options.seed })
     };
 
-    console.log('[Seedream4] Calling Replicate with input:', JSON.stringify(input, null, 2));
+    console.log('[Seedream4] Calling Replicate with OPTIMIZED prompt (length:', enhancedPrompt.length, ')');
 
     const output = await replicate.run(SEEDREAM_4_MODEL, {
       input: input

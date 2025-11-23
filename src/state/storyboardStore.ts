@@ -1611,14 +1611,15 @@ export const useStoryboardStore = create<StoryboardState>()(
           // Special handling for MiniWorlds 3-tier system
           if (currentProject.projectType === ProjectType.MINIWORLD) {
             if (qualityTier === GenerationQuality.STANDARD) {
-              // Standard -> Seeddream 4
-              console.log("[storyboardStore] Using Seeddream 4 for MiniWorld Standard");
+              // Standard -> Seeddream 4 with MiniWorld optimizations
+              console.log("[storyboardStore] Using Seeddream 4 for MiniWorld Standard (with MINIWORLD negative prompts)");
               const { generateWithSeedream } = await import('../api/seedream');
-              // Pass prompt in options to satisfy interface, though function uses first arg
-              imageUrl = await generateWithSeedream(panel.prompt.generatedPrompt, {
-                prompt: panel.prompt.generatedPrompt,
-                aspectRatio: '4:3'
-              });
+              // Pass 'miniworld' as projectType to apply MiniWorld-specific negative prompts
+              imageUrl = await generateWithSeedream(
+                panel.prompt.generatedPrompt,
+                { aspectRatio: '4:3' },
+                'miniworld' // Apply MiniWorld negative prompts
+              );
             } else if (qualityTier === GenerationQuality.STANDARD_PLUS) {
               // Standard+ -> NanoBanana
               console.log("[storyboardStore] Using NanoBanana for MiniWorld Standard+");
